@@ -701,10 +701,17 @@ elif opcion_menu == "📥 Registro de Recepción (Incoming)":
             st.write("### 🔍 Inspección Visual y de Apariencia por Rollo")
             st.markdown("Confirme que cada rollo cumpla con los criterios visuales de apariencia del SGC. Las casillas están marcadas como **CUMPLE** por defecto.")
             
-            for idx_atd, row_med in df_med.iterrows():
-                id_atd_prov = str(row_med["No_Atado"])
-                calibre_raw = row_med["Calibre"]
-                tipo_raw = str(row_med["Galvanizado_o_Decapado"]).strip()
+            # Asegurar columna Placa
+            if "Placa" not in df_med.columns:
+                df_med["Placa"] = 1
+                
+            unique_atados = df_med["No_Atado"].unique()
+            
+            for id_atd_prov in unique_atados:
+                df_atd_rows = df_med[df_med["No_Atado"] == id_atd_prov]
+                first_row = df_atd_rows.iloc[0]
+                calibre_raw = first_row["Calibre"]
+                tipo_raw = str(first_row["Galvanizado_o_Decapado"]).strip()
                 
                 # Obtener calibre numérico usando regex
                 import re
@@ -766,18 +773,7 @@ elif opcion_menu == "📥 Registro de Recepción (Incoming)":
                         chk_aceitado_val = st.session_state.get(f"chk_aceitado_{id_atd_prov}", True)
                         chk_dureza_val = st.session_state.get(f"chk_dureza_{id_atd_prov}", True)
                         
-                        # Mediciones físicas de la fila
-                        m1 = float(row_med["Espesor_Medido_1_in"])
-                        m2 = float(row_med["Espesor_Medido_2_in"])
-                        m3 = float(row_med["Espesor_Medido_3_in"])
-                        peso_kg = float(row_med["Peso_Total_Kg"])
-                        
-                        # Tolerancias nominales
-                        esp_nom = float(sku_match.iloc[0]["Espesor_Nominal_in"]) if not sku_match.empty else 0.075
-                        esp_min = esp_nom + float(sku_match.iloc[0]["Espesor_Tolerancia_Min_in"]) if not sku_match.empty else 0.067
-                        esp_max = esp_nom + float(sku_match.iloc[0]["Espesor_Tolerancia_Max_in"]) if not sku_match.empty else 0.083
-                        
-                        # Evaluar
+                        # Evaluar criterios de apariencia comunes a todo el atado
                         motivos = []
                         if not chk_cert_val: motivos.append("Falta Certificado de Calidad")
                         if not chk_apariencia_val: motivos.append("Falla en apariencia visual")
@@ -795,11 +791,30 @@ elif opcion_menu == "📥 Registro de Recepción (Incoming)":
                         if tipo_lamina == "Decapada" and not chk_aceitado_val: motivos.append("Aceitado ausente")
                         if not chk_dureza_val: motivos.append("Dureza excede el límite máximo")
                         
-                        if not (esp_min <= m1 <= esp_max): motivos.append("Espesor 1 fuera de especificación")
-                        if not (esp_min <= m2 <= esp_max): motivos.append("Espesor 2 fuera de especificación")
-                        if not (esp_min <= m3 <= esp_max): motivos.append("Espesor 3 fuera de especificación")
-                        if peso_kg > 2500: motivos.append("Peso del atado excede 2500 Kg")
-                        
+                        # Evaluar mediciones físicas de cada una de las placas/hojas registradas para este atado
+                        for idx_sub, row_med in df_atd_rows.iterrows():
+                            p_val = row_med.get("Placa", idx_sub+1)
+                            try:
+                                p_val = int(float(p_val))
+                            except Exception:
+                                pass
+                            placa_lbl = f"Placa {p_val}"
+                            
+                            m1 = float(row_med["Espesor_Medido_1_in"])
+                            m2 = float(row_med["Espesor_Medido_2_in"])
+                            m3 = float(row_med["Espesor_Medido_3_in"])
+                            peso_kg = float(row_med["Peso_Total_Kg"])
+                            
+                            # Tolerancias nominales
+                            esp_nom = float(sku_match.iloc[0]["Espesor_Nominal_in"]) if not sku_match.empty else 0.075
+                            esp_min = esp_nom + float(sku_match.iloc[0]["Espesor_Tolerancia_Min_in"]) if not sku_match.empty else 0.067
+                            esp_max = esp_nom + float(sku_match.iloc[0]["Espesor_Tolerancia_Max_in"]) if not sku_match.empty else 0.083
+                            
+                            if not (esp_min <= m1 <= esp_max): motivos.append(f"{placa_lbl}: Espesor 1 ({m1:.4f}\") fuera de especificación")
+                            if not (esp_min <= m2 <= esp_max): motivos.append(f"{placa_lbl}: Espesor 2 ({m2:.4f}\") fuera de especificación")
+                            if not (esp_min <= m3 <= esp_max): motivos.append(f"{placa_lbl}: Espesor 3 ({m3:.4f}\") fuera de especificación")
+                            if peso_kg > 2500: motivos.append(f"{placa_lbl}: Peso ({peso_kg:.0f} Kg) excede 2500 Kg")
+                            
                         estatus = "Aceptado" if not motivos else "Rechazado"
                         st.session_state.atados_guardados[id_atd_prov] = {
                             "estatus": estatus,
@@ -863,28 +878,46 @@ elif opcion_menu == "📥 Registro de Recepción (Incoming)":
                     st.markdown("📷 **Carga de Evidencia Fotográfica**")
                     st.file_uploader(f"📸 Subir Fotos de Defectos Visuales para el Atado {id_atd_prov} (Opcional)", type=["jpg", "png", "jpeg"], accept_multiple_files=True, key=f"defect_photos_{id_atd_prov}")
                         
-                    # Pintar análisis gaussiano de este atado
+                    # Pintar análisis gaussiano por cada hoja medida en pestañas (tabs)
                     if not sku_match.empty:
                         sku_info_dict = sku_match.iloc[0].to_dict()
-                        row_compatible = row_med.to_dict()
-                        row_compatible['ID_Atado_Proveedor'] = id_atd_prov
-                        row_compatible['Tipo_Lamina'] = tipo_lamina
-                        
-                        # Pre-evaluar estatus para visualización
-                        m1 = float(row_compatible.get("Espesor_Medido_1_in", 0))
-                        m2 = float(row_compatible.get("Espesor_Medido_2_in", 0))
-                        m3 = float(row_compatible.get("Espesor_Medido_3_in", 0))
-                        esp_nom = float(sku_info_dict.get("Espesor_Nominal_in", 0))
-                        esp_min = esp_nom + float(sku_info_dict.get("Espesor_Tolerancia_Min_in", -0.008))
-                        esp_max = esp_nom + float(sku_info_dict.get("Espesor_Tolerancia_Max_in", 0.008))
-                        peso_kg = float(row_compatible.get("Peso_Total_Kg", 0))
-                        
-                        is_ok = (esp_min <= m1 <= esp_max) and (esp_min <= m2 <= esp_max) and (esp_min <= m3 <= esp_max) and (peso_kg <= 2500)
-                        row_compatible['Estatus_Calidad'] = 'Aceptado' if is_ok else 'Rechazado'
-                        
                         st.write("---")
-                        st.write("📈 **Análisis Estadístico de Espesor (Distribución de Gauss):**")
-                        renderizar_analisis_gaussiano_atado(row_compatible, sku_info_dict, key=f"plotly_gauss_reg_{id_atd_prov}")
+                        st.write("📈 **Análisis Estadístico de Espesor por Hoja (Distribución de Gauss):**")
+                        
+                        placa_names = []
+                        for idx_sub, row_sub in df_atd_rows.iterrows():
+                            p_num = row_sub.get("Placa", idx_sub+1)
+                            try:
+                                p_num = int(float(p_num))
+                            except Exception:
+                                pass
+                            placa_names.append(f"Placa {p_num}")
+                            
+                        tabs = st.tabs(placa_names)
+                        for tab, (idx_sub, row_sub) in zip(tabs, df_atd_rows.iterrows()):
+                            with tab:
+                                p_num = row_sub.get("Placa", idx_sub+1)
+                                try:
+                                    p_num = int(float(p_num))
+                                except Exception:
+                                    pass
+                                row_compatible = row_sub.to_dict()
+                                row_compatible['ID_Atado_Proveedor'] = f"{id_atd_prov} (Placa {p_num})"
+                                row_compatible['Tipo_Lamina'] = tipo_lamina
+                                
+                                # Pre-evaluar estatus para visualización
+                                m1 = float(row_compatible.get("Espesor_Medido_1_in", 0))
+                                m2 = float(row_compatible.get("Espesor_Medido_2_in", 0))
+                                m3 = float(row_compatible.get("Espesor_Medido_3_in", 0))
+                                esp_nom = float(sku_info_dict.get("Espesor_Nominal_in", 0))
+                                esp_min = esp_nom + float(sku_info_dict.get("Espesor_Tolerancia_Min_in", -0.008))
+                                esp_max = esp_nom + float(sku_info_dict.get("Espesor_Tolerancia_Max_in", 0.008))
+                                peso_kg = float(row_compatible.get("Peso_Total_Kg", 0))
+                                
+                                is_ok = (esp_min <= m1 <= esp_max) and (esp_min <= m2 <= esp_max) and (esp_min <= m3 <= esp_max) and (peso_kg <= 2500)
+                                row_compatible['Estatus_Calidad'] = 'Aceptado' if is_ok else 'Rechazado'
+                                
+                                renderizar_analisis_gaussiano_atado(row_compatible, sku_info_dict, key=f"plotly_gauss_reg_{id_atd_prov}_P{p_num}")
             
             st.write("---")
             
@@ -935,9 +968,8 @@ elif opcion_menu == "📥 Registro de Recepción (Incoming)":
                         with open(oc_path, "wb") as f:
                             f.write(oc_file.read())
                             
-                        # Guardar fotos de defectos por atado
-                        for idx_atd, row_med in df_med.iterrows():
-                            id_atd_prov = str(row_med["No_Atado"])
+                        # Guardar fotos de defectos por atado (agrupado por No_Atado)
+                        for id_atd_prov in df_med["No_Atado"].unique():
                             atd_photos = st.session_state.get(f"defect_photos_{id_atd_prov}")
                             if atd_photos:
                                 for idx_ph, ph in enumerate(atd_photos):
@@ -1161,10 +1193,18 @@ elif opcion_menu == "📥 Registro de Recepción (Incoming)":
                                 else:
                                     lote_rechazado_visual = True
                                 
+                            # Obtener valor de Placa
+                            placa_val = row_med.get("Placa") or row_med.get("Hoja") or row_med.get("No_Hoja") or 1
+                            try:
+                                placa_val = int(float(placa_val))
+                            except Exception:
+                                pass
+
                             atado_record = {
                                 "ID_Atado": id_atd_int,
                                 "Folio": nuevo_folio,
                                 "ID_Atado_Proveedor": id_atd_prov,
+                                "Placa": placa_val,
                                 "SKU": sku_atado,
                                 "Grado_Acero": grado_acero_val,
                                 "Num_Colada": str(row_med["Num_Colada"]),
@@ -1264,7 +1304,7 @@ elif opcion_menu == "📥 Registro de Recepción (Incoming)":
                         # 5.2 Registro de atados
                         # Limpiar las columnas extras usadas para dibujar la etiqueta
                         cols_validas = [
-                            "ID_Atado", "Folio", "ID_Atado_Proveedor", "SKU", "Grado_Acero", 
+                            "ID_Atado", "Folio", "ID_Atado_Proveedor", "Placa", "SKU", "Grado_Acero", 
                             "Num_Colada", "Lote_Heat", "Espesor_Medido_1_in", "Espesor_Medido_2_in", 
                             "Espesor_Medido_3_in", "Ancho_Medido_in", "Largo_Medido_in", "Cantidad_Hojas",
                             "Peso_Total_Kg", "Peso_Total_Lb", "Zinc_Medido_oz_ft2", 

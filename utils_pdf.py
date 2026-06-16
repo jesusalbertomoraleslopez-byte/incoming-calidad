@@ -34,7 +34,17 @@ def generar_graficas_tolerancia(df_atados, params, output_path):
     esp_min = esp_nom + float(params.get("Espesor_Tolerancia_Min_in", 0))
     esp_max = esp_nom + float(params.get("Espesor_Tolerancia_Max_in", 0))
     
-    atado_ids = df_atados["ID_Atado_Proveedor"].astype(str).tolist()
+    atado_ids = []
+    for _, row in df_atados.iterrows():
+        id_prov = str(row["ID_Atado_Proveedor"])
+        placa = row.get("Placa")
+        if placa and pd.notna(placa):
+            try:
+                id_prov = f"{id_prov}-P{int(float(placa))}"
+            except Exception:
+                id_prov = f"{id_prov}-P{placa}"
+        atado_ids.append(id_prov)
+
     # Para cada atado, tenemos 3 mediciones de espesor
     m1 = df_atados["Espesor_Medido_1_in"].astype(float).tolist()
     m2 = df_atados["Espesor_Medido_2_in"].astype(float).tolist()
@@ -289,8 +299,16 @@ def generar_pdf_reporte_consolidado_fomet31(folio, datos_reporte, df_atados, sku
         status_color = "#2E7D32" if status_val == "Aceptado" else "#C62828"
         status_html = f"<b><font color='{status_color}'>{status_val}</font></b>"
         
+        placa = row.get("Placa")
+        id_prov_lbl = str(row['ID_Atado_Proveedor'])
+        if placa and pd.notna(placa):
+            try:
+                id_prov_lbl = f"{id_prov_lbl} - P{int(float(placa))}"
+            except Exception:
+                id_prov_lbl = f"{id_prov_lbl} - P{placa}"
+                
         tabla_mediciones.append([
-            Paragraph(f"{row['ID_Atado_Proveedor']}<br/><font color='#616161' size='6'>{row['ID_Atado']}</font>", style_normal_text),
+            Paragraph(f"{id_prov_lbl}<br/><font color='#616161' size='6'>{row['ID_Atado']}</font>", style_normal_text),
             Paragraph(f"{row['Num_Colada']}<br/><font color='#616161' size='6'>{row['Lote_Heat']}</font>", style_normal_text),
             Paragraph(esp_med, style_normal_text),
             Paragraph(f"{float(row['Ancho_Medido_in']):.2f}", style_normal_text),
@@ -364,6 +382,13 @@ def generar_grafica_individual_probabilidad(row, folder_path):
     y = stats.norm.pdf(x, loc=mu, scale=sigma)
     
     id_prov = row.get("ID_Atado_Proveedor", "Atado")
+    placa = row.get("Placa")
+    if placa and pd.notna(placa):
+        try:
+            id_prov = f"{id_prov} - Placa {int(float(placa))}"
+        except Exception:
+            id_prov = f"{id_prov} - Placa {placa}"
+            
     ax.plot(x, y, label=f"{id_prov} ({p_out_pct:.1f}%)", color="#1f77b4", linewidth=2)
     
     ax.axvspan(lsl, usl, color='#e8f5e9', alpha=0.5, label='Zona de Especificación')
@@ -551,11 +576,18 @@ def generar_pdf_etiqueta_atado_fomet32(folio, df_atados, output_pdf_path):
         
         # Tabla de Trazabilidad (Derecha)
         status_value = str(row['Estatus_Calidad']).upper()
+        placa = row.get("Placa")
+        id_prov_lbl = str(row['ID_Atado_Proveedor'])
+        if placa and pd.notna(placa):
+            try:
+                id_prov_lbl = f"{id_prov_lbl} - Placa {int(float(placa))}"
+            except Exception:
+                id_prov_lbl = f"{id_prov_lbl} - Placa {placa}"
         traz_rows = [
             [Paragraph("TRAZABILIDAD", style_blanco_bold_label_small(styles)), ""],
             [Paragraph("🔥 NÚMERO DE COLADA", style_cell_header), Paragraph(str(row['Num_Colada']), style_cell_value_bold)],
             [Paragraph("📦 LOTE / HEAT", style_cell_header), Paragraph(str(row['Lote_Heat']), style_cell_value)],
-            [Paragraph("🏷️ ATADO PROVEEDOR", style_cell_header), Paragraph(str(row['ID_Atado_Proveedor']), style_cell_value)],
+            [Paragraph("🏷️ ATADO PROVEEDOR", style_cell_header), Paragraph(id_prov_lbl, style_cell_value)],
             [Paragraph("🏢 UBICACIÓN ALMACÉN", style_cell_header), Paragraph(str(row['Ubicacion_Almacen']), style_cell_value_bold)],
             [Paragraph("✔️ ESTATUS DE CALIDAD", style_cell_header), Paragraph(status_value, style_cell_value_white_bold)]
         ]
@@ -663,12 +695,20 @@ def generar_pdf_etiqueta_atado_fomet32(folio, df_atados, output_pdf_path):
         espesor_promedio = esp_nom + mu
         riesgo_str = "ALTO RIESGO" if p_out_pct >= 5.0 else "RIESGO BAJO"
         
+        placa = row.get("Placa")
+        id_prov_lbl = str(row['ID_Atado_Proveedor'])
+        if placa and pd.notna(placa):
+            try:
+                id_prov_lbl = f"{id_prov_lbl} - Placa {int(float(placa))}"
+            except Exception:
+                id_prov_lbl = f"{id_prov_lbl} - Placa {placa}"
+                
         # Datos Tabla 1
         t1_data = [
             [Paragraph("Rollo / Atado", style_table_header), Paragraph("Material", style_table_header),
              Paragraph("Calibre", style_table_header), Paragraph("Espesor (in)", style_table_header),
              Paragraph("Riesgo %", style_table_header), Paragraph("Riesgo", style_table_header)],
-            [Paragraph(str(row['ID_Atado_Proveedor']), style_table_cell_bold),
+            [Paragraph(id_prov_lbl, style_table_cell_bold),
              Paragraph(str(row.get('Tipo_Lamina', 'Decapada')), style_table_cell),
              Paragraph(calibre_val, style_table_cell),
              Paragraph(f"{espesor_promedio:.4f}\"", style_table_cell),
@@ -706,7 +746,7 @@ def generar_pdf_etiqueta_atado_fomet32(folio, df_atados, output_pdf_path):
             [Paragraph("Número Rollo", style_table_header), Paragraph("Espesor Medido (in)", style_table_header),
              Paragraph("Desviación Real", style_table_header), Paragraph("Probabilidad de Fallo", style_table_header),
              Paragraph("Dictamen Final", style_table_header)],
-            [Paragraph(str(row['ID_Atado_Proveedor']), style_table_cell_bold),
+            [Paragraph(id_prov_lbl, style_table_cell_bold),
              Paragraph(f"{espesor_promedio:.4f}\"", style_table_cell),
              Paragraph(f"{mu:+.6f}\"", style_table_cell),
              Paragraph(f"{p_out_pct:.2f}%", style_table_cell),
@@ -738,9 +778,9 @@ def generar_pdf_etiqueta_atado_fomet32(folio, df_atados, output_pdf_path):
         
         # 5. Conclusión Dinámica
         if dictamen_val == "ACEPTADO":
-            conclusion_text = f"<b>CONCLUSIÓN:</b> Tras evaluar las mediciones y la calibración del muestreo por unidad, se concluye que el atado/rollo <b>{row['ID_Atado_Proveedor']}</b> CUMPLE satisfactoriamente con los criterios de inspección inicial y tolerancias dimensionales. Se clasifica con Dictamen Final <b>ACEPTADO</b> y Riesgo Bajo ({p_out_pct:.2f}%), autorizándose su liberación para producción."
+            conclusion_text = f"<b>CONCLUSIÓN:</b> Tras evaluar las mediciones y la calibración del muestreo por unidad, se concluye que el atado/rollo <b>{id_prov_lbl}</b> CUMPLE satisfactoriamente con los criterios de inspección inicial y tolerancias dimensionales. Se clasifica con Dictamen Final <b>ACEPTADO</b> y Riesgo Bajo ({p_out_pct:.2f}%), autorizándose su liberación para producción."
         else:
-            conclusion_text = f"<b>CONCLUSIÓN:</b> Tras evaluar las mediciones y la calibración del muestreo por unidad, se concluye que el atado/rollo <b>{row['ID_Atado_Proveedor']}</b> NO CUMPLE con los límites dimensionales establecidos. Se clasifica con Dictamen Final <b>NO ACEPTADO</b> y Riesgo Alto ({p_out_pct:.2f}%), por lo que se procede al rechazo o retención del material."
+            conclusion_text = f"<b>CONCLUSIÓN:</b> Tras evaluar las mediciones y la calibración del muestreo por unidad, se concluye que el atado/rollo <b>{id_prov_lbl}</b> NO CUMPLE con los límites dimensionales establecidos. Se clasifica con Dictamen Final <b>NO ACEPTADO</b> y Riesgo Alto ({p_out_pct:.2f}%), por lo que se procede al rechazo o retención del material."
             
         style_conclusion = ParagraphStyle('RepConclusion', parent=styles['Normal'], fontSize=8, leading=11, fontName="Helvetica")
         story.append(Paragraph(conclusion_text, style_conclusion))
@@ -828,7 +868,13 @@ def generar_grafica_multi_probabilidad(df_atados, output_path):
             
         tipo = row.get("Tipo_Lamina", "Decapada")
         id_prov = row.get("ID_Atado_Proveedor", "Atado")
-        
+        placa = row.get("Placa")
+        if placa and pd.notna(placa):
+            try:
+                id_prov = f"{id_prov}-P{int(float(placa))}"
+            except Exception:
+                id_prov = f"{id_prov}-P{placa}"
+                
         ax.plot(x, y, label=f"{id_prov} ({p_out_pct:.1f}%)", color="#1f77b4", linewidth=2)
         ax.axvspan(lsl, usl, color='#e8f5e9', alpha=0.5, label='Zona de Especificación' if i==0 else None)
         ax.axhline(0, color='black', linewidth=0.5)
@@ -1378,11 +1424,18 @@ def generar_pdf_solo_etiquetas(folio, df_atados, output_pdf_path):
         
         # Tabla de Trazabilidad (Derecha)
         status_value = str(row['Estatus_Calidad']).upper()
+        placa = row.get("Placa")
+        id_prov_lbl = str(row['ID_Atado_Proveedor'])
+        if placa and pd.notna(placa):
+            try:
+                id_prov_lbl = f"{id_prov_lbl} - Placa {int(float(placa))}"
+            except Exception:
+                id_prov_lbl = f"{id_prov_lbl} - Placa {placa}"
         traz_rows = [
             [Paragraph("TRAZABILIDAD", style_blanco_bold_label_small(styles)), ""],
             [Paragraph("🔥 NÚMERO DE COLADA", style_cell_header), Paragraph(str(row['Num_Colada']), style_cell_value_bold)],
             [Paragraph("📦 LOTE / HEAT", style_cell_header), Paragraph(str(row['Lote_Heat']), style_cell_value)],
-            [Paragraph("🏷️ ATADO PROVEEDOR", style_cell_header), Paragraph(str(row['ID_Atado_Proveedor']), style_cell_value)],
+            [Paragraph("🏷️ ATADO PROVEEDOR", style_cell_header), Paragraph(id_prov_lbl, style_cell_value)],
             [Paragraph("🏢 UBICACIÓN ALMACÉN", style_cell_header), Paragraph(str(row['Ubicacion_Almacen']), style_cell_value_bold)],
             [Paragraph("✔️ ESTATUS DE CALIDAD", style_cell_header), Paragraph(status_value, style_cell_value_white_bold)]
         ]
