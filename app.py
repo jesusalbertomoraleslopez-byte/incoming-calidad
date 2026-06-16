@@ -231,13 +231,100 @@ elif opcion_menu == "📥 Registro de Recepción (Incoming)":
     
     if mediciones_file:
         try:
-            df_med = pd.read_excel(mediciones_file, sheet_name=0)
+            # 1. Detectar fila de encabezados dinámicamente
+            df_raw = pd.read_excel(mediciones_file, header=None)
+            header_row_idx = 0
+            for i in range(min(5, len(df_raw))):
+                row_vals = [str(x).strip() for x in df_raw.iloc[i].values]
+                if any("No_Atado" in r or "No Atado" in r or "No_atado" in r for r in row_vals):
+                    header_row_idx = i
+                    break
             
-            # Limpiar filas vacías
-            df_med = df_med.dropna(subset=["SKU", "ID_Atado_Proveedor"])
+            # 2. Leer con la fila de encabezados correcta
+            df_med_raw = pd.read_excel(mediciones_file, header=header_row_idx)
             
-            st.write("🔍 **Pre-visualización de Datos Cargados:**")
-            st.dataframe(df_med, use_container_width=True)
+            # 3. Limpiar filas vacías basándose en la primera columna (No_Atado)
+            df_med_raw = df_med_raw.dropna(subset=[df_med_raw.columns[0]])
+            df_med_raw = df_med_raw[df_med_raw[df_med_raw.columns[0]].astype(str).str.strip() != ""]
+            
+            if df_med_raw.empty:
+                st.error("❌ El archivo Excel no contiene filas de datos válidas.")
+                st.stop()
+                
+            # 4. Crear DataFrame estandarizado
+            df_med_clean = pd.DataFrame()
+            
+            # Mapear columnas básicas por índice de posición (0 a 19)
+            df_med_clean["ID_Atado_Proveedor"] = df_med_raw.iloc[:, 0].astype(str).str.strip()
+            df_med_clean["Calibre"] = df_med_raw.iloc[:, 1].astype(str).str.strip()
+            df_med_clean["Galvanizado_o_Decapado"] = df_med_raw.iloc[:, 2].astype(str).str.strip()
+            
+            for j in range(1, 13):
+                col_idx = 2 + j # Col 3 a Col 14
+                df_med_clean[f"Espesor_Medido_{j}_in"] = pd.to_numeric(df_med_raw.iloc[:, col_idx], errors="coerce").fillna(0.0)
+                
+            df_med_clean["Cantidad_Hojas"] = pd.to_numeric(df_med_raw.iloc[:, 15], errors="coerce").fillna(0).astype(int)
+            df_med_clean["Peso_Total_Kg"] = pd.to_numeric(df_med_raw.iloc[:, 16], errors="coerce").fillna(0.0)
+            df_med_clean["Num_Colada"] = df_med_raw.iloc[:, 17].astype(str).str.strip()
+            df_med_clean["Lote_Heat"] = df_med_raw.iloc[:, 18].astype(str).str.strip()
+            df_med_clean["Observaciones"] = df_med_raw.iloc[:, 19].astype(str).str.strip()
+            
+            # Calcular SKU dinámicamente
+            def obtener_sku(row):
+                cal = str(row["Calibre"]).upper()
+                tipo = str(row["Galvanizado_o_Decapado"]).upper()
+                cal_num = "".join([c for c in cal if c.isdigit()])
+                if not cal_num:
+                    cal_num = "14" # calibre default
+                
+                if "DECP" in tipo or "DECAP" in tipo:
+                    prefix = "DECP"
+                elif "GALV" in tipo or "GALVANIZADO" in tipo or "GALVANIZADA" in tipo:
+                    prefix = "GALV"
+                else:
+                    prefix = "DECP"
+                return f"SKU-{prefix}-{cal_num}"
+                
+            df_med_clean["SKU"] = df_med_clean.apply(obtener_sku, axis=1)
+            
+            # Obtener parámetros para defaultar Ancho, Largo y Grado de Acero
+            df_skus = st.session_state.BD_Parametros
+            
+            anchos = []
+            largos = []
+            grados = []
+            
+            for idx_row, r_clean in df_med_clean.iterrows():
+                sku_row = r_clean["SKU"]
+                sku_match = df_skus[df_skus["SKU"] == sku_row]
+                if not sku_match.empty:
+                    sku_info_row = sku_match.iloc[0]
+                    anchos.append(float(sku_info_row.get("Ancho_Nominal_in", 48.0)))
+                    largos.append(float(sku_info_row.get("Largo_Nominal_in", 120.0)))
+                    grados.append(str(sku_info_row.get("Grado_Acero", "SAE 1008 CS")))
+                else:
+                    anchos.append(48.0)
+                    largos.append(120.0)
+                    grados.append("SAE 1008 CS")
+                    
+            df_med_clean["Ancho_Medido_in"] = anchos
+            df_med_clean["Largo_Medido_in"] = largos
+            df_med_clean["Grado_Acero"] = grados
+            
+            # Lb = Kg * 2.20462
+            df_med_clean["Peso_Total_Lb"] = df_med_clean["Peso_Total_Kg"] * 2.20462
+            
+            # Campos adicionales de calidad
+            df_med_clean["Dureza_Medida_HRB"] = 0.0
+            df_med_clean["Zinc_Medido_oz_ft2"] = 0.0
+            df_med_clean["Aceitado_OK"] = "N/A"
+            df_med_clean["Defectos_Visuales"] = "Ninguno"
+            df_med_clean["Ubicacion_Almacen"] = "Almacén Metales"
+            
+            df_med = df_med_clean
+            
+            st.write("🔍 **Pre-visualización de Datos Cargados y Estandarizados (SKU auto-detectado):**")
+            st.dataframe(df_med[["ID_Atado_Proveedor", "SKU", "Grado_Acero", "Cantidad_Hojas", "Peso_Total_Kg", "Num_Colada", "Lote_Heat", "Observaciones"]], use_container_width=True)
             
             st.write("---")
             
