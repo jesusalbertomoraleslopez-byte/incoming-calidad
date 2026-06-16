@@ -27,6 +27,7 @@ def generar_graficas_tolerancia(df_atados, params, output_path):
     Genera una imagen PNG con las curvas de tolerancia de espesor y ancho para el lote de atados.
     Muestra los límites USL, LSL y Nominal, junto con las mediciones reales de cada atado.
     """
+    df_atados = consolidar_df_atados_para_pdf(df_atados)
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.5))
     
     # 1.1 Gráfica de Espesor
@@ -132,9 +133,117 @@ def obtener_valores_tolerancia(row):
         
     return float(esp_nom), float(esp_tol_min), float(esp_tol_max)
 
+def consolidar_df_atados_para_pdf(df_atados):
+    """
+    Consolida un DataFrame que contiene registros individuales de placas
+    (4 placas por atado) en un único registro por atado.
+    """
+    if df_atados is None or df_atados.empty:
+        return df_atados
+
+    # Copiar para evitar Side-Effects
+    df = df_atados.copy()
+
+    # Si la columna "ID_Atado_Proveedor" no existe pero sí "No_Atado", la creamos
+    if "ID_Atado_Proveedor" not in df.columns and "No_Atado" in df.columns:
+        df["ID_Atado_Proveedor"] = df["No_Atado"]
+
+    # Si no hay identificador de atado del proveedor, no agrupamos
+    if "ID_Atado_Proveedor" not in df.columns:
+        return df
+
+    # Agrupar por ID_Atado_Proveedor manteniendo el orden original de aparición
+    grouped = df.groupby("ID_Atado_Proveedor", sort=False)
+    consolidated_rows = []
+
+    for prov_id, group in grouped:
+        # Ordenar el grupo por Placa si existe
+        if "Placa" in group.columns:
+            try:
+                group = group.sort_values("Placa")
+            except Exception:
+                pass
+
+        first_row = group.iloc[0]
+
+        # 1. Promediar mediciones de espesor en cada punto (P1, P2, P3) a lo largo de las placas
+        avg_m1 = group["Espesor_Medido_1_in"].astype(float).mean()
+        avg_m2 = group["Espesor_Medido_2_in"].astype(float).mean()
+        avg_m3 = group["Espesor_Medido_3_in"].astype(float).mean()
+
+        # 2. Promediar ancho y largo si están presentes
+        avg_ancho = group["Ancho_Medido_in"].astype(float).mean() if "Ancho_Medido_in" in group.columns else first_row.get("Ancho_Medido_in", 0.0)
+        avg_largo = group["Largo_Medido_in"].astype(float).mean() if "Largo_Medido_in" in group.columns else first_row.get("Largo_Medido_in", 0.0)
+
+        # 3. Cantidad de hojas y Peso (se toma el primer valor/promedio del atado, NO la suma,
+        #    ya que cada fila virtual de placa contiene duplicado el peso/hojas del atado completo)
+        cant_hojas = group["Cantidad_Hojas"].iloc[0] if "Cantidad_Hojas" in group.columns else first_row.get("Cantidad_Hojas", 0)
+        peso_kg = group["Peso_Total_Kg"].iloc[0] if "Peso_Total_Kg" in group.columns else first_row.get("Peso_Total_Kg", 0.0)
+        peso_lb = group["Peso_Total_Lb"].iloc[0] if "Peso_Total_Lb" in group.columns else first_row.get("Peso_Total_Lb", 0.0)
+
+        # 4. Estatus de Calidad: Aceptado solo si todas las placas del atado están aceptadas
+        statuses = group["Estatus_Calidad"].astype(str).tolist()
+        if "Rechazado" in statuses:
+            final_status = "Rechazado"
+        elif "Condicionado" in statuses:
+            final_status = "Condicionado"
+        else:
+            final_status = "Aceptado"
+
+        # 5. ID Interno consolidado (rango del primero al último, por ej: INC-2026-0001-A01 a A04)
+        if "ID_Atado" in group.columns:
+            internal_ids = group["ID_Atado"].astype(str).tolist()
+            if len(internal_ids) > 1:
+                first_id = internal_ids[0]
+                last_id = internal_ids[-1]
+                # Intentar formatear como "Folio-A01 a A04"
+                parts = first_id.split("-")
+                if len(parts) > 1:
+                    first_suffix = parts[-1]
+                    last_suffix = last_id.split("-")[-1]
+                    base_id = "-".join(parts[:-1])
+                    final_internal_id = f"{base_id}-{first_suffix} a {last_suffix}"
+                else:
+                    final_internal_id = f"{first_id} a {last_id.split('-')[-1]}"
+            else:
+                final_internal_id = internal_ids[0]
+        else:
+            final_internal_id = first_row.get("ID_Atado", "")
+
+        # 6. Recopilar todas las 12 mediciones del atado (3 puntos * 4 placas)
+        #    para hacer el análisis gaussiano completo de la campana
+        all_measurements = []
+        for _, r in group.iterrows():
+            all_measurements.extend([
+                float(r["Espesor_Medido_1_in"]),
+                float(r["Espesor_Medido_2_in"]),
+                float(r["Espesor_Medido_3_in"])
+            ])
+
+        # Crear la fila consolidada
+        row_dict = first_row.to_dict()
+        row_dict.update({
+            "ID_Atado": final_internal_id,
+            "Espesor_Medido_1_in": avg_m1,
+            "Espesor_Medido_2_in": avg_m2,
+            "Espesor_Medido_3_in": avg_m3,
+            "Ancho_Medido_in": avg_ancho,
+            "Largo_Medido_in": avg_largo,
+            "Peso_Total_Kg": peso_kg,
+            "Peso_Total_Lb": peso_lb,
+            "Cantidad_Hojas": cant_hojas,
+            "Estatus_Calidad": final_status,
+            "Placa": None,  # Limpiar la placa para que no imprima "Placa X"
+            "All_Measurements": all_measurements
+        })
+        consolidated_rows.append(row_dict)
+
+    return pd.DataFrame(consolidated_rows)
+
 # =============================================================================
 # 2. FORMATOS SGC: ELEMENTOS DE CABECERA Y PIE DE PÁGINA
 # =============================================================================
+
 def draw_sigrama_sgc_decorations(canvas, doc, doc_code, title_text):
     """Dibuja el encabezado y pie de página oficiales bajo la norma SGC FO-SGC-02."""
     canvas.saveState()
@@ -195,6 +304,7 @@ def generar_pdf_reporte_consolidado_fomet31(folio, datos_reporte, df_atados, sku
     Construye el documento de calidad de recepción FO-MET-31 con las tablas de inspección
     y la gráfica de curvas de tolerancia.
     """
+    df_atados = consolidar_df_atados_para_pdf(df_atados)
     doc = SimpleDocTemplate(output_pdf_path, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=90, bottomMargin=60)
     story = []
     styles = getSampleStyleSheet()
@@ -361,11 +471,14 @@ def generar_grafica_individual_probabilidad(row, folder_path):
     lsl = esp_tol_min
     usl = esp_tol_max
     
-    m1 = float(row.get('Espesor_Medido_1_in', esp_nom))
-    m2 = float(row.get('Espesor_Medido_2_in', esp_nom))
-    m3 = float(row.get('Espesor_Medido_3_in', esp_nom))
-    
-    devs = [m1 - esp_nom, m2 - esp_nom, m3 - esp_nom]
+    if "All_Measurements" in row and isinstance(row["All_Measurements"], list) and len(row["All_Measurements"]) > 0:
+        devs = [float(x) - esp_nom for x in row["All_Measurements"]]
+    else:
+        m1 = float(row.get('Espesor_Medido_1_in', esp_nom))
+        m2 = float(row.get('Espesor_Medido_2_in', esp_nom))
+        m3 = float(row.get('Espesor_Medido_3_in', esp_nom))
+        devs = [m1 - esp_nom, m2 - esp_nom, m3 - esp_nom]
+        
     mu = np.mean(devs)
     sigma = np.std(devs)
     if sigma < 0.0005:
@@ -418,6 +531,7 @@ def generar_pdf_etiqueta_atado_fomet32(folio, df_atados, output_pdf_path):
     Genera la tarjeta de identificación de atado de materia prima FO-MET-32
     (diseño corporativo de 2 páginas por atado: Hoja 1 Datos, Hoja 2 Probabilidad).
     """
+    df_atados = consolidar_df_atados_para_pdf(df_atados)
     doc = SimpleDocTemplate(output_pdf_path, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=36, bottomMargin=36)
     story = []
     styles = getSampleStyleSheet()
@@ -666,10 +780,14 @@ def generar_pdf_etiqueta_atado_fomet32(folio, df_atados, output_pdf_path):
         story.append(Spacer(1, 5))
         
         # Cálculos estadísticos para el atado
-        m1 = float(row.get('Espesor_Medido_1_in', esp_nom))
-        m2 = float(row.get('Espesor_Medido_2_in', esp_nom))
-        m3 = float(row.get('Espesor_Medido_3_in', esp_nom))
-        devs = [m1 - esp_nom, m2 - esp_nom, m3 - esp_nom]
+        if "All_Measurements" in row and isinstance(row["All_Measurements"], list) and len(row["All_Measurements"]) > 0:
+            devs = [float(x) - esp_nom for x in row["All_Measurements"]]
+        else:
+            m1 = float(row.get('Espesor_Medido_1_in', esp_nom))
+            m2 = float(row.get('Espesor_Medido_2_in', esp_nom))
+            m3 = float(row.get('Espesor_Medido_3_in', esp_nom))
+            devs = [m1 - esp_nom, m2 - esp_nom, m3 - esp_nom]
+            
         mu = np.mean(devs)
         sigma = np.std(devs)
         if sigma < 0.0005:
@@ -840,11 +958,14 @@ def generar_grafica_multi_probabilidad(df_atados, output_path):
         lsl = esp_tol_min
         usl = esp_tol_max
         
-        m1 = float(row.get('Espesor_Medido_1_in', esp_nom))
-        m2 = float(row.get('Espesor_Medido_2_in', esp_nom))
-        m3 = float(row.get('Espesor_Medido_3_in', esp_nom))
-        
-        devs = [m1 - esp_nom, m2 - esp_nom, m3 - esp_nom]
+        if "All_Measurements" in row and isinstance(row["All_Measurements"], list) and len(row["All_Measurements"]) > 0:
+            devs = [float(x) - esp_nom for x in row["All_Measurements"]]
+        else:
+            m1 = float(row.get('Espesor_Medido_1_in', esp_nom))
+            m2 = float(row.get('Espesor_Medido_2_in', esp_nom))
+            m3 = float(row.get('Espesor_Medido_3_in', esp_nom))
+            devs = [m1 - esp_nom, m2 - esp_nom, m3 - esp_nom]
+            
         mu = np.mean(devs)
         sigma = np.std(devs)
         if sigma < 0.0005:
@@ -899,6 +1020,7 @@ def generar_grafica_multi_probabilidad(df_atados, output_path):
     return output_path
 
 def generar_pdf_reporte_tecnico_consolidado(folio, datos_reporte, df_atados, output_pdf_path):
+    df_atados = consolidar_df_atados_para_pdf(df_atados)
     doc = SimpleDocTemplate(output_pdf_path, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=36, bottomMargin=36)
     story = []
     styles = getSampleStyleSheet()
@@ -1111,6 +1233,7 @@ def generar_pdf_portada_dosier_fomet33(folio, datos_reporte, df_atados, output_p
     """
     Genera la portada del dosier de calidad FO-MET-33.
     """
+    df_atados = consolidar_df_atados_para_pdf(df_atados)
     doc = SimpleDocTemplate(output_pdf_path, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=90, bottomMargin=60)
     story = []
     styles = getSampleStyleSheet()
@@ -1266,6 +1389,7 @@ def generar_pdf_solo_etiquetas(folio, df_atados, output_pdf_path):
     Genera un PDF que contiene únicamente las tarjetas de identificación de atado (FO-MET-32)
     para cada uno de los atados, una tarjeta por página (tamaño Carta).
     """
+    df_atados = consolidar_df_atados_para_pdf(df_atados)
     doc = SimpleDocTemplate(output_pdf_path, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=36, bottomMargin=36)
     story = []
     styles = getSampleStyleSheet()
