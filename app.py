@@ -92,7 +92,7 @@ def obtener_calibre(sku_str, sku_nombre=""):
             return f"CAL {word}"
     return "CAL 14"
 
-def renderizar_analisis_gaussiano_atado(row, sku_info, key=None):
+def renderizar_analisis_gaussiano_atado(row, sku_info, key=None, show_chart=True):
     esp_nom = float(row.get('Espesor_Nominal', sku_info.get('Espesor_Nominal_in', 0.0750)))
     esp_tol_min = float(row.get('Espesor_Tol_Min', sku_info.get('Espesor_Tolerancia_Min_in', -0.008)))
     esp_tol_max = float(row.get('Espesor_Tol_Max', sku_info.get('Espesor_Tolerancia_Max_in', 0.008)))
@@ -207,7 +207,10 @@ def renderizar_analisis_gaussiano_atado(row, sku_info, key=None):
         
     if dictamen_val == "NO ACEPTADO" and motivos_rechazo:
         st.error("⚠️ **Motivo(s) de Rechazo:**\n" + "\n".join([f"- {m}" for m in motivos_rechazo]))
-    
+        
+    if not show_chart:
+        return
+        
     x_vals = np.linspace(-0.015, 0.015, 500)
     y_vals = stats.norm.pdf(x_vals, loc=mu, scale=sigma)
     
@@ -248,6 +251,88 @@ def renderizar_analisis_gaussiano_atado(row, sku_info, key=None):
     if not key:
         id_atado = row.get('ID_Atado') or row.get('ID_Atado_Proveedor') or row.get('No_Atado') or 'default'
         key = f"plotly_gauss_{id_atado}"
+    st.plotly_chart(fig_gauss, use_container_width=True, key=key)
+
+
+def renderizar_analisis_gaussiano_consolidado(df_rows, sku_info, key=None):
+    if df_rows.empty:
+        return
+        
+    first_row = df_rows.iloc[0]
+    esp_nom = float(first_row.get('Espesor_Nominal', sku_info.get('Espesor_Nominal_in', 0.0750)))
+    esp_tol_min = float(first_row.get('Espesor_Tol_Min', sku_info.get('Espesor_Tolerancia_Min_in', -0.008)))
+    esp_tol_max = float(first_row.get('Espesor_Tol_Max', sku_info.get('Espesor_Tolerancia_Max_in', 0.008)))
+    
+    lsl = esp_tol_min
+    usl = esp_tol_max
+    
+    fig_gauss = go.Figure()
+    
+    fig_gauss.add_vrect(
+        x0=lsl,
+        x1=usl,
+        fillcolor="#e8f5e9",
+        opacity=0.3,
+        layer="below",
+        line_width=0
+    )
+    
+    fig_gauss.add_vline(x=0, line_dash="dash", line_color="green", line_width=1.5, annotation_text="Nominal", annotation_position="top")
+    fig_gauss.add_vline(x=lsl, line_dash="dot", line_color="red", line_width=1.5, annotation_text="LSL", annotation_position="top")
+    fig_gauss.add_vline(x=usl, line_dash="dot", line_color="red", line_width=1.5, annotation_text="USL", annotation_position="top")
+    
+    colores = ['#1a73e8', '#f2994a', '#27ae60', '#eb5757']
+    
+    for idx, (_, row) in enumerate(df_rows.iterrows()):
+        m1 = float(row.get('Espesor_Medido_1_in', esp_nom))
+        m2 = float(row.get('Espesor_Medido_2_in', esp_nom))
+        m3 = float(row.get('Espesor_Medido_3_in', esp_nom))
+        
+        devs = [m1 - esp_nom, m2 - esp_nom, m3 - esp_nom]
+        mu = np.mean(devs)
+        sigma = np.std(devs)
+        if sigma < 0.0005:
+            sigma = 0.0005
+            
+        x_vals = np.linspace(-0.015, 0.015, 500)
+        y_vals = stats.norm.pdf(x_vals, loc=mu, scale=sigma)
+        
+        p_num = row.get("Placa", idx + 1)
+        try:
+            p_num = int(float(p_num))
+        except Exception:
+            pass
+            
+        color = colores[idx % len(colores)]
+        fig_gauss.add_trace(go.Scatter(
+            x=x_vals,
+            y=y_vals,
+            mode='lines',
+            name=f"Placa {p_num}",
+            line=dict(color=color, width=3)
+        ))
+        
+    fig_gauss.update_layout(
+        xaxis_title="Desviación Micrométrica Real (in)",
+        yaxis_title="Densidad Probabilística de Gauss",
+        xaxis=dict(range=[-0.015, 0.015], gridcolor='lightgray', gridwidth=0.5),
+        yaxis=dict(gridcolor='lightgray', gridwidth=0.5),
+        plot_bgcolor='white',
+        height=380,
+        margin=dict(l=20, r=20, t=10, b=20),
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="center",
+            x=0.5
+        )
+    )
+    
+    if not key:
+        id_atado = first_row.get('ID_Atado') or first_row.get('ID_Atado_Proveedor') or first_row.get('No_Atado') or 'default'
+        key = f"plotly_gauss_consolidado_{id_atado}"
     st.plotly_chart(fig_gauss, use_container_width=True, key=key)
 
 # Navegación lateral
@@ -980,7 +1065,10 @@ elif opcion_menu == "📥 Registro de Recepción (Incoming)":
                                 is_ok = (esp_min <= m1 <= esp_max) and (esp_min <= m2 <= esp_max) and (esp_min <= m3 <= esp_max) and (peso_kg <= 2500)
                                 row_compatible['Estatus_Calidad'] = 'Aceptado' if is_ok else 'Rechazado'
                                 
-                                renderizar_analisis_gaussiano_atado(row_compatible, sku_info_dict, key=f"plotly_gauss_reg_{id_atd_prov}_P{p_num}")
+                                renderizar_analisis_gaussiano_atado(row_compatible, sku_info_dict, key=f"plotly_gauss_reg_{id_atd_prov}_P{p_num}", show_chart=False)
+                                
+                        st.write("📈 **Análisis Estadístico Consolidado de Espesor (Distribución de Gauss - 4 Placas):**")
+                        renderizar_analisis_gaussiano_consolidado(df_atd_rows, sku_info_dict, key=f"plotly_gauss_reg_consolidado_{id_atd_prov}")
             
             st.write("---")
             
@@ -1421,11 +1509,12 @@ elif opcion_menu == "📥 Registro de Recepción (Incoming)":
                         fig_pl.update_layout(title="Control de Tolerancia de Espesor (in)", xaxis_title="ID Atado Proveedor", yaxis_title="Espesor (in)")
                         st.plotly_chart(fig_pl, use_container_width=True)
                         
-                        # Dibujar el análisis gaussiano individual por atado
-                        st.write("### 📊 Distribuciones Probabilísticas por Especificación Técnica")
-                        for _, row_atd in df_atados_temp.iterrows():
-                            id_atd_prov = str(row_atd.get("No_Atado", "default"))
-                            renderizar_analisis_gaussiano_atado(row_atd, sku_info, key=f"plotly_gauss_upload_{id_atd_prov}")
+                        # Dibujar el análisis gaussiano consolidado por atado
+                        st.write("### 📊 Distribuciones Probabilísticas por Especificación Técnica (Consolidado por Atado)")
+                        unique_atds = df_atados_temp["ID_Atado_Proveedor"].unique()
+                        for id_atd_prov in unique_atds:
+                            df_atd_rows = df_atados_temp[df_atados_temp["ID_Atado_Proveedor"] == id_atd_prov]
+                            renderizar_analisis_gaussiano_consolidado(df_atd_rows, sku_info, key=f"plotly_gauss_upload_consolidado_{id_atd_prov}")
                         
         except Exception as e:
             import traceback
@@ -1681,15 +1770,17 @@ elif opcion_menu == "🔍 Consulta de Historial":
                     fig_pl.update_layout(xaxis_title="ID Atado Proveedor", yaxis_title="Espesor (in)", margin=dict(l=20, r=20, t=40, b=20))
                     st.plotly_chart(fig_pl, use_container_width=True)
                     
-                    # Dibujar el análisis gaussiano individual por atado
-                    st.write("### 📊 Distribuciones Probabilísticas por Especificación Técnica")
-                    for _, row_atd in df_atados_recepcion.iterrows():
-                        row_with_limits = row_atd.to_dict()
-                        row_with_limits['Espesor_Nominal'] = esp_nom
-                        row_with_limits['Espesor_Tol_Min'] = sku_info.get("Espesor_Tolerancia_Min_in", -0.008)
-                        row_with_limits['Espesor_Tol_Max'] = sku_info.get("Espesor_Tolerancia_Max_in", 0.008)
-                        id_atd_prov = str(row_atd.get("ID_Atado_Proveedor", "default"))
-                        renderizar_analisis_gaussiano_atado(row_with_limits, sku_info, key=f"plotly_gauss_hist_{id_atd_prov}")
+                    # Dibujar el análisis gaussiano consolidado por atado
+                    st.write("### 📊 Distribuciones Probabilísticas por Especificación Técnica (Consolidado por Atado)")
+                    df_atados_recepcion_limit = df_atados_recepcion.copy()
+                    df_atados_recepcion_limit['Espesor_Nominal'] = esp_nom
+                    df_atados_recepcion_limit['Espesor_Tol_Min'] = sku_info.get("Espesor_Tolerancia_Min_in", -0.008)
+                    df_atados_recepcion_limit['Espesor_Tol_Max'] = sku_info.get("Espesor_Tolerancia_Max_in", 0.008)
+                    
+                    unique_atds = df_atados_recepcion_limit["ID_Atado_Proveedor"].unique()
+                    for id_atd_prov in unique_atds:
+                        df_atd_rows = df_atados_recepcion_limit[df_atados_recepcion_limit["ID_Atado_Proveedor"] == id_atd_prov]
+                        renderizar_analisis_gaussiano_consolidado(df_atd_rows, sku_info, key=f"plotly_gauss_hist_consolidado_{id_atd_prov}")
                 
                 # --- SECCIÓN ADMINISTRATIVA: ELIMINACIÓN DE REGISTROS ---
                 if is_admin:
