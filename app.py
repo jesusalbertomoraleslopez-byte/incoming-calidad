@@ -66,6 +66,63 @@ def guardar_db(df, path, sheet_name="Datos_Sistema"):
         st.error(f"Error guardando base de datos ({os.path.basename(path)}): {e}")
         return False
 
+def auto_commit_and_push_to_github(nuevo_folio):
+    """
+    Agrega las bases de datos Excel modificadas y el expediente PDF del nuevo folio,
+    realiza un commit y hace push al repositorio en GitHub usando el Token de Secrets.
+    """
+    import subprocess
+    import os
+
+    github_token = st.secrets.get("GITHUB_TOKEN")
+    if not github_token:
+        print("⚠️ GITHUB_TOKEN no está configurado en st.secrets. Se omite el respaldo automático en GitHub.")
+        return False
+
+    github_user = "jesusalbertomoraleslopez-byte"
+    github_repo = "incoming-calidad"
+    remote_url = f"https://{github_token}@github.com/{github_user}/{github_repo}.git"
+
+    try:
+        # Configurar identidad de commit temporal en el servidor
+        subprocess.run(["git", "config", "user.name", "Sigrama Quality Bot"], capture_output=True)
+        subprocess.run(["git", "config", "user.email", "quality-bot@sigrama.com.mx"], capture_output=True)
+
+        # Pull rebase previo para evitar conflictos con cambios remotos concurrentes
+        subprocess.run(["git", "pull", remote_url, "main", "--rebase"], capture_output=True)
+
+        # Añadir bases de datos Excel
+        subprocess.run(["git", "add", "BD_Atados_Incoming.xlsx", "BD_Reportes_Incoming.xlsx", "BD_Parametros_Materia_Prima.xlsx"], capture_output=True)
+
+        # Añadir la carpeta específica del folio
+        folio_folder_rel = f"carpetas_electronicas/{nuevo_folio}"
+        if os.path.exists(folio_folder_rel):
+            subprocess.run(["git", "add", folio_folder_rel], capture_output=True)
+
+        # Hacer commit
+        msg = f"Auto-registro SGC: Folio {nuevo_folio}"
+        commit_res = subprocess.run(["git", "commit", "-m", msg], capture_output=True, text=True)
+
+        # Si no hay nada que agregar, salimos con éxito
+        if "nothing to commit" in commit_res.stdout or "nada para hacer commit" in commit_res.stdout or "no changes added" in commit_res.stdout:
+            print("No hay cambios pendientes de commit en GitHub.")
+            return True
+
+        # Hacer push a la rama main
+        push_res = subprocess.run(["git", "push", remote_url, "main"], capture_output=True, text=True)
+
+        if push_res.returncode == 0:
+            print(f"✅ Sincronización exitosa con GitHub para el Folio {nuevo_folio}.")
+            return True
+        else:
+            print(f"❌ Error al hacer push a GitHub: {push_res.stderr}")
+            return False
+
+    except Exception as e:
+        print(f"❌ Excepción durante la sincronización con GitHub: {e}")
+        return False
+
+
 # Inicialización de catálogos en session_state
 if "BD_Parametros" not in st.session_state:
     st.session_state.BD_Parametros = cargar_db(BD_PARAMETROS, "Materia_Prima")
@@ -1468,6 +1525,12 @@ elif opcion_menu == "📥 Registro de Recepción (Incoming)":
                         st.session_state.BD_Atados = pd.concat([st.session_state.BD_Atados, df_atados_save], ignore_index=True)
                         guardar_db(st.session_state.BD_Atados, BD_ATADOS, "Atados_Detalle")
                         
+                        # Sincronización automática con GitHub si hay token configurado
+                        with st.spinner("Sincronizando expediente y bases de datos con GitHub..."):
+                            success_push = auto_commit_and_push_to_github(nuevo_folio)
+                            if success_push:
+                                st.info("☁️ Expediente sincronizado y respaldado en GitHub correctamente.")
+                        
                         st.success(f"✅ ¡Ingreso procesado con éxito! Lote registrado bajo Folio: **{nuevo_folio}**")
                         
                         # Mostrar botones de descarga
@@ -1807,6 +1870,10 @@ elif opcion_menu == "🔍 Consulta de Historial":
                             except Exception as ex_del:
                                 st.warning(f"Se eliminaron los registros de la base de datos, pero no se pudo eliminar la carpeta física: {ex_del}")
                         
+                        # Sincronización de la eliminación en GitHub si hay token configurado
+                        with st.spinner("Sincronizando eliminación con GitHub..."):
+                            auto_commit_and_push_to_github(folio_seleccionado)
+
                         st.success(f"✅ Recepción y Expediente '{folio_seleccionado}' eliminados exitosamente.")
                         st.rerun()
 

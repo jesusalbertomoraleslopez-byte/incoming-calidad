@@ -275,12 +275,17 @@ def draw_sigrama_sgc_decorations(canvas, doc, doc_code, title_text):
     canvas.drawRightString(576, 753, "Revisión 01")
     
     # Título Central del Formato Oficial
-    canvas.setFont("Helvetica-Bold", 12)
-    canvas.drawCentredString(288, 755, title_text.upper())
+    canvas.setFont("Helvetica-Bold", 10)
+    canvas.drawCentredString(315, 755, title_text.upper())
     
     # Fecha más destacada
     canvas.setFont("Helvetica-Bold", 8)
-    fecha_hoy = datetime.date.today().strftime("%d de %B %Y")
+    months_es = {
+        1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
+        7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+    }
+    today = datetime.date.today()
+    fecha_hoy = f"{today.day} de {months_es[today.month]} de {today.year}"
     canvas.drawString(36, 732, f"Fecha de Emisión: {fecha_hoy}")
     
     # Pie de Página Legal y Control del SGC (FO-SGC-02)
