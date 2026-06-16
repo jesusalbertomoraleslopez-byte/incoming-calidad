@@ -329,7 +329,13 @@ for row_idx in [3, 4]:
 for col in ws.columns:
     col_idx = col[0].column
     col_letter = get_column_letter(col_idx)
-    if 4 <= col_idx <= 15:
+    if col_idx == 1:
+        ws.column_dimensions[col_letter].width = 25
+    elif col_idx == 2:
+        ws.column_dimensions[col_letter].width = 10
+    elif col_idx == 3:
+        ws.column_dimensions[col_letter].width = 15
+    elif 4 <= col_idx <= 15:
         ws.column_dimensions[col_letter].width = 8.5
     else:
         max_len = max(len(str(cell.value or '')) for cell in col)

@@ -33,14 +33,18 @@ PLANTILLA_PATH = os.path.join(BASE_DIR, "plantilla_incoming_calidad.xlsx")
 CARPETAS_DIR = os.path.join(BASE_DIR, "carpetas_electronicas")
 
 # Renderizado de Banner Corporativo Sigrama
-col_banner_img, col_banner_txt = st.columns([1, 4])
-with col_banner_img:
-    if os.path.exists(LOGO_PATH):
-        st.image(LOGO_PATH, width=280)
-    else:
-        st.subheader("INDUSTRIA SIGRAMA")
-with col_banner_txt:
-    st.markdown("<h2 style='color:#D32F2F; margin-top:10px;'>SISTEMA DE CONTROL DE CALIDAD EN RECEPCIÓN (INCOMING)</h2>", unsafe_allow_html=True)
+BANNER_PATH = os.path.join(BASE_DIR, "banner_app.png")
+if os.path.exists(BANNER_PATH):
+    st.image(BANNER_PATH, use_container_width=True)
+else:
+    col_banner_img, col_banner_txt = st.columns([1, 4])
+    with col_banner_img:
+        if os.path.exists(LOGO_PATH):
+            st.image(LOGO_PATH, width=280)
+        else:
+            st.subheader("INDUSTRIA SIGRAMA")
+    with col_banner_txt:
+        st.markdown("<h2 style='color:#D32F2F; margin-top:10px;'>SISTEMA DE CONTROL DE CALIDAD EN RECEPCIÓN (INCOMING)</h2>", unsafe_allow_html=True)
 st.write("---")
 
 # Carga de base de datos segura de forma local
