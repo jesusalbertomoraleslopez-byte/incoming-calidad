@@ -4,7 +4,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
-BASE_DIR = r"C:\Users\albertol\.gemini\antigravity\scratch\incoming_calidad"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEST_DIR = os.path.join(BASE_DIR, "formatos_prueba")
 os.makedirs(TEST_DIR, exist_ok=True)
 
