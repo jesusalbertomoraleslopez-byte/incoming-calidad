@@ -7,7 +7,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 # Definir rutas en el directorio del cerebro de la conversación
-BASE_DIR = r"C:\Users\albertol\.gemini\antigravity\scratch\incoming_calidad"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CARPETAS_DIR = os.path.join(BASE_DIR, "carpetas_electronicas")
 
 # Crear directorios
@@ -206,8 +206,12 @@ db_atados_path = os.path.join(BASE_DIR, "BD_Atados_Incoming.xlsx")
 if not os.path.exists(db_atados_path):
     df_atados = pd.DataFrame(columns=[
         "ID_Atado", "Folio", "ID_Atado_Proveedor", "SKU", "Grado_Acero", 
-        "Num_Colada", "Lote_Heat", "Espesor_Medido_1_in", "Espesor_Medido_2_in", 
-        "Espesor_Medido_3_in", "Ancho_Medido_in", "Largo_Medido_in", "Cantidad_Hojas",
+        "Num_Colada", "Lote_Heat", 
+        "Espesor_Medido_1_in", "Espesor_Medido_2_in", "Espesor_Medido_3_in", 
+        "Espesor_Medido_4_in", "Espesor_Medido_5_in", "Espesor_Medido_6_in", 
+        "Espesor_Medido_7_in", "Espesor_Medido_8_in", "Espesor_Medido_9_in", 
+        "Espesor_Medido_10_in", "Espesor_Medido_11_in", "Espesor_Medido_12_in", 
+        "Ancho_Medido_in", "Largo_Medido_in", "Cantidad_Hojas",
         "Peso_Total_Kg", "Peso_Total_Lb", "Zinc_Medido_oz_ft2", 
         "Dureza_Medida_HRB", "Aceitado_OK", "Defectos_Visuales", 
         "Ubicacion_Almacen", "Estatus_Calidad", "Observaciones"
@@ -222,55 +226,70 @@ wb = Workbook()
 ws = wb.active
 ws.title = "Incoming_Mediciones"
 
+# Fila 1: Títulos de Hojas agrupadas
+ws.cell(row=1, column=4, value="HOJA 1")
+ws.merge_cells('D1:F1')
+ws.cell(row=1, column=7, value="HOJA 2")
+ws.merge_cells('G1:I1')
+ws.cell(row=1, column=10, value="HOJA 3")
+ws.merge_cells('J1:L1')
+ws.cell(row=1, column=13, value="HOJA 4")
+ws.merge_cells('M1:O1')
+
 headers = [
     "No_Atado", "Calibre", "Galvanizado_o_Decapado", 
-    "Espesor_Medido_1_in", "Espesor_Medido_2_in", "Espesor_Medido_3_in", 
+    "Espesor_1", "Espesor_2", "Espesor_3", 
+    "Espesor_4", "Espesor_5", "Espesor_6", 
+    "Espesor_7", "Espesor_8", "Espesor_9", 
+    "Espesor_4", "Espesor_5", "Espesor_6", 
     "Cantidad_Hojas", "Peso_Total_Kg", 
     "Num_Colada", "Lote_Heat", 
     "Observaciones"
 ]
 
-ws.append(headers)
+# Escribir fila 2 (Encabezados)
+for col_idx, h in enumerate(headers, 1):
+    ws.cell(row=2, column=col_idx, value=h)
 
-# Filas ejemplo descriptivas
+# Filas ejemplo descriptivas (Fila 3 y Fila 4)
 example_row = [
-    "AT-TERNIUM-4521", "CAL 14", "Galvanizado",
-    0.0748, 0.0752, 0.0750,
-    150, 2500,
-    "COL-982145", "LOT-9921",
-    "Excelente estado superficial"
+    "ACEROMEX 01", "CAL 16", "Decapado",
+    0.059, 0.059, 0.060, 0.059, 0.059, 0.059, 0.059, 0.060, 0.059, 0.059, 0.060, 0.060,
+    45, 2029,
+    "COL-2603210220", "LOT-23587",
+    "Material con daños en el acabado (óxido)"
 ]
 ws.append(example_row)
 
 example_row_dec = [
-    "AT-NUCOR-9912", "CAL 12", "Decapado",
-    0.1042, 0.1048, 0.1045,
-    120, 3200,
-    "COL-772151", "LOT-8812",
-    "Liberado condicionado por óxido ligero"
+    "ACEROMEX 02", "CAL 16", "Decapado",
+    0.059, 0.060, 0.059, 0.059, 0.059, 0.060, 0.059, 0.059, 0.059, 0.060, 0.059, 0.059,
+    45, 2029,
+    "COL-2603210220", "LOT-23587",
+    "Excelente estado superficial"
 ]
 ws.append(example_row_dec)
 
 # Agregar validaciones de listas desplegables
 from openpyxl.worksheet.datavalidation import DataValidation
 
-# Validación para Calibre (B2:B100)
+# Validación para Calibre (B3:B100)
 dv_calibre = DataValidation(type="list", formula1='"CAL 10,CAL 12,CAL 14,CAL 16"', allow_blank=True)
 dv_calibre.error = 'El calibre ingresado debe pertenecer a la lista del catálogo (CAL 10, CAL 12, CAL 14, CAL 16).'
 dv_calibre.errorTitle = 'Calibre Inválido'
 dv_calibre.prompt = 'Seleccione el calibre del catálogo'
 dv_calibre.promptTitle = 'Calibre'
 ws.add_data_validation(dv_calibre)
-dv_calibre.add("B2:B100")
+dv_calibre.add("B3:B100")
 
-# Validación para Galvanizado_o_Decapado (C2:C100)
+# Validación para Galvanizado_o_Decapado (C3:C100)
 dv_tipo = DataValidation(type="list", formula1='"Galvanizado,Decapado,Aluminio"', allow_blank=True)
 dv_tipo.error = 'El tipo de material debe ser Galvanizado, Decapado o Aluminio.'
 dv_tipo.errorTitle = 'Material Inválido'
 dv_tipo.prompt = 'Seleccione el tipo de material'
 dv_tipo.promptTitle = 'Material'
 ws.add_data_validation(dv_tipo)
-dv_tipo.add("C2:C100")
+dv_tipo.add("C3:C100")
 
 # Estilos de openpyxl
 fill_header = PatternFill(start_color="D32F2F", end_color="D32F2F", fill_type="solid")
@@ -283,34 +302,40 @@ align_left = Alignment(horizontal="left", vertical="center")
 border_thin = Side(border_style="thin", color="D3D3D3")
 border_cell = Border(left=border_thin, right=border_thin, top=border_thin, bottom=border_thin)
 
-ws.row_dimensions[1].height = 28
+ws.row_dimensions[1].height = 24
+ws.row_dimensions[2].height = 24
 
-for col_idx in range(1, len(headers) + 1):
-    cell = ws.cell(row=1, column=col_idx)
-    cell.fill = fill_header
-    cell.font = font_header
-    cell.alignment = align_center
-    cell.border = border_cell
-    
-for row_idx in [2, 3]:
+# Formatear Cabeceras (Fila 1 y Fila 2)
+for r in [1, 2]:
+    for col_idx in range(1, len(headers) + 1):
+        cell = ws.cell(row=r, column=col_idx)
+        cell.fill = fill_header
+        cell.font = font_header
+        cell.alignment = align_center
+        cell.border = border_cell
+
+# Formatear Filas de ejemplo (Fila 3 y Fila 4)
+for row_idx in [3, 4]:
     ws.row_dimensions[row_idx].height = 20
     for col_idx in range(1, len(headers) + 1):
         cell = ws.cell(row=row_idx, column=col_idx)
         cell.font = font_example
         cell.border = border_cell
-        if col_idx in [1, 2, 3, 7, 8, 9, 10]:
-            cell.alignment = align_center
-        elif col_idx in [4, 5, 6]:
+        if col_idx < len(headers):
             cell.alignment = align_center
         else:
             cell.alignment = align_left
             
 for col in ws.columns:
-    max_len = max(len(str(cell.value or '')) for cell in col)
-    col_letter = get_column_letter(col[0].column)
-    ws.column_dimensions[col_letter].width = max(max_len + 4, 15)
+    col_idx = col[0].column
+    col_letter = get_column_letter(col_idx)
+    if 4 <= col_idx <= 15:
+        ws.column_dimensions[col_letter].width = 8.5
+    else:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        ws.column_dimensions[col_letter].width = max(max_len + 4, 15)
     
 wb.save(plantilla_path)
-print("Plantilla Excel de operador recreada exitosamente con 11 columnas y listas desplegables.")
+print("Plantilla Excel de operador recreada exitosamente con 20 columnas, doble cabecera y listas desplegables.")
 
 print("Inicialización completa.")
