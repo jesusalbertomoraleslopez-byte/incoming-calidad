@@ -84,15 +84,36 @@ opcion_menu = st.sidebar.radio("Seleccione un Módulo:", [
 st.sidebar.write("---")
 st.sidebar.title("🔐 Control de Acceso")
 admin_pass_input = st.sidebar.text_input("Contraseña Administrador:", type="password")
+inspector_pass_input = st.sidebar.text_input("Contraseña Inspector:", type="password")
 
 def es_admin():
     return admin_pass_input == "SigramaCalidad2026"
 
+def es_inspector():
+    return inspector_pass_input == "SigramaInspector2026" or es_admin()
+
 is_admin = es_admin()
+is_insp = es_inspector()
+
 if is_admin:
     st.sidebar.success("Modo Administrador Activo")
+elif is_insp:
+    st.sidebar.success("Modo Inspector Activo")
 else:
     st.sidebar.warning("Modo Consulta Activo")
+
+# Documentación / Manual de Usuario
+st.sidebar.write("---")
+st.sidebar.title("📖 Documentación")
+manual_pdf_path = os.path.join(BASE_DIR, "Manual_Usuario_Incoming_Calidad.pdf")
+if os.path.exists(manual_pdf_path):
+    with open(manual_pdf_path, "rb") as f:
+        st.sidebar.download_button(
+            label="📥 Descargar Manual de Usuario (PDF)",
+            data=f.read(),
+            file_name="Manual_Usuario_Incoming_Calidad.pdf",
+            mime="application/pdf"
+        )
 
 # =============================================================================
 # MÓDULO 1: ANALÍTICAS Y DASHBOARD
@@ -165,6 +186,9 @@ if opcion_menu == "📊 Analíticas y Dashboard":
 # =============================================================================
 elif opcion_menu == "📥 Registro de Recepción (Incoming)":
     st.title("📥 Registro de Control de Calidad en Recepción")
+    if not is_insp:
+        st.warning("🔒 Área Protegida. Ingrese la contraseña de Inspector o Administrador en la barra lateral para registrar recepciones.")
+        st.stop()
     st.markdown("Suba la plantilla Excel con las mediciones y los documentos adjuntos (Certificados, OC) para generar el Dosier de Calidad.")
     
     # Descargar plantilla corporativa
