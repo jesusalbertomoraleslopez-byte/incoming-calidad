@@ -16,7 +16,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.graphics.shapes import Drawing, Rect, String, Line, Group
 
-BASE_DIR = r"C:\Users\albertol\.gemini\antigravity\scratch\incoming_calidad"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGO_PATH = os.path.join(BASE_DIR, "logo_sigrama.png")
 
 # =============================================================================

@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 from PIL import Image
 
 # Configuración del SGC y de la página
-BASE_DIR = r"C:\Users\albertol\.gemini\antigravity\scratch\incoming_calidad"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FAVICON_PATH = os.path.join(BASE_DIR, "favicon.png")
 LOGO_PATH = os.path.join(BASE_DIR, "logo_sigrama.png")
 
