@@ -84,13 +84,15 @@ Este módulo permite dar de alta un lote de materia prima:
 Este módulo permite consultar recepciones pasadas:
 
 1. **Búsqueda por Filtro**: Busque por Folio, Proveedor, Rango de fechas o Estatus de Calidad.
-2. **Selección de Expediente**: Seleccione un folio de la lista para ver sus datos generales y mediciones detalladas.
-3. **Descargas Disponibles**:
+2. **📥 Descargar Reporte de Consulta Filtrada**: 
+   * Presione el botón **`Descargar Reporte de Consulta Filtrada (PDF)`** ubicado debajo de la tabla para obtener un informe formal bajo la nomenclatura **FO-MET-35**, que detalla el resumen de todos los filtros aplicados en pantalla y la tabla de resultados actual.
+3. **Selección de Expediente**: Seleccione un folio de la lista para ver sus datos generales y mediciones detalladas.
+4. **Descargas Disponibles por Folio**:
    * **`Descargar Dosier de Calidad (PDF)`**: Descarga el archivo consolidado unificado que incluye: Portada (`FO-MET-33`), Reporte de Inspección (`FO-MET-31`), Reporte Técnico de Espesores con curvas Plotly, Tarjetas de Identificación de Atado con curva de Gauss integrada (`FO-MET-32`), Certificado del Molino y la Orden de Compra.
    * **`Descargar Solo Etiquetas FO-MET-32 (PDF)`**: Descarga un compendio con una página carta por atado que incluye la etiqueta de almacén con su campana de Gauss al pie.
    * **`Descargar Carpeta Electrónica Completa (ZIP)`**: Descarga un comprimido con todos los PDF individuales, gráficas PNG y fotografías de defectos que conforman el expediente digital del lote.
-4. **Regenerar Expediente**: Haga clic en **`🔄 Regenerar y Actualizar Todos los PDFs de este Folio`** para volver a calcular y compilar los reportes de un folio histórico (por ejemplo, si se corrigieron parámetros).
-5. **Zona de Control Administrativo**:
+5. **Regenerar Expediente**: Haga clic en **`🔄 Regenerar y Actualizar Todos los PDFs de este Folio`** para volver a calcular y compilar los reportes de un folio histórico (por ejemplo, si se corrigieron parámetros).
+6. **Zona de Control Administrativo**:
    * *Requiere contraseña de **Administrador**.*
    * Permite eliminar permanentemente de las bases de datos y del disco un lote y toda su documentación física asociada mediante la confirmación de un checkbox de seguridad.
 
@@ -103,5 +105,37 @@ Este módulo permite consultar recepciones pasadas:
 Este módulo permite configurar los parámetros técnicos aceptables para cada código de SKU en planta:
 
 1. **Visualización**: Tabla maestra de SKUs con sus especificaciones de espesor nominal, tolerancias simétricas o asimétricas, ancho, largo, zinc mínimo y dureza máxima.
-2. **Agregar Nuevo Producto**: Formulario para registrar un código nuevo, su tipo de lámina, grado de acero y valores de tolerancia técnica.
-3. **Modificar Producto Existente**: Permite corregir los valores nominales o tolerancias de un SKU ya registrado. Los cambios se guardan en `BD_Parametros_Materia_Prima.xlsx` de forma inmediata.
+2. **📥 Descargar Catálogo en PDF**:
+   * Al hacer clic en **`Descargar Catálogo de Tolerancias de SKU (PDF)`**, se genera el reporte institucional **FO-MET-34 (Revisión 01)** en formato horizontal (Landscape) con todas las tolerancias activas del sistema, ideal para su impresión física o auditoría del SGC.
+3. **Agregar Nuevo Producto**: Formulario para registrar un código nuevo, su tipo de lámina, grado de acero y valores de tolerancia técnica.
+4. **Modificar Producto Existente**: Permite corregir los valores nominales o tolerancias de un SKU ya registrado. Los cambios se guardan en `BD_Parametros_Materia_Prima.xlsx` de forma inmediata.
+
+---
+
+## 📋 6. Módulo 5: Procedimiento de Recepción (PR-ALM-01)
+
+Este módulo es una guía de consulta directa y digitalizada para todo el personal involucrado en la recepción:
+
+1. **Consulta Interactiva**: Muestra en pantalla de manera clara el flujo completo, responsabilidades y criterios técnicos vigentes para la recepción del material (grúa viajera, límites de peso de 2.5 TON, 12 lecturas micrométricas por atado y su identificación con tarjeta verde/roja).
+2. **📥 Descargar Procedimiento**: El botón **`Descargar Procedimiento PR-ALM-01 (PDF)`** permite obtener el archivo PDF oficial del SGC (Revisión 00 - Edición Digital) con la estructura y encabezados corporativos oficiales de SIGRAMA.
+
+---
+
+## 💡 7. Módulo 6: Manufactura Inteligente y Tecnología
+
+Este módulo detalla la justificación técnica detrás de la transición tecnológica y el stack informático del sistema:
+
+1. **Pilares de Industria 4.0**:
+   * *Edge to Cloud*: Captura directa de datos en piso sin papeles intermedios.
+   * *Control Estadístico (SPC)*: Análisis estadístico de distribución normal en tiempo real por cada atado recibido.
+   * *Trazabilidad Total*: Expedientes digitales (dosiers) unificados y automatizados.
+2. **Arquitectura y Stack**: Detalla el uso de tecnologías líderes de código abierto como Python, Streamlit, Pandas, OpenPyXL, Plotly, SciPy, ReportLab, PyPDF e integración automática segura con GitHub API.
+
+---
+
+## 📖 8. Módulo 7: Manual de Operación (Este Módulo)
+
+Permite consultar la presente documentación interactiva en pantalla y descargarla en formato PDF.
+
+1. **Pantalla**: Visualización organizada y legible de las guías de usuario de cada módulo.
+2. **📥 Descarga del Manual (PDF)**: Botón interactivo para descargar el documento consolidado en formato PDF para lectura sin conexión o distribución física.

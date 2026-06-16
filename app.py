@@ -399,8 +399,11 @@ opcion_menu = st.sidebar.radio("Seleccione un Módulo:", [
     "📥 Registro de Recepción (Incoming)",
     "🔍 Consulta de Historial",
     "⚙️ Catálogo de Tolerancias de SKU",
-    "📖 Manual de Operación"
+    "📖 Manual de Operación",
+    "📋 Procedimiento de Recepción (PR-ALM-01)",
+    "💡 Manufactura Inteligente y Tecnología"
 ])
+
 
 # Control de accesos para administración y registro en la barra lateral
 st.sidebar.write("---")
@@ -1653,6 +1656,39 @@ elif opcion_menu == "🔍 Consulta de Historial":
             
             st.dataframe(df_filtered_view.sort_values("Folio", ascending=False), use_container_width=True, hide_index=True)
             
+            # Botón para descargar el PDF de la consulta
+            try:
+                temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
+                os.makedirs(temp_pdf_dir, exist_ok=True)
+                pdf_path_historial = os.path.join(temp_pdf_dir, f"Consulta_Historial_{datetime.date.today().strftime('%Y%m%d')}.pdf")
+                
+                filtros_dict = {
+                    "fecha_inicio": fecha_inicio.strftime("%d/%m/%Y"),
+                    "fecha_fin": fecha_fin.strftime("%d/%m/%Y"),
+                    "proveedor": f_prov,
+                    "estatus": f_est,
+                    "buscar": f_folio if f_folio else "Ninguno"
+                }
+                
+                # Ordenar df_filtered por Folio descendente
+                df_rep_filtered_sorted = df_filtered.sort_values("Folio", ascending=False)
+                
+                utils_pdf.generar_pdf_consulta_historial(filtros_dict, df_rep_filtered_sorted, dict_acep, pdf_path_historial)
+                
+                if os.path.exists(pdf_path_historial):
+                    with open(pdf_path_historial, "rb") as f:
+                        pdf_bytes = f.read()
+                    st.download_button(
+                        label="📥 Descargar Reporte de Consulta Filtrada (PDF)",
+                        data=pdf_bytes,
+                        file_name=f"Reporte_Consulta_Historial_{datetime.date.today().strftime('%Y%m%d')}.pdf",
+                        mime="application/pdf",
+                        use_container_width=True,
+                        key="btn_descarga_consulta_historial_pdf"
+                    )
+            except Exception as e:
+                st.error(f"Error al generar el PDF de la consulta: {e}")
+            
             # Selector para ver detalles y descargar expediente
             st.write("### 📁 Selección de Expediente")
             folio_seleccionado = st.selectbox("Seleccione el Folio del reporte que desea descargar o revisar:", df_filtered["Folio"].tolist())
@@ -1889,6 +1925,28 @@ elif opcion_menu == "⚙️ Catálogo de Tolerancias de SKU":
     st.write("### 📦 SKUs Registrados en el Sistema")
     st.dataframe(df_skus, use_container_width=True, hide_index=True)
     
+    # Botón para descargar el catálogo de SKUs en PDF
+    try:
+        temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
+        os.makedirs(temp_pdf_dir, exist_ok=True)
+        pdf_path_skus = os.path.join(temp_pdf_dir, f"Catalogo_SKUs_{datetime.date.today().strftime('%Y%m%d')}.pdf")
+        
+        utils_pdf.generar_pdf_catalogo_skus(df_skus, pdf_path_skus)
+        
+        if os.path.exists(pdf_path_skus):
+            with open(pdf_path_skus, "rb") as f:
+                pdf_bytes = f.read()
+            st.download_button(
+                label="📥 Descargar Catálogo de Tolerancias de SKU (PDF)",
+                data=pdf_bytes,
+                file_name=f"Catalogo_Tolerancias_SKUs_{datetime.date.today().strftime('%Y%m%d')}.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                key="btn_descarga_skus_pdf"
+            )
+    except Exception as e:
+        st.error(f"Error al generar el PDF del catálogo: {e}")
+        
     st.write("---")
     
     # Solo administradores pueden agregar o modificar SKUs
@@ -2060,3 +2118,170 @@ elif opcion_menu == "📖 Manual de Operación":
             st.error(f"Error al leer el manual en pantalla: {e}")
     else:
         st.error("❌ Archivo 'manual_usuario.md' no encontrado.")
+
+# =============================================================================
+# MÓDULO 6: PROCEDIMIENTO DE RECEPCIÓN (PR-ALM-01)
+# =============================================================================
+elif opcion_menu == "📋 Procedimiento de Recepción (PR-ALM-01)":
+    st.title("📋 Procedimiento de Recepción de Materia Prima")
+    st.markdown("Consulte el procedimiento oficial SGC **PR-ALM-01** digitalizado y adaptado a nuestro sistema de control estadístico.")
+    
+    # Botón para descargar el procedimiento en PDF
+    try:
+        temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
+        os.makedirs(temp_pdf_dir, exist_ok=True)
+        pdf_path_proc = os.path.join(temp_pdf_dir, "Procedimiento_PR-ALM-01_Digital.pdf")
+        
+        utils_pdf.generar_pdf_procedimiento_pralm01(pdf_path_proc)
+        
+        if os.path.exists(pdf_path_proc):
+            with open(pdf_path_proc, "rb") as f:
+                pdf_bytes = f.read()
+            st.download_button(
+                label="📥 Descargar Procedimiento PR-ALM-01 (PDF)",
+                data=pdf_bytes,
+                file_name="Procedimiento_PR-ALM-01_Digital.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                key="btn_descarga_procedimiento_pdf"
+            )
+    except Exception as e:
+        st.error(f"Error al generar el PDF del procedimiento: {e}")
+        
+    st.write("---")
+    
+    # Renderizar el procedimiento en markdown en pantalla
+    st.markdown("""
+    ### PROCEDIMIENTO DE RECEPCIÓN DE MATERIA PRIMA
+    **Código:** PR-ALM-01  
+    **Revisión:** 00 (Edición Digital)  
+    **Departamento:** Almacén / Calidad  
+    **Sistema:** SGC Digital Sigrama  
+    
+    ---
+    
+    #### 1. OBJETIVO
+    Establecer de manera detallada y estricta los lineamientos para la recepción, inspección técnica, validación documental y aceptación de materia prima (lámina galvanizada y decapada) mediante la aplicación digital **SGC Incoming**, con el fin de asegurar que el material que ingresa a los procesos de producción de **SIGRAMA** cumple con las propiedades mecánicas, químicas y dimensionales necesarias para evitar productos no conformes y daños a la maquinaria.
+    
+    #### 2. ALCANCE
+    Este procedimiento es aplicable a todo el personal involucrado en la cadena de suministro de **SIGRAMA**, iniciando desde el arribo del transporte del proveedor a la planta, pasando por la descarga, la inspección física y documental por parte de Calidad, hasta la identificación, resguardo y estiba final en el almacén de materia prima.
+    
+    #### 3. NORMAS DE REFERENCIA
+    * **ISO 9001:2015:** Sistema de Gestión de Calidad (Cláusula 8.4 Control de procesos, productos y servicios suministrados externamente).
+    * **ASTM A653:** Especificación estándar para lámina de acero galvanizada por inmersión en caliente.
+    * **ASTM A1011:** Especificación para acero laminado en caliente, decapado y aceitado (HRPO).
+    * **PR-SGC-01:** Procedimiento para Control de Documentos (SIGRAMA).
+    
+    #### 4. DEFINICIONES
+    * **Certificado de Molino:** Documento técnico expedido por el fabricante del acero que garantiza la composición química (Carbono, Manganeso, etc.) y las propiedades mecánicas (Límite elástico, tensión).
+    * **Papel VCI (Volatile Corrosion Inhibitor):** Empaque industrial impregnado con químicos que inhiben la oxidación de los metales al crear una atmósfera protectora.
+    * **G60 / G90:** Grado de recubrimiento de zinc. G90 ofrece una mayor resistencia a la corrosión en ambientes salinos o húmedos.
+    * **Flor de Zinc (Spangle):** Patrón visible de cristales de zinc en la superficie de la lámina; su uniformidad es indicador de calidad en el proceso de inmersión.
+    * **Atado / Bundle:** Unidad de empaque de láminas agrupadas por calibre y medida.
+    * **Dosier de Calidad:** Expediente unificado que compila la portada (FO-MET-33), reporte de mediciones (FO-MET-31), reporte técnico estadístico de Gauss, etiquetas de almacén (FO-MET-32), certificado de calidad y orden de compra de Sigrama.
+    
+    #### 5. DIAGRAMA DE FLUJO (TABLA ESCALONADA DEL PROCESO)
+    | Responsable | PROCESO ó ACTIVIDAD | Documento de Salida |
+    | :--- | :--- | :--- |
+    | **Inspector de Calidad** | Validación documental inicial (Cotejo de Certificado de Molino vs Orden de Compra de Sigrama). | Cotejo Inicial y Remisión Firmada |
+    | **Auxiliar de Almacén** | Descarga física del material utilizando la grúa viajera y validación del peso bruto (Máximo 2.5 TON según RFQ). | Registro de peso (N/A) |
+    | **Inspector de Calidad** | Inspección dimensional micrométrica (4 placas/esquinas virtuales, 12 lecturas) e inspección visual de empaque y defectos. | Reporte de Calidad Consolidado (FO-MET-31) y Reporte Técnico de Gauss |
+    | **Auxiliar de Almacén** | Identificación física del material en el almacén de metales y preservación con papel VCI. | Tarjeta de Identificación (FO-MET-32) con código de barras/interno |
+    | **Sistema SGC Digital** | Compilación del expediente digital unificado y respaldo automático a la nube mediante Token de GitHub. | Dosier de Calidad Unificado (FO-MET-33) respaldado en GitHub |
+    
+    #### 6. DESARROLLO DEL PROCEDIMIENTO
+    ##### 6.1 Recepción y Validación Documental
+    Al arribo del material, el Inspector de Calidad debe cotejar la Remisión del proveedor contra la Orden de Compra (OC) de SIGRAMA y el Certificado de Molino.
+    * Se debe verificar que el número de colada impreso en el atado coincida exactamente con el certificado.
+    * Si el material carece de certificado o existe discrepancia en el grado de acero, el material no se descarga y se reporta inmediatamente a Compras.
+    
+    ##### 6.2 Maniobra de Descarga y Pesaje
+    El personal de Almacén procede a la descarga utilizando la grúa viajera.
+    * **Restricción de Peso:** Ningún atado debe exceder las **2.5 Toneladas**. En caso de que el proveedor envíe atados de mayor peso, se hará la observación y se evaluará el riesgo de maniobra; si pone en riesgo la infraestructura o seguridad, será rechazado.
+    
+    ##### 6.3 Inspección Técnica de Calidad
+    Una vez en piso, el Inspector de Calidad aplica los siguientes criterios:
+    * **Inspección Dimensional (Digital):** Se realiza la medición del espesor de la lámina en **4 placas virtuales** del atado. En cada placa se realizan **3 lecturas** en diferentes puntos, acumulando un total de **12 lecturas de espesor** por atado. La tolerancia dimensional aceptable está pre-configurada dinámicamente por SKU en el catálogo del sistema.
+    * **Inspección Visual:** Se debe revisar el 100% de la cara superior y los bordes. Se rechaza material con:
+      * **Oxidación Blanca o Negra:** Presencia de humedad o falla en el pasivado.
+      * **Golpes o "Escalones":** Deformaciones físicas que impidan el correcto *nest* del láser de fibra.
+      * **Falla en Flor:** Cristales de zinc irregulares o desprendimiento del recubrimiento.
+      
+    ##### 6.4 Identificación, Preservación y Estiba
+    * **Identificación:** El material conforme recibirá una **Tarjeta de Identificación (FO-MET-32)** verde con estatus 'Aceptado' con sus códigos internos, colada e histórico gaussiano. El material no conforme recibirá una etiqueta roja y se trasladará al área de segregación conforme al PR-SGC-04.
+    * **Preservación:** Toda lámina debe ser resguardada sobre tarimas de madera (nunca contacto directo con suelo). Se debe colocar **Papel VCI** entre el material y el ambiente si el tiempo de almacenamiento previsto supera los 15 días.
+    
+    ##### 6.5 Cierre y Auto-Guardado en la Nube
+    El sistema recopila automáticamente los archivos PDF de portada, reporte consolidado de mediciones, reporte estadístico de Gauss y las etiquetas de identificación en un único archivo **Dosier de Calidad (FO-MET-33)**. Una vez validado por el inspector, se realiza una sincronización en segundo plano con el repositorio web de GitHub mediante un Token seguro de acceso, permitiendo persistencia y auditoría inmediata.
+    
+    #### 7. DOCUMENTOS RELACIONADOS
+    * **FO-MET-31:** Reporte Consolidado de Inspección Dimensional de Materia Prima.
+    * **FO-MET-32:** Tarjeta de Identificación de Atado de Materia Prima (Etiqueta).
+    * **FO-MET-33:** Portada y Resumen de Contenido del Dosier de Calidad.
+    * **PR-SGC-04:** Procedimiento para Control de Producto / Servicio No Conforme.
+    * **PR-SGC-02:** Procedimiento para el Control de Registros.
+    
+    #### 8. CONTROL DE REVISIONES
+    * **Rev. 00:** Emisión inicial y adaptación completa para reestructuración del Sistema de Gestión de Calidad (SGC) digital SIGRAMA.
+    """, unsafe_allow_html=True)
+
+# =============================================================================
+# MÓDULO 7: MANUFACTURA INTELIGENTE Y TECNOLOGÍA
+# =============================================================================
+elif opcion_menu == "💡 Manufactura Inteligente y Tecnología":
+    st.title("💡 Manufactura Inteligente e Industria 4.0")
+    st.markdown("Justificación técnica y desglose tecnológico de la transformación digital en el control de calidad de **SIGRAMA**.")
+    
+    st.write("---")
+    
+    # 1. Justificación de Manufactura Inteligente
+    st.subheader("🚀 Justificación de Manufactura Inteligente (Industria 4.0)")
+    
+    col_inf1, col_inf2 = st.columns(2)
+    with col_inf1:
+        st.markdown("""
+        La implementación del sistema **SGC Incoming** representa un salto cuantitativo de control analógico tradicional hacia la **Manufactura Inteligente (Smart Manufacturing)**. Esta transición se fundamenta en tres pilares clave:
+        
+        * **1. Captura de Datos en Tiempo Real (Edge to Cloud):** Eliminación del registro manuscrito (papel) por digitación directa en pie de máquina. La captura digital de las **12 lecturas de espesor por atado** asegura la inmediata disponibilidad de los datos.
+        * **2. Control Estadístico del Proceso (SPC) Automatizado:** El cálculo de desviaciones estándar, rangos y la distribución Gaussiana ya no se realiza mediante auditorías mensuales en hojas de cálculo externas. El sistema evalúa instantáneamente el comportamiento de la colada y determina si el proceso de laminación o galvanizado está centrado.
+        * **3. Trazabilidad Total y Auditoría Inmediata:** El auto-guardado en la nube compila automáticamente el **Dosier de Calidad (FO-MET-33)** vinculando el Certificado de Molino original con las mediciones físicas tomadas en planta. Cualquier auditor externo o supervisor de producción puede consultar el historial en segundos con absoluta confianza en la inmutabilidad del registro.
+        """)
+    with col_inf2:
+        st.info("""
+        **Beneficios Estratégicos del Proyecto:**
+        
+        * **Reducción del Material No Conforme (Rechazo Temprano):** Detección oportuna de láminas fuera de tolerancia antes de ingresar a los procesos de punzonado, doblado y corte láser, evitando daños catastróficos a la maquinaria y desperdicio de tiempos productivos.
+        * **Optimización del Almacén de Metales:** El sistema de etiquetado por atado permite un control FIFO y una asignación precisa de materiales según las necesidades mecánicas de cada proyecto.
+        * **Digitalización Sostenible (Paperless):** Reducción a cero del consumo de papel en el área de recepción de materia prima, alineando a **SIGRAMA** con los estándares ESG globales.
+        """)
+        
+    st.write("---")
+    
+    # 2. Resumen de Tecnología Empleada
+    st.subheader("💻 Resumen del Stack Tecnológico")
+    st.markdown("El desarrollo de esta solución se estructuró empleando tecnologías de software modernas, ligeras y altamente eficientes:")
+    
+    col_t1, col_t2 = st.columns(2)
+    
+    with col_t1:
+        st.markdown("""
+        ##### 📊 Backend y Lógica del Sistema
+        * **Lenguaje:** **Python 3.12+** como núcleo matemático y de procesamiento de datos.
+        * **Framework Web:** **Streamlit** para la construcción de una interfaz web reactiva, moderna y optimizada para dispositivos en planta.
+        * **Manejo de Datos:** **Pandas** y **OpenPyXL** para la lectura, escritura y estructuración de las bases de datos relacionales en formato de libro de cálculo seguro (`.xlsx`).
+        
+        ##### 📈 Visualización y Análisis Estadístico
+        * **Plotly:** Gráficas interactivas y dinámicas para el análisis de campana de Gauss, dispersión y comportamiento de los atados en tiempo real.
+        * **SciPy & NumPy:** Librerías para modelar distribuciones normales continuas, límites de confianza y ajuste estadístico de curvas.
+        """)
+        
+    with col_t2:
+        st.markdown("""
+        ##### 🖨️ Generación de Documentos y PDF
+        * **ReportLab:** Motor de diagramación para el diseño de reportes formales, etiquetas y dosiers de calidad con precisión pixel-perfect y cumplimiento estricto del formato institucional de SIGRAMA.
+        * **PyPDF:** Compilación y fusión digital de documentos múltiples (reportes, certificados de molino cargados por el usuario y órdenes de compra) en un único expediente autocontenido.
+        
+        ##### ☁️ Control de Versiones e Integración Nube
+        * **GitHub API Integration:** Integración fluida mediante Token de GitHub para la subida automatizada y almacenamiento inmutable del Dosier de Calidad en el repositorio remoto, respaldando los expedientes en tiempo real.
+        """)
+

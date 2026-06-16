@@ -1813,4 +1813,380 @@ def generar_pdf_reporte_dashboard(filtros, okr_data, df_rep_filtered, dict_acep,
     doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
     print("Reporte de Dashboard PDF creado en:", output_pdf_path)
 
+def generar_pdf_catalogo_skus(df_skus, output_pdf_path):
+    """
+    Genera un reporte PDF formal en formato horizontal (Landscape)
+    con el catálogo de SKUs y sus tolerancias configuradas.
+    """
+    from reportlab.lib.pagesizes import letter, landscape
+    doc = SimpleDocTemplate(
+        output_pdf_path, 
+        pagesize=landscape(letter), 
+        leftMargin=36, 
+        rightMargin=36, 
+        topMargin=80, 
+        bottomMargin=50
+    )
+    story = []
+    styles = getSampleStyleSheet()
+    
+    style_blanco_bold = ParagraphStyle('WB_Sku', parent=styles['Normal'], textColor=colors.white, fontName="Helvetica-Bold", alignment=1, fontSize=8)
+    style_normal_bold = ParagraphStyle('NB_Sku', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8)
+    style_normal_text = ParagraphStyle('NT_Sku', parent=styles['Normal'], fontSize=7.5, alignment=1)
+    
+    story.append(Spacer(1, 10))
+    
+    # Tabla de SKUs
+    # Cabecera de la tabla
+    tabla_data = [[
+        Paragraph("SKU", style_blanco_bold),
+        Paragraph("DESCRIPCIÓN", style_blanco_bold),
+        Paragraph("TIPO LÁMINA", style_blanco_bold),
+        Paragraph("GRADO ACERO", style_blanco_bold),
+        Paragraph("ESPESOR NOMINAL (in)", style_blanco_bold),
+        Paragraph("TOL. ESPESOR (in)", style_blanco_bold),
+        Paragraph("ANCHO NOMINAL (in)", style_blanco_bold),
+        Paragraph("LARGO NOMINAL (in)", style_blanco_bold),
+        Paragraph("ZINC MÍN (oz/ft²)", style_blanco_bold),
+        Paragraph("DUREZA MÁX (HRB)", style_blanco_bold),
+        Paragraph("ACEITADO REQ.", style_blanco_bold)
+    ]]
+    
+    for _, row in df_skus.iterrows():
+        esp_nom = float(row.get('Espesor_Nominal_in', 0))
+        esp_min = float(row.get('Espesor_Tolerancia_Min_in', 0))
+        esp_max = float(row.get('Espesor_Tolerancia_Max_in', 0))
+        
+        tol_esp = f"{esp_min:+.4f} / {esp_max:+.4f}"
+        
+        zinc_val = float(row.get('Zinc_Min_oz_ft2', 0))
+        zinc_str = f"{zinc_val:.2f}" if zinc_val > 0 else "-"
+        
+        dureza_val = float(row.get('Dureza_Max_HRB', 0))
+        dureza_str = f"{int(dureza_val)}" if dureza_val > 0 else "-"
+        
+        tabla_data.append([
+            Paragraph(str(row.get('SKU', '')), style_normal_text),
+            Paragraph(str(row.get('Nombre', '')), style_normal_text),
+            Paragraph(str(row.get('Tipo_Lamina', '')), style_normal_text),
+            Paragraph(str(row.get('Grado_Acero', '')), style_normal_text),
+            Paragraph(f"{esp_nom:.4f}", style_normal_text),
+            Paragraph(tol_esp, style_normal_text),
+            Paragraph(f"{float(row.get('Ancho_Nominal_in', 0)):.2f}", style_normal_text),
+            Paragraph(f"{float(row.get('Largo_Nominal_in', 0)):.2f}", style_normal_text),
+            Paragraph(zinc_str, style_normal_text),
+            Paragraph(dureza_str, style_normal_text),
+            Paragraph(str(row.get('Aceitado_Requerido', 'N/D')), style_normal_text)
+        ])
+        
+    t_skus = Table(tabla_data, colWidths=[75, 120, 65, 90, 60, 65, 50, 50, 45, 50, 50])
+    t_skus.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#757575")),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
+    ]))
+    story.append(t_skus)
+    
+    def decorate_landscape(canvas, doc):
+        canvas.saveState()
+        
+        # Franja superior roja Sigrama
+        canvas.setFillColor(colors.HexColor("#D32F2F"))
+        canvas.rect(36, 560, 720, 4, fill=1, stroke=0)
+        
+        # Logotipo
+        if os.path.exists(LOGO_PATH):
+            try:
+                canvas.drawImage(LOGO_PATH, 36, 570, width=120, height=22, mask='auto')
+            except Exception:
+                canvas.setFont("Helvetica-Bold", 12)
+                canvas.drawString(36, 570, "INDUSTRIA SIGRAMA")
+        else:
+            canvas.setFont("Helvetica-Bold", 12)
+            canvas.drawString(36, 570, "INDUSTRIA SIGRAMA")
+            
+        # Marcador superior derecho
+        canvas.setFont("Helvetica-Bold", 11)
+        canvas.setFillColor(colors.HexColor("#D32F2F"))
+        canvas.drawRightString(756, 580, "FO-MET-34")
+        
+        canvas.setFont("Helvetica", 8)
+        canvas.setFillColor(colors.black)
+        canvas.drawRightString(756, 568, "Revisión 01")
+        
+        # Título Central
+        canvas.setFont("Helvetica-Bold", 12)
+        canvas.drawCentredString(396, 570, "CATÁLOGO DE PARÁMETROS Y TOLERANCIAS DE MATERIA PRIMA")
+        
+        # Fecha
+        canvas.setFont("Helvetica-Bold", 8)
+        months_es = {
+            1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
+            7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+        }
+        today = datetime.date.today()
+        fecha_hoy = f"{today.day} de {months_es[today.month]} de {today.year}"
+        canvas.drawString(36, 547, f"Fecha de Emisión: {fecha_hoy}")
+        
+        # Pie de Página Legal (Landscape)
+        canvas.setStrokeColor(colors.HexColor("#D32F2F"))
+        canvas.setLineWidth(1)
+        canvas.line(36, 35, 36, 15)
+        canvas.setFont("Helvetica-Bold", 7)
+        canvas.drawString(42, 27, "FO-SGC-02")
+        canvas.setFont("Helvetica", 6)
+        canvas.setFillColor(colors.HexColor("#424242"))
+        texto_legal = "PROHIBIDA LA REPRODUCCIÓN TOTAL O PARCIAL, POR CUALQUIER MEDIO O PROCEDIMIENTO, SIN AUTORIZACIÓN DE INDUSTRIA SIGRAMA S.A. DE C.V."
+        canvas.drawString(95, 27, texto_legal)
+        
+        canvas.restoreState()
+        
+    doc.build(story, onFirstPage=decorate_landscape, onLaterPages=decorate_landscape)
+    print("PDF del Catálogo de SKUs creado.")
+
+def generar_pdf_consulta_historial(filtros, df_rep_filtered, dict_acep, output_pdf_path):
+    """
+    Genera un PDF con el reporte de la consulta de historial actual,
+    mostrando los filtros aplicados y la tabla de registros que coinciden.
+    """
+    doc = SimpleDocTemplate(output_pdf_path, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=90, bottomMargin=60)
+    story = []
+    styles = getSampleStyleSheet()
+    
+    style_blanco_bold = ParagraphStyle('WB_Cons', parent=styles['Normal'], textColor=colors.white, fontName="Helvetica-Bold", alignment=1, fontSize=8)
+    style_normal_bold = ParagraphStyle('NB_Cons', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8)
+    style_normal_text = ParagraphStyle('NT_Cons', parent=styles['Normal'], fontSize=7.5)
+    style_title = ParagraphStyle('T_Cons', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=13, textColor=colors.HexColor("#D32F2F"), spaceAfter=8)
+    style_section = ParagraphStyle('S_Cons', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=10, textColor=colors.HexColor("#0D47A1"), spaceBefore=10, spaceAfter=5)
+    
+    story.append(Spacer(1, 5))
+    story.append(Paragraph("REPORTE DE CONSULTA DE HISTORIAL DE RECEPCIÓN", style_title))
+    story.append(Paragraph("Este documento contiene el listado de recepciones de materia prima filtradas según los criterios de búsqueda seleccionados en el sistema.", style_normal_text))
+    story.append(Spacer(1, 10))
+    
+    # --- PANEL: FILTROS APLICADOS ---
+    t_filtros_header = Table([[Paragraph("FILTROS DE BÚSQUEDA APLICADOS", style_blanco_bold)]], colWidths=[540])
+    t_filtros_header.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#757575")), ('ALIGN', (0,0), (-1,-1), 'CENTER')]))
+    story.append(t_filtros_header)
+    
+    datos_filtros = [
+        [Paragraph("RANGO FECHAS:", style_normal_bold), Paragraph(f"{filtros.get('fecha_inicio', 'Todos')} a {filtros.get('fecha_fin', 'Todos')}", style_normal_text),
+         Paragraph("PROVEEDOR FILTRO:", style_normal_bold), Paragraph(str(filtros.get('proveedor', 'Todos')), style_normal_text)],
+        [Paragraph("ESTATUS FILTRO:", style_normal_bold), Paragraph(str(filtros.get('estatus', 'Todos')), style_normal_text),
+         Paragraph("BÚSQUEDA TEXTO:", style_normal_bold), Paragraph(str(filtros.get('buscar', 'Ninguno')), style_normal_text)]
+    ]
+    t_filtros = Table(datos_filtros, colWidths=[120, 150, 120, 150])
+    t_filtros.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('BACKGROUND', (0,0), (0,-1), colors.HexColor("#F5F5F5")),
+        ('BACKGROUND', (2,0), (2,-1), colors.HexColor("#F5F5F5"))
+    ]))
+    story.append(t_filtros)
+    story.append(Spacer(1, 15))
+    
+    # --- TABLA DE RESULTADOS ---
+    story.append(Paragraph(f"📋 REGISTROS ENCONTRADOS ({len(df_rep_filtered)} recepciones)", style_section))
+    
+    tabla_recepciones = [[
+        Paragraph("FOLIO", style_blanco_bold),
+        Paragraph("FECHA", style_blanco_bold),
+        Paragraph("PROVEEDOR", style_blanco_bold),
+        Paragraph("PO / FACTURA", style_blanco_bold),
+        Paragraph("ACEPTACIÓN", style_blanco_bold),
+        Paragraph("ESTATUS", style_blanco_bold)
+    ]]
+    
+    for _, row in df_rep_filtered.iterrows():
+        folio_val = row["Folio"]
+        fecha_val = row["Fecha"]
+        prov_val = row["Proveedor"]
+        po_fact = f"{row['Orden_Compra']} / {row['Factura_Remision']}"
+        acep_val = dict_acep.get(folio_val, "0/0 (0.0%)")
+        estatus_val = row["Estatus_General"]
+        
+        status_color = "#2E7D32" if estatus_val == "Aceptado" else ("#FBC02D" if estatus_val == "Condicionado" else "#C62828")
+        status_html = f"<b><font color='{status_color}'>{estatus_val}</font></b>"
+        
+        tabla_recepciones.append([
+            Paragraph(folio_val, style_normal_text),
+            Paragraph(fecha_val, style_normal_text),
+            Paragraph(prov_val, style_normal_text),
+            Paragraph(po_fact, style_normal_text),
+            Paragraph(acep_val, style_normal_text),
+            Paragraph(status_html, style_normal_text)
+        ])
+        
+    t_recepciones = Table(tabla_recepciones, colWidths=[90, 70, 130, 110, 80, 60])
+    t_recepciones.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#757575")),
+        ('ALIGN', (0,0), (1,-1), 'CENTER'),
+        ('ALIGN', (4,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
+    ]))
+    story.append(t_recepciones)
+    
+    # Firmas
+    story.append(Spacer(1, 30))
+    datos_firmas = [
+        [Paragraph("_____________________________<br/>INSPECTOR DE CALIDAD", style_normal_bold),
+         Paragraph("_____________________________<br/>SUPERVISOR DE CONTROL DE CALIDAD", style_normal_bold)]
+    ]
+    t_firmas = Table(datos_firmas, colWidths=[270, 270])
+    t_firmas.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'TOP')
+    ]))
+    story.append(t_firmas)
+    
+    def decorate(canvas, doc):
+        draw_sigrama_sgc_decorations(canvas, doc, "FO-MET-35", "REPORTE DE CONSULTA DE HISTORIAL")
+        
+    doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
+    print("PDF de Consulta de Historial creado.")
+
+def generar_pdf_procedimiento_pralm01(output_pdf_path):
+    """
+    Genera un archivo PDF formal con el procedimiento PR-ALM-01
+    adaptado para el sistema digital (12 mediciones, 4 placas, FO-MET-31/32/33, auto-push).
+    """
+    doc = SimpleDocTemplate(output_pdf_path, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=90, bottomMargin=60)
+    story = []
+    styles = getSampleStyleSheet()
+    
+    style_tit_proc = ParagraphStyle('T_Proc', parent=styles['Heading1'], fontSize=15, leading=19, fontName="Helvetica-Bold", textColor=colors.HexColor("#D32F2F"), spaceAfter=10)
+    style_sec_proc = ParagraphStyle('S_Proc', parent=styles['Normal'], fontSize=10, leading=14, fontName="Helvetica-Bold", textColor=colors.HexColor("#0D47A1"), spaceBefore=10, spaceAfter=5)
+    style_body_proc = ParagraphStyle('B_Proc', parent=styles['Normal'], fontSize=8.5, leading=12, fontName="Helvetica")
+    style_body_proc_bold = ParagraphStyle('BB_Proc', parent=styles['Normal'], fontSize=8.5, leading=12, fontName="Helvetica-Bold")
+    style_bullet_proc = ParagraphStyle('Bul_Proc', parent=styles['Normal'], fontSize=8.5, leading=12, fontName="Helvetica", leftIndent=15, bulletIndent=5)
+    style_blanco_bold = ParagraphStyle('WB_Proc', parent=styles['Normal'], textColor=colors.white, fontName="Helvetica-Bold", alignment=1, fontSize=8)
+    
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("PROCEDIMIENTO DE RECEPCIÓN DE MATERIA PRIMA", style_tit_proc))
+    
+    # Tabla de Metadatos
+    meta_data = [
+        [Paragraph("CÓDIGO:", style_body_proc_bold), Paragraph("PR-ALM-01", style_body_proc),
+         Paragraph("REVISIÓN:", style_body_proc_bold), Paragraph("00 (Edición Digital)", style_body_proc)],
+        [Paragraph("DEPARTAMENTO:", style_body_proc_bold), Paragraph("Almacén / Calidad", style_body_proc),
+         Paragraph("SISTEMA:", style_body_proc_bold), Paragraph("SGC Digital Sigrama", style_body_proc)]
+    ]
+    t_meta = Table(meta_data, colWidths=[120, 150, 120, 150])
+    t_meta.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
+        ('BACKGROUND', (0,0), (0,-1), colors.HexColor("#F5F5F5")),
+        ('BACKGROUND', (2,0), (2,-1), colors.HexColor("#F5F5F5")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
+    ]))
+    story.append(t_meta)
+    story.append(Spacer(1, 10))
+    
+    # 1. OBJETIVO
+    story.append(Paragraph("1. OBJETIVO", style_sec_proc))
+    story.append(Paragraph(
+        "Establecer de manera detallada y estricta los lineamientos para la recepción, inspección técnica, "
+        "validación documental y aceptación de materia prima (lámina galvanizada y decapada) mediante la aplicación digital "
+        "SGC Incoming, con el fin de asegurar que el material que ingresa a los procesos de producción de SIGRAMA cumple con "
+        "las propiedades mecánicas, químicas y dimensionales necesarias para evitar productos no conformes y daños a la maquinaria.",
+        style_body_proc
+    ))
+    
+    # 2. ALCANCE
+    story.append(Paragraph("2. ALCANCE", style_sec_proc))
+    story.append(Paragraph(
+        "Este procedimiento es aplicable a todo el personal involucrado en la cadena de suministro de SIGRAMA, iniciando desde el "
+        "arribo del transporte del proveedor a la planta, pasando por la descarga, la inspección física y documental por parte de Calidad, "
+        "hasta la identificación, resguardo y estiba final en el almacén de materia prima.",
+        style_body_proc
+    ))
+    
+    # 3. NORMAS DE REFERENCIA
+    story.append(Paragraph("3. NORMAS DE REFERENCIA", style_sec_proc))
+    story.append(Paragraph("• <b>ISO 9001:2015:</b> Sistema de Gestión de Calidad (Cláusula 8.4 Control de procesos, productos y servicios suministrados externamente).", style_bullet_proc))
+    story.append(Paragraph("• <b>ASTM A653:</b> Especificación estándar para lámina de acero galvanizada por inmersión en caliente.", style_bullet_proc))
+    story.append(Paragraph("• <b>ASTM A1011:</b> Especificación para acero laminado en caliente, decapado y aceitado (HRPO).", style_bullet_proc))
+    story.append(Paragraph("• <b>PR-SGC-01:</b> Procedimiento para Control de Documentos (SIGRAMA).", style_bullet_proc))
+    
+    # 4. DEFINICIONES
+    story.append(Paragraph("4. DEFINICIONES", style_sec_proc))
+    story.append(Paragraph("• <b>Certificado de Molino:</b> Documento técnico expedido por el fabricante del acero que garantiza la composición química (Carbono, Manganeso, etc.) y las propiedades mecánicas (Límite elástico, tensión).", style_bullet_proc))
+    story.append(Paragraph("• <b>Papel VCI (Volatile Corrosion Inhibitor):</b> Empaque industrial impregnado con químicos que inhiben la oxidación de los metales al crear una atmósfera protectora.", style_bullet_proc))
+    story.append(Paragraph("• <b>G60 / G90:</b> Grado de recubrimiento de zinc. G90 ofrece una mayor resistencia a la corrosión en ambientes salinos o húmedos.", style_bullet_proc))
+    story.append(Paragraph("• <b>Flor de Zinc (Spangle):</b> Patrón visible de cristales de zinc en la superficie de la lámina; su uniformidad es indicador de calidad en el proceso de inmersión.", style_bullet_proc))
+    story.append(Paragraph("• <b>Atado / Bundle:</b> Unidad de empaque de láminas agrupadas por calibre y medida.", style_bullet_proc))
+    story.append(Paragraph("• <b>Dosier de Calidad:</b> Expediente unificado que compila la portada (FO-MET-33), reporte de mediciones (FO-MET-31), reporte técnico estadístico de Gauss, etiquetas de almacén (FO-MET-32), certificado de calidad y orden de compra de Sigrama.", style_bullet_proc))
+    
+    story.append(PageBreak())
+    
+    # 5. DIAGRAMA DE FLUJO (TABLA ESCALONADA)
+    story.append(Paragraph("5. DIAGRAMA DE FLUJO (TABLA ESCALONADA DEL PROCESO)", style_sec_proc))
+    story.append(Spacer(1, 5))
+    
+    flow_data = [
+        [Paragraph("RESPONSABLE", style_blanco_bold), Paragraph("PROCESO Ó ACTIVIDAD", style_blanco_bold), Paragraph("DOCUMENTO DE SALIDA", style_blanco_bold)],
+        [Paragraph("Inspector de Calidad", style_body_proc_bold), Paragraph("Validación documental inicial (Cotejo de Certificado de Molino vs Orden de Compra de Sigrama).", style_body_proc), Paragraph("Cotejo Inicial y Remisión Firmada.", style_body_proc)],
+        [Paragraph("Auxiliar de Almacén", style_body_proc_bold), Paragraph("Descarga física del material utilizando la grúa viajera y validación del peso bruto (Máximo 2.5 TON según RFQ).", style_body_proc), Paragraph("Registro de peso.", style_body_proc)],
+        [Paragraph("Inspector de Calidad", style_body_proc_bold), Paragraph("Inspección dimensional micrométrica (4 placas/esquinas virtuales, 12 lecturas) e inspección visual de empaque y defectos.", style_body_proc), Paragraph("Reporte de Calidad Consolidado (FO-MET-31) y Reporte Técnico de Gauss.", style_body_proc)],
+        [Paragraph("Auxiliar de Almacén", style_body_proc_bold), Paragraph("Identificación física del material en el almacén de metales y preservación con papel VCI.", style_body_proc), Paragraph("Tarjeta de Identificación (FO-MET-32) con código de barras o código interno.", style_body_proc)],
+        [Paragraph("Sistema SGC Digital", style_body_proc_bold), Paragraph("Compilación del expediente digital unificado y respaldo automático a la nube mediante Token de GitHub.", style_body_proc), Paragraph("Dosier de Calidad Unificado (FO-MET-33) respaldado en GitHub.", style_body_proc)]
+    ]
+    t_flow = Table(flow_data, colWidths=[110, 250, 180])
+    t_flow.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0D47A1")),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#757575")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 5)
+    ]))
+    story.append(t_flow)
+    story.append(Spacer(1, 10))
+    
+    # 6. DESARROLLO DEL PROCEDIMIENTO
+    story.append(Paragraph("6. DESARROLLO DEL PROCEDIMIENTO", style_sec_proc))
+    
+    story.append(Paragraph("6.1 Recepción y Validación Documental", style_body_proc_bold))
+    story.append(Paragraph("Al arribo del material, el Inspector de Calidad debe cotejar la Remisión del proveedor contra la Orden de Compra (OC) de SIGRAMA y el Certificado de Molino.", style_body_proc))
+    story.append(Paragraph("• Se debe verificar que el número de colada impreso en el atado coincida exactamente con el certificado.", style_bullet_proc))
+    story.append(Paragraph("• Si el material carece de certificado o existe discrepancia en el grado de acero, el material no se descarga y se reporta inmediatamente a Compras.", style_bullet_proc))
+    
+    story.append(Paragraph("6.2 Maniobra de Descarga y Pesaje", style_body_proc_bold))
+    story.append(Paragraph("El personal de Almacén procede a la descarga utilizando la grúa viajera.", style_body_proc))
+    story.append(Paragraph("• <b>Restricción de Peso:</b> Ningún atado debe exceder las 2.5 Toneladas. En caso de que el proveedor envíe atados de mayor peso, se hará la observación y se evaluará el riesgo de maniobra; si pone en riesgo la infraestructura o seguridad, será rechazado.", style_bullet_proc))
+    
+    story.append(Paragraph("6.3 Inspección Técnica de Calidad", style_body_proc_bold))
+    story.append(Paragraph("Una vez en piso, el Inspector de Calidad aplica los siguientes criterios:", style_body_proc))
+    story.append(Paragraph("• <b>Inspección Dimensional (Digital):</b> Se realiza la medición del espesor de la lámina en 4 placas virtuales del atado. En cada placa se realizan 3 lecturas en diferentes puntos, acumulando un total de 12 lecturas de espesor por atado. La tolerancia dimensional aceptable está pre-configurada dinámicamente por SKU en el catálogo del sistema.", style_bullet_proc))
+    story.append(Paragraph("• <b>Inspección Visual:</b> Se debe revisar el 100% de la cara superior y los bordes. Se rechaza material con:", style_bullet_proc))
+    story.append(Paragraph("  - <b>Oxidación Blanca o Negra:</b> Presencia de humedad o falla en el pasivado.", style_bullet_proc))
+    story.append(Paragraph("  - <b>Golpes o 'Escalones':</b> Deformaciones físicas que impidan el correcto nest del láser de fibra.", style_bullet_proc))
+    story.append(Paragraph("  - <b>Falla en Flor:</b> Cristales de zinc irregulares o desprendimiento del recubrimiento.", style_bullet_proc))
+    
+    story.append(Paragraph("6.4 Identificación, Preservación y Estiba", style_body_proc_bold))
+    story.append(Paragraph("• <b>Identificación:</b> El material conforme recibirá una Tarjeta de Identificación (FO-MET-32) verde con estatus 'Aceptado' con sus códigos internos, colada e histórico gaussiano. El material no conforme recibirá una etiqueta roja y se trasladará al área de segregación conforme al PR-SGC-04.", style_bullet_proc))
+    story.append(Paragraph("• <b>Preservación:</b> Toda lámina debe ser resguardada sobre tarimas de madera (nunca contacto directo con suelo). Se debe colocar Papel VCI entre el material y el ambiente si el tiempo de almacenamiento previsto supera los 15 días.", style_bullet_proc))
+    
+    story.append(Paragraph("6.5 Cierre y Auto-Guardado en la Nube", style_body_proc_bold))
+    story.append(Paragraph("El sistema recopila automáticamente los archivos PDF de portada, reporte consolidado de mediciones, reporte estadístico de Gauss y las etiquetas de identificación en un único archivo Dosier de Calidad (FO-MET-33). Una vez validado por el inspector, se realiza una sincronización en segundo plano con el repositorio web de GitHub mediante un Token seguro de acceso, permitiendo persistencia y auditoría inmediata.", style_body_proc))
+    
+    # 7. DOCUMENTOS RELACIONADOS
+    story.append(Paragraph("7. DOCUMENTOS RELACIONADOS", style_sec_proc))
+    story.append(Paragraph("• <b>FO-MET-31:</b> Reporte Consolidado de Inspección Dimensional de Materia Prima.", style_bullet_proc))
+    story.append(Paragraph("• <b>FO-MET-32:</b> Tarjeta de Identificación de Atado de Materia Prima (Etiqueta).", style_bullet_proc))
+    story.append(Paragraph("• <b>FO-MET-33:</b> Portada y Resumen de Contenido del Dosier de Calidad.", style_bullet_proc))
+    story.append(Paragraph("• <b>PR-SGC-04:</b> Procedimiento para Control de Producto / Servicio No Conforme.", style_bullet_proc))
+    story.append(Paragraph("• <b>PR-SGC-02:</b> Procedimiento para el Control de Registros.", style_bullet_proc))
+    
+    # 8. CONTROL DE REVISIONES
+    story.append(Paragraph("8. CONTROL DE REVISIONES", style_sec_proc))
+    story.append(Paragraph("• <b>Rev. 00:</b> Emisión inicial y adaptación completa para reestructuración del Sistema de Gestión de Calidad (SGC) digital SIGRAMA.", style_bullet_proc))
+    
+    def decorate(canvas, doc):
+        draw_sigrama_sgc_decorations(canvas, doc, "PR-ALM-01", "PROCEDIMIENTO DE CONTROL DE MATERIA PRIMA")
+        
+    doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
+    print("PDF del Procedimiento PR-ALM-01 creado.")
+
+
 
