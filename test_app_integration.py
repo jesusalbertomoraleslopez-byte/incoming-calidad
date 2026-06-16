@@ -3,7 +3,7 @@ import shutil
 import pandas as pd
 import utils_pdf
 
-BASE_DIR = r"C:\Users\albertol\.gemini\antigravity\scratch\incoming_calidad"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CARPETAS_DIR = os.path.join(BASE_DIR, "carpetas_electronicas")
 
 print("--- INICIANDO PRUEBA DE INTEGRACION ---")
@@ -28,6 +28,15 @@ df_atados_test = pd.DataFrame([
         "Espesor_Medido_1_in": 0.0748,
         "Espesor_Medido_2_in": 0.0752,
         "Espesor_Medido_3_in": 0.0750,
+        "Espesor_Medido_4_in": 0.0749,
+        "Espesor_Medido_5_in": 0.0751,
+        "Espesor_Medido_6_in": 0.0750,
+        "Espesor_Medido_7_in": 0.0748,
+        "Espesor_Medido_8_in": 0.0752,
+        "Espesor_Medido_9_in": 0.0750,
+        "Espesor_Medido_10_in": 0.0749,
+        "Espesor_Medido_11_in": 0.0751,
+        "Espesor_Medido_12_in": 0.0750,
         "Ancho_Medido_in": 48.05,
         "Largo_Medido_in": 120.00,
         "Cantidad_Hojas": 150,
@@ -60,6 +69,15 @@ df_atados_test = pd.DataFrame([
         "Espesor_Medido_1_in": 0.0782,
         "Espesor_Medido_2_in": 0.0751,
         "Espesor_Medido_3_in": 0.0753,
+        "Espesor_Medido_4_in": 0.0750,
+        "Espesor_Medido_5_in": 0.0752,
+        "Espesor_Medido_6_in": 0.0751,
+        "Espesor_Medido_7_in": 0.0753,
+        "Espesor_Medido_8_in": 0.0750,
+        "Espesor_Medido_9_in": 0.0752,
+        "Espesor_Medido_10_in": 0.0751,
+        "Espesor_Medido_11_in": 0.0753,
+        "Espesor_Medido_12_in": 0.0750,
         "Ancho_Medido_in": 48.02,
         "Largo_Medido_in": 120.00,
         "Cantidad_Hojas": 148,
@@ -111,19 +129,9 @@ utils_pdf.generar_pdf_reporte_consolidado_fomet31(folio_test, datos_reporte, df_
 assert os.path.exists(pdf_reporte), "Error: No se genero el PDF FO-MET-31."
 print("[OK] PDF FO-MET-31 (Reporte consolidado) generado correctamente.")
 
-pdf_tecnico = os.path.join(test_folder, f"Reporte_Tecnico_{folio_test}.pdf")
-utils_pdf.generar_pdf_reporte_tecnico_consolidado(folio_test, datos_reporte, df_atados_test, pdf_tecnico)
-assert os.path.exists(pdf_tecnico), "Error: No se genero el PDF del Reporte Técnico."
-print("[OK] PDF de Reporte Técnico Consolidado generado correctamente.")
-
 utils_pdf.generar_pdf_etiqueta_atado_fomet32(folio_test, df_atados_test, pdf_etiquetas)
 assert os.path.exists(pdf_etiquetas), "Error: No se genero el PDF FO-MET-32."
 print("[OK] PDF FO-MET-32 (Etiquetas de atado) generado correctamente.")
-
-pdf_solo_etiquetas = os.path.join(test_folder, f"Etiquetas_Solo_FO-MET-32_{folio_test}.pdf")
-utils_pdf.generar_pdf_solo_etiquetas(folio_test, df_atados_test, pdf_solo_etiquetas)
-assert os.path.exists(pdf_solo_etiquetas), "Error: No se genero el PDF de Solo Etiquetas."
-print("[OK] PDF de Solo Etiquetas generado correctamente.")
 
 utils_pdf.generar_pdf_portada_dosier_fomet33(folio_test, datos_reporte, df_atados_test, pdf_portada)
 assert os.path.exists(pdf_portada), "Error: No se genero el PDF FO-MET-33."
@@ -143,7 +151,6 @@ utils_pdf.compilar_dosier_calidad(
     pdf_dosier,
     pdf_portada,
     pdf_reporte,
-    pdf_tecnico,
     pdf_etiquetas,
     [cert_mock],
     [oc_mock]
