@@ -341,7 +341,8 @@ opcion_menu = st.sidebar.radio("Seleccione un Módulo:", [
     "📊 Analíticas y Dashboard",
     "📥 Registro de Recepción (Incoming)",
     "🔍 Consulta de Historial",
-    "⚙️ Catálogo de Tolerancias de SKU"
+    "⚙️ Catálogo de Tolerancias de SKU",
+    "📖 Manual de Operación"
 ])
 
 # Control de accesos para administración y registro en la barra lateral
@@ -1952,3 +1953,43 @@ elif opcion_menu == "⚙️ Catálogo de Tolerancias de SKU":
                         guardar_db(st.session_state.BD_Parametros, BD_PARAMETROS, "Materia_Prima")
                         st.success(f"✅ SKU '{sku_seleccionado}' modificado correctamente.")
                         st.rerun()
+
+# =============================================================================
+# MÓDULO 5: MANUAL DE OPERACIÓN
+# =============================================================================
+elif opcion_menu == "📖 Manual de Operación":
+    st.title("📖 Manual de Operación del Sistema")
+    st.markdown("Consulte las pautas de uso, niveles de acceso y flujos del sistema en pantalla o descargue el manual en formato PDF.")
+    
+    # Botón para descargar el manual en PDF
+    MANUAL_PDF_PATH = os.path.join(BASE_DIR, "Manual_Usuario_Incoming_Calidad.pdf")
+    if os.path.exists(MANUAL_PDF_PATH):
+        with open(MANUAL_PDF_PATH, "rb") as f:
+            pdf_bytes = f.read()
+        st.download_button(
+            label="📥 Descargar Manual de Operación (PDF)",
+            data=pdf_bytes,
+            file_name="Manual_Usuario_Incoming_Calidad.pdf",
+            mime="application/pdf"
+        )
+    else:
+        st.warning("⚠️ El manual en PDF no se encuentra en el directorio raíz. Puede regenerarlo ejecutando el script correspondiente.")
+
+    st.write("---")
+    
+    # Cargar y mostrar el manual en markdown en pantalla
+    MANUAL_MD_PATH = os.path.join(BASE_DIR, "manual_usuario.md")
+    if os.path.exists(MANUAL_MD_PATH):
+        try:
+            with open(MANUAL_MD_PATH, "r", encoding="utf-8") as f:
+                md_content = f.read()
+            # Omitir el título principal de MD si ya lo pusimos en st.title
+            if md_content.startswith("# "):
+                # Buscar la primera línea y omitirla
+                lines = md_content.split("\n")
+                md_content = "\n".join(lines[1:])
+            st.markdown(md_content, unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"Error al leer el manual en pantalla: {e}")
+    else:
+        st.error("❌ Archivo 'manual_usuario.md' no encontrado.")
