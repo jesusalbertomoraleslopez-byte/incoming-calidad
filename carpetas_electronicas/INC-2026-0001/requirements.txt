@@ -1,0 +1,10 @@
+streamlit
+pandas
+plotly
+reportlab
+matplotlib
+scipy
+numpy
+pypdf
+openpyxl
+Pillow

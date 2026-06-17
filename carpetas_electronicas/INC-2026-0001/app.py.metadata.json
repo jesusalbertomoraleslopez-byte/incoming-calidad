@@ -1,0 +1,5 @@
+{
+  "summary":  "Streamlit application code (app.py) for the Quality Control Incoming system. Implements the Dashboard, Incoming material registration, Historical search with ZIP/PDF downloads, and SKU tolerance catalog editor.",
+  "updatedAt":  "2026-06-15T16:35:28.095564600Z",
+  "userFacing":  true
+}
