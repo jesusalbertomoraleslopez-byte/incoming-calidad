@@ -1983,8 +1983,10 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
         st.info("No hay material registrado en el inventario.")
     else:
         # Calcular el stock disponible para cada atado
+        # Consolidar registros virtuales de placas en un único registro de atado físico
+        df_atados_consolidado = utils_pdf.consolidar_df_atados_para_pdf(df_atados)
         # Solo consideramos los atados que fueron ACEPTADOS (materia prima liberada)
-        df_liberados = df_atados[df_atados["Estatus_Calidad"] == "Aceptado"].copy()
+        df_liberados = df_atados_consolidado[df_atados_consolidado["Estatus_Calidad"] == "Aceptado"].copy()
         
         if df_liberados.empty:
             st.warning("⚠️ No hay atados de materia prima aceptados/liberados en el inventario.")
