@@ -155,6 +155,7 @@ def obtener_link_descarga_muestra(doc_id, display_name):
                     {
                         "ID_Atado": "INC-2026-0001-A01",
                         "SKU": "SKU-GALV-14",
+                        "Folio": "INC-2026-0001",
                         "Hojas_Disponibles": 35,
                         "Cantidad_Hojas": 50,
                         "Peso_Disponible_Kg": 789.25,
@@ -166,6 +167,7 @@ def obtener_link_descarga_muestra(doc_id, display_name):
                     {
                         "ID_Atado": "INC-2026-0002-A01",
                         "SKU": "SKU-DECP-16",
+                        "Folio": "INC-2026-0002",
                         "Hojas_Disponibles": 12,
                         "Cantidad_Hojas": 40,
                         "Peso_Disponible_Kg": 540.80,
