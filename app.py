@@ -140,6 +140,42 @@ def obtener_link_descarga_muestra(doc_id, display_name):
                     ["Remisiones de Salida", "3 Años", "Reciclar"]
                 ]
                 utils_pdf.crear_pdf_generico_muestra(doc_id, "Procedimiento para el Control de Registros", columnas, filas, file_path)
+            elif doc_id == "FO-MET-37":
+                dummy_atado = {
+                    "ID_Atado": "INC-2026-0001-A01",
+                    "ID_Atado_Proveedor": "Ternium-99128",
+                    "SKU": "SKU-GALV-14",
+                    "Num_Colada": "COL-77621",
+                    "Cantidad_Hojas": 50
+                }
+                utils_pdf.generar_pdf_hoja_consumo_fomet37(dummy_atado, file_path)
+            elif doc_id == "FO-MET-40":
+                import pandas as pd
+                mock_inv = pd.DataFrame([
+                    {
+                        "ID_Atado": "INC-2026-0001-A01",
+                        "SKU": "SKU-GALV-14",
+                        "Hojas_Disponibles": 35,
+                        "Cantidad_Hojas": 50,
+                        "Peso_Disponible_Kg": 789.25,
+                        "Ubicacion_Almacen": "ESTANTE-A1",
+                        "Grado_Acero": "CS Type B",
+                        "Num_Colada": "COL-77621",
+                        "ID_Atado_Proveedor": "Ternium-99128"
+                    },
+                    {
+                        "ID_Atado": "INC-2026-0002-A01",
+                        "SKU": "SKU-DECP-16",
+                        "Hojas_Disponibles": 12,
+                        "Cantidad_Hojas": 40,
+                        "Peso_Disponible_Kg": 540.80,
+                        "Ubicacion_Almacen": "ESTANTE-B2",
+                        "Grado_Acero": "FS Type A",
+                        "Num_Colada": "COL-88310",
+                        "ID_Atado_Proveedor": "Ahmsa-11204"
+                    }
+                ])
+                utils_pdf.generar_pdf_reporte_ejecutivo_inventario({"skus": "Todos"}, mock_inv, file_path)
             else:
                 columnas = ["Muestra", "Descripción"]
                 filas = [["Muestra", f"Muestra para el formato {doc_id}"]]
@@ -3415,6 +3451,96 @@ elif opcion_menu == "⚙️ Catálogo de Tolerancias de SKU":
                         guardar_db(st.session_state.BD_Parametros, BD_PARAMETROS, "Materia_Prima")
                         st.success(f"✅ SKU '{sku_seleccionado}' modificado correctamente.")
                         st.rerun()
+
+# =============================================================================
+# MÓDULO: GLOSARIO DE DOCUMENTOS
+# =============================================================================
+elif opcion_menu == "📚 Glosario de Documentos":
+    st.title("📚 Glosario de Documentos del SGC")
+    st.markdown("A continuación se presenta el glosario oficial de todos los documentos y formatos generados por la aplicación y el Sistema de Gestión de Calidad (SGC) de Planta Metales. Puede descargar una muestra en formato PDF/Excel haciendo clic en el enlace correspondiente.")
+    
+    glosario = [
+        {"id": "PR-ALM-01", "descripcion": "Procedimiento de Recepción de Materia Prima"},
+        {"id": "PR-ALM-02", "descripcion": "Procedimiento de Despacho de Materia Prima"},
+        {"id": "FO-MET-31", "descripcion": "Reporte Consolidado de Inspección Dimensional de Materia Prima (Dossier)"},
+        {"id": "FO-MET-32", "descripcion": "Tarjeta de Identificación de Atado (Etiqueta Física)"},
+        {"id": "FO-MET-33", "descripcion": "Portada y Resumen de Contenido del Dossier de Calidad"},
+        {"id": "FO-MET-36", "descripcion": "Remisión de Salida de Lámina (Salida Normal/Rechazo)"},
+        {"id": "FO-MET-37", "descripcion": "Hoja de Control de Consumo de Láminas por Atado (Control Físico)"},
+        {"id": "FO-MET-40", "descripcion": "Reporte Ejecutivo de Inventario Disponible (Existencias de Acero)"},
+        {"id": "FO-MET-41", "descripcion": "Reporte de Rechazo por Defecto en Proceso (Registro de Scrap)"},
+        {"id": "PR-SGC-02", "descripcion": "Procedimiento General para el Control de Registros del SGC"},
+        {"id": "PR-SGC-04", "descripcion": "Procedimiento General para Control de Producto o Servicio No Conforme"},
+        {"id": "BD_Salidas_Incoming.xlsx", "descripcion": "Bitácora Digital de Despachos y Registro Histórico de Salidas"}
+    ]
+    
+    # Renderizar tabla HTML premium con CSS adaptado a Sigrama
+    html_table = """
+    <style>
+    .glossary-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        font-size: 1rem;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+    }
+    .glossary-table thead tr {
+        background-color: #D32F2F;
+        color: white;
+        text-align: left;
+        font-weight: bold;
+    }
+    .glossary-table th, .glossary-table td {
+        padding: 12px 15px;
+    }
+    .glossary-table tbody tr {
+        border-bottom: 1px solid #dddddd;
+        background-color: #ffffff;
+    }
+    .glossary-table tbody tr:nth-of-type(even) {
+        background-color: #f8f9fa;
+    }
+    .glossary-table tbody tr:last-of-type {
+        border-bottom: 3px solid #D32F2F;
+    }
+    .glossary-table a {
+        color: #D32F2F !important;
+        font-weight: bold;
+        text-decoration: none;
+    }
+    .glossary-table a:hover {
+        text-decoration: underline;
+    }
+    </style>
+    <table class="glossary-table">
+      <thead>
+        <tr>
+          <th>Código de Documento</th>
+          <th>Descripción / Nombre Oficial</th>
+          <th>Descarga de Muestra</th>
+        </tr>
+      </thead>
+      <tbody>
+    """
+    
+    for doc in glosario:
+        link = obtener_link_descarga_muestra(doc["id"], f"📥 Descargar {doc['id']}")
+        html_table += f"""
+        <tr>
+          <td><strong>{doc["id"]}</strong></td>
+          <td>{doc["descripcion"]}</td>
+          <td>{link}</td>
+        </tr>
+        """
+        
+    html_table += """
+      </tbody>
+    </table>
+    """
+    
+    st.markdown(html_table, unsafe_allow_html=True)
 
 # =============================================================================
 # MÓDULO 5: MANUAL DE OPERACIÓN
