@@ -455,6 +455,7 @@ opcion_menu = st.sidebar.radio("Seleccione un Módulo:", [
     "⚙️ Catálogo de Tolerancias de SKU",
     "📖 Manual de Operación",
     "📋 Procedimiento de Recepción (PR-ALM-01)",
+    "📋 Procedimiento de Despacho (PR-ALM-02)",
     "💡 Manufactura Inteligente y Tecnología",
     "🗑️ Limpieza y Explorador Git (Admin)"
 ])
@@ -2535,6 +2536,103 @@ elif opcion_menu == "📋 Procedimiento de Recepción (PR-ALM-01)":
     
     #### 8. CONTROL DE REVISIONES
     * **Rev. 00:** Emisión inicial y adaptación completa para reestructuración del Sistema de Gestión de Calidad (SGC) digital SIGRAMA.
+    """, unsafe_allow_html=True)
+
+# =============================================================================
+# MÓDULO 10: PROCEDIMIENTO DE DESPACHO (PR-ALM-02)
+# =============================================================================
+elif opcion_menu == "📋 Procedimiento de Despacho (PR-ALM-02)":
+    st.title("📋 Procedimiento para Control de Inventario y Despacho")
+    st.markdown("Consulte el procedimiento oficial SGC **PR-ALM-02** digitalizado y regulado para el control de inventario y salida de material.")
+    
+    # Botón para descargar el procedimiento en PDF
+    try:
+        temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
+        os.makedirs(temp_pdf_dir, exist_ok=True)
+        pdf_path_proc2 = os.path.join(temp_pdf_dir, "Procedimiento_PR-ALM-02_Digital.pdf")
+        
+        utils_pdf.generar_pdf_procedimiento_pralm02(pdf_path_proc2)
+        
+        if os.path.exists(pdf_path_proc2):
+            with open(pdf_path_proc2, "rb") as f:
+                pdf_bytes = f.read()
+            st.download_button(
+                label="📥 Descargar Procedimiento PR-ALM-02 (PDF)",
+                data=pdf_bytes,
+                file_name="Procedimiento_PR-ALM-02_Digital.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                key="btn_descarga_procedimiento_pralm02_pdf"
+            )
+    except Exception as e:
+        st.error(f"Error al generar el PDF del procedimiento: {e}")
+        
+    st.write("---")
+    
+    # Renderizar el procedimiento en markdown en pantalla
+    st.markdown("""
+    ### PROCEDIMIENTO PARA CONTROL DE INVENTARIO Y DESPACHO A CORTE
+    **Código:** PR-ALM-02  
+    **Revisión:** 00 (Edición Digital)  
+    **Departamento:** Almacén / Producción  
+    **Sistema:** SGC Digital Sigrama  
+    
+    ---
+    
+    #### 1. OBJETIVO
+    Establecer de manera clara y estricta los lineamientos operativos y de calidad para el control físico de existencias, la solicitud, verificación y despacho de láminas de acero desde el Almacén de Metales hacia la célula de Corte (cizalla, láser, etc.) mediante la aplicación digital, garantizando la trazabilidad total del material por número de colada y el mantenimiento del inventario en tiempo real.
+    
+    #### 2. ALCANCE
+    Este procedimiento aplica para todo el personal de Almacén (auxiliares, jefes de almacén), Operadores del área de Corte e Inspectores de Calidad involucrados en el control logístico, egreso físico y registro del material en el SGC de **SIGRAMA**.
+    
+    #### 3. NORMAS DE REFERENCIA
+    * **ISO 9001:2015:** Sistema de Gestión de Calidad (Cláusula 8.5 Producción y provisión del servicio, 8.5.2 Identificación y trazabilidad).
+    * **PR-ALM-01:** Procedimiento de Recepción de Materia Prima.
+    * **PR-SGC-01:** Procedimiento para Control de Documentos (SIGRAMA).
+    
+    #### 4. DEFINICIONES
+    * **Remisión de Salida (FO-MET-36):** Formato oficial y pase de salida digital generado por la aplicación que ampara la transferencia de custodia del material del Almacén al área de Corte.
+    * **Área de Corte:** Célula de manufactura encargada del corte por láser, punzonado o cizallado de las láminas para la estructura de los gabinetes.
+    * **Bitácora de Salidas (BD_Salidas_Incoming.xlsx):** Registro cronológico digital en el cual se asientan todos los egresos del almacén, detallando folios, hojas, peso proporcional y responsables.
+    * **PEPS (Primeras Entradas, Primeras Salidas):** Método logístico que prioriza la salida del material que tiene más tiempo en almacén, previniendo la oxidación de las láminas.
+    
+    #### 5. DIAGRAMA DE FLUJO (TABLA ESCALONADA DEL PROCESO)
+    | Responsable | PROCESO ó ACTIVIDAD | Documento de Salida |
+    | :--- | :--- | :--- |
+    | **Supervisor de Corte** | Solicita láminas de acero especificando SKU, cantidad de hojas y proyecto de producción. | Orden de Trabajo / Requerimiento |
+    | **Auxiliar de Almacén** | Verifica disponibilidad de stock aceptado y aplica regla PEPS para seleccionar el atado en la app. | Módulo de Existencias (App) |
+    | **Auxiliar de Almacén** | Registra digitalmente el despacho (se descuentan hojas del inventario automáticamente) y descarga la remisión. | Remisión de Salida Digital (FO-MET-36) |
+    | **Auxiliar de Almacén** | Prepara y entrega el material físico al área de corte acompañado de la remisión impresa. | Remisión FO-MET-36 Física |
+    | **Operador de Corte** | Valida características del material contra la remisión y firma de conformidad para archivar. | Remisión FO-MET-36 Firmada |
+    
+    #### 6. DESARROLLO DEL PROCEDIMIENTO
+    ##### 6.1 Requerimiento de Material
+    Todo despacho de material debe estar amparado por un requerimiento para orden de producción. El supervisor de corte debe indicar el SKU, cantidad exacta de hojas y el proyecto de destino.
+    
+    ##### 6.2 Verificación en Sistema y Criterio PEPS
+    El almacenista consulta la aplicación en el módulo de Inventario y realiza la búsqueda del SKU solicitado:
+    * Solo se permite despachar atados físicos que tengan estatus de Calidad de **'Aceptado'** (etiqueta verde FO-MET-32).
+    * **Criterio PEPS:** Se debe seleccionar para salida el atado más antiguo del SKU solicitado que cumpla con el estatus, para evitar obsolescencia de material o daño superficial.
+    
+    ##### 6.3 Registro del Despacho
+    El almacenista llena el formulario digital en la aplicación seleccionando el ID del atado de origen y la cantidad a egresar. Al confirmar la salida:
+    * El sistema de forma automática deduce las hojas y calcula el peso proporcional de la base de datos general (Kardex).
+    * Se añade la transacción a la Bitácora de Salidas (`BD_Salidas_Incoming.xlsx`).
+    * Se realiza la sincronización segura con GitHub mediante el token de acceso para la persistencia inmutable.
+    
+    ##### 6.4 Generación de Remisión y Entrega
+    El almacenista genera y descarga la Remisión de Salida Oficial (FO-MET-36) en formato PDF.
+    * El material físico se separa del atado y se entrega al operador del área de corte junto con el documento FO-MET-36 impreso.
+    * El operador de corte valida que el calibre, tipo de lámina y cantidad de hojas correspondan físicamente.
+    * Ambas partes firman de conformidad de recepción en el formato impreso. La remisión física firmada se resguarda en archivo para trazabilidad.
+    
+    #### 7. DOCUMENTOS RELACIONADOS
+    * **FO-MET-36:** Remisión de Salida de Lámina (Formato de Transferencia de Custodia).
+    * **BD_Salidas_Incoming.xlsx:** Bitácora Digital de Despachos y Registro Histórico.
+    * **PR-ALM-01:** Procedimiento de Recepción de Materia Prima.
+    
+    #### 8. CONTROL DE REVISIONES
+    * **Rev. 00:** Emisión inicial y digitalización integrada para el control de inventario y remisiones del sistema SGC digital SIGRAMA.
     """, unsafe_allow_html=True)
 
 # =============================================================================

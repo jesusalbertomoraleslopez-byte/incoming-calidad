@@ -2187,11 +2187,139 @@ def generar_pdf_procedimiento_pralm01(output_pdf_path):
     story.append(Paragraph("8. CONTROL DE REVISIONES", style_sec_proc))
     story.append(Paragraph("• <b>Rev. 00:</b> Emisión inicial y adaptación completa para reestructuración del Sistema de Gestión de Calidad (SGC) digital SIGRAMA.", style_bullet_proc))
     
-    def decorate(canvas, doc):
-        draw_sigrama_sgc_decorations(canvas, doc, "PR-ALM-01", "PROCEDIMIENTO DE CONTROL DE MATERIA PRIMA")
-        
     doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
     print("PDF del Procedimiento PR-ALM-01 creado.")
+
+def generar_pdf_procedimiento_pralm02(output_pdf_path):
+    """
+    Genera un archivo PDF formal con el procedimiento PR-ALM-02
+    para el control de inventario y despacho de láminas de acero.
+    """
+    doc = SimpleDocTemplate(output_pdf_path, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=90, bottomMargin=60)
+    story = []
+    styles = getSampleStyleSheet()
+    
+    style_tit_proc = ParagraphStyle('T_Proc2', parent=styles['Heading1'], fontSize=14, leading=18, fontName="Helvetica-Bold", textColor=colors.HexColor("#D32F2F"), spaceAfter=10)
+    style_sec_proc = ParagraphStyle('S_Proc2', parent=styles['Normal'], fontSize=10, leading=14, fontName="Helvetica-Bold", textColor=colors.HexColor("#0D47A1"), spaceBefore=10, spaceAfter=5)
+    style_body_proc = ParagraphStyle('B_Proc2', parent=styles['Normal'], fontSize=8.5, leading=12, fontName="Helvetica")
+    style_body_proc_bold = ParagraphStyle('BB_Proc2', parent=styles['Normal'], fontSize=8.5, leading=12, fontName="Helvetica-Bold")
+    style_bullet_proc = ParagraphStyle('Bul_Proc2', parent=styles['Normal'], fontSize=8.5, leading=12, fontName="Helvetica", leftIndent=15, bulletIndent=5)
+    style_blanco_bold = ParagraphStyle('WB_Proc2', parent=styles['Normal'], textColor=colors.white, fontName="Helvetica-Bold", alignment=1, fontSize=8)
+    
+    story.append(Spacer(1, 10))
+    story.append(Paragraph("PROCEDIMIENTO PARA CONTROL DE INVENTARIO Y DESPACHO A CORTE", style_tit_proc))
+    
+    # Tabla de Metadatos
+    meta_data = [
+        [Paragraph("CÓDIGO:", style_body_proc_bold), Paragraph("PR-ALM-02", style_body_proc),
+         Paragraph("REVISIÓN:", style_body_proc_bold), Paragraph("00 (Edición Digital)", style_body_proc)],
+        [Paragraph("DEPARTAMENTO:", style_body_proc_bold), Paragraph("Almacén / Producción", style_body_proc),
+         Paragraph("SISTEMA:", style_body_proc_bold), Paragraph("SGC Digital Sigrama", style_body_proc)]
+    ]
+    t_meta = Table(meta_data, colWidths=[120, 150, 120, 150])
+    t_meta.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
+        ('BACKGROUND', (0,0), (0,-1), colors.HexColor("#F5F5F5")),
+        ('BACKGROUND', (2,0), (2,-1), colors.HexColor("#F5F5F5")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
+    ]))
+    story.append(t_meta)
+    story.append(Spacer(1, 10))
+    
+    # 1. OBJETIVO
+    story.append(Paragraph("1. OBJETIVO", style_sec_proc))
+    story.append(Paragraph(
+        "Establecer de manera clara y estricta los lineamientos operativos y de calidad para el control físico de existencias, "
+        "la solicitud, verificación y despacho de láminas de acero desde el Almacén de Metales hacia la célula de Corte (cizalla, láser, etc.) "
+        "mediante la aplicación digital, garantizando la trazabilidad total del material por número de colada y el mantenimiento "
+        "del inventario en tiempo real.",
+        style_body_proc
+    ))
+    
+    # 2. ALCANCE
+    story.append(Paragraph("2. ALCANCE", style_sec_proc))
+    story.append(Paragraph(
+        "Este procedimiento aplica para todo el personal de Almacén (auxiliares, jefes de almacén), Operadores del área de Corte "
+        "e Inspectores de Calidad involucrados en el control logístico, egreso físico y registro del material en el SGC de SIGRAMA.",
+        style_body_proc
+    ))
+    
+    # 3. NORMAS DE REFERENCIA
+    story.append(Paragraph("3. NORMAS DE REFERENCIA", style_sec_proc))
+    story.append(Paragraph("• <b>ISO 9001:2015:</b> Sistema de Gestión de Calidad (Cláusula 8.5 Producción y provisión del servicio, 8.5.2 Identificación y trazabilidad).", style_bullet_proc))
+    story.append(Paragraph("• <b>PR-ALM-01:</b> Procedimiento de Recepción de Materia Prima.", style_bullet_proc))
+    story.append(Paragraph("• <b>PR-SGC-01:</b> Procedimiento para Control de Documentos (SIGRAMA).", style_bullet_proc))
+    
+    # 4. DEFINICIONES
+    story.append(Paragraph("4. DEFINICIONES", style_sec_proc))
+    story.append(Paragraph("• <b>Remisión de Salida (FO-MET-36):</b> Formato oficial y pase de salida digital generado por la aplicación que ampara la transferencia de custodia del material del Almacén al área de Corte.", style_bullet_proc))
+    story.append(Paragraph("• <b>Área de Corte:</b> Célula de manufactura encargada del corte por láser, punzonado o cizallado de las láminas para la estructura de los gabinetes.", style_bullet_proc))
+    story.append(Paragraph("• <b>Bitácora de Salidas (BD_Salidas_Incoming.xlsx):</b> Registro cronológico digital en el cual se asientan todos los egresos del almacén, detallando folios, hojas, peso proporcional y responsables.", style_bullet_proc))
+    story.append(Paragraph("• <b>PEPS (Primeras Entradas, Primeras Salidas):</b> Método logístico que prioriza la salida del material que tiene más tiempo en almacén, previniendo la oxidación de las láminas.", style_bullet_proc))
+    
+    story.append(PageBreak())
+    
+    # 5. DIAGRAMA DE FLUJO
+    story.append(Paragraph("5. DIAGRAMA DE FLUJO (TABLA ESCALONADA DEL PROCESO)", style_sec_proc))
+    story.append(Spacer(1, 5))
+    
+    flow_data = [
+        [Paragraph("RESPONSABLE", style_blanco_bold), Paragraph("PROCESO Ó ACTIVIDAD", style_blanco_bold), Paragraph("DOCUMENTO DE SALIDA", style_blanco_bold)],
+        [Paragraph("Supervisor de Corte", style_body_proc_bold), Paragraph("Solicita láminas de acero especificando SKU, cantidad de hojas y proyecto de producción.", style_body_proc), Paragraph("Orden de Trabajo / Requerimiento.", style_body_proc)],
+        [Paragraph("Auxiliar de Almacén", style_body_proc_bold), Paragraph("Verifica disponibilidad de stock aceptado y aplica regla PEPS para seleccionar el atado en la app.", style_body_proc), Paragraph("Módulo de Existencias.", style_body_proc)],
+        [Paragraph("Auxiliar de Almacén", style_body_proc_bold), Paragraph("Registra digitalmente el despacho (se descuentan hojas del inventario automáticamente) y descarga la remisión.", style_body_proc), Paragraph("Remisión de Salida Digital (FO-MET-36).", style_body_proc)],
+        [Paragraph("Auxiliar de Almacén", style_body_proc_bold), Paragraph("Prepara y entrega el material físico al área de corte acompañado de la remisión impresa.", style_body_proc), Paragraph("Remisión FO-MET-36 Física.", style_body_proc)],
+        [Paragraph("Operador de Corte", style_body_proc_bold), Paragraph("Valida características del material contra la remisión y firma de conformidad para archivar.", style_body_proc), Paragraph("Remisión FO-MET-36 Firmada.", style_body_proc)]
+    ]
+    t_flow = Table(flow_data, colWidths=[110, 250, 180])
+    t_flow.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0D47A1")),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#757575")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 5)
+    ]))
+    story.append(t_flow)
+    story.append(Spacer(1, 10))
+    
+    # 6. DESARROLLO DEL PROCEDIMIENTO
+    story.append(Paragraph("6. DESARROLLO DEL PROCEDIMIENTO", style_sec_proc))
+    
+    story.append(Paragraph("6.1 Requerimiento de Material", style_body_proc_bold))
+    story.append(Paragraph("Todo despacho de material debe estar amparado por un requerimiento para orden de producción. El supervisor de corte debe indicar el SKU, cantidad exacta de hojas y el proyecto de destino.", style_body_proc))
+    
+    story.append(Paragraph("6.2 Verificación en Sistema y Criterio PEPS", style_body_proc_bold))
+    story.append(Paragraph("El almacenista consulta la aplicación en el módulo de Inventario y realiza la búsqueda del SKU solicitado:", style_body_proc))
+    story.append(Paragraph("• Solo se permite despachar atados físicos que tengan estatus de Calidad de <b>'Aceptado'</b> (etiqueta verde FO-MET-32).", style_bullet_proc))
+    story.append(Paragraph("• <b>Criterio PEPS:</b> Se debe seleccionar para salida el atado más antiguo del SKU solicitado que cumpla con el estatus, para evitar obsolescencia de material o daño superficial.", style_bullet_proc))
+    
+    story.append(Paragraph("6.3 Registro del Despacho", style_body_proc_bold))
+    story.append(Paragraph("El almacenista llena el formulario digital en la aplicación seleccionando el ID del atado de origen y la cantidad a egresar. Al confirmar la salida:", style_body_proc))
+    story.append(Paragraph("• El sistema de forma automática deduce las hojas y calcula el peso proporcional de la base de datos general (Kardex).", style_bullet_proc))
+    story.append(Paragraph("• Se añade la transacción a la Bitácora de Salidas (`BD_Salidas_Incoming.xlsx`).", style_bullet_proc))
+    story.append(Paragraph("• Se realiza la sincronización segura con GitHub mediante el token de acceso para la persistencia inmutable.", style_bullet_proc))
+    
+    story.append(Paragraph("6.4 Generación de Remisión y Entrega", style_body_proc_bold))
+    story.append(Paragraph("El almacenista genera y descarga la Remisión de Salida Oficial (FO-MET-36) en formato PDF.", style_body_proc))
+    story.append(Paragraph("• El material físico se separa del atado y se entrega al operador del área de corte junto con el documento FO-MET-36 impreso.", style_bullet_proc))
+    story.append(Paragraph("• El operador de corte valida que el calibre, tipo de lámina y cantidad de hojas correspondan físicamente.", style_bullet_proc))
+    story.append(Paragraph("• Ambas partes firman de conformidad de recepción en el formato impreso. La remisión física firmada se resguarda en archivo para trazabilidad.", style_bullet_proc))
+    
+    # 7. DOCUMENTOS RELACIONADOS
+    story.append(Paragraph("7. DOCUMENTOS RELACIONADOS", style_sec_proc))
+    story.append(Paragraph("• <b>FO-MET-36:</b> Remisión de Salida de Lámina (Formato de Transferencia de Custodia).", style_bullet_proc))
+    story.append(Paragraph("• <b>BD_Salidas_Incoming.xlsx:</b> Bitácora Digital de Despachos y Registro Histórico.", style_bullet_proc))
+    story.append(Paragraph("• <b>PR-ALM-01:</b> Procedimiento de Recepción de Materia Prima.", style_bullet_proc))
+    
+    # 8. CONTROL DE REVISIONES
+    story.append(Paragraph("8. CONTROL DE REVISIONES", style_sec_proc))
+    story.append(Paragraph("• <b>Rev. 00:</b> Emisión inicial y digitalización integrada para el control de inventario y remisiones del sistema SGC digital SIGRAMA.", style_bullet_proc))
+    
+    def decorate(canvas, doc):
+        draw_sigrama_sgc_decorations(canvas, doc, "PR-ALM-02", "PROCEDIMIENTO DE CONTROL DE INVENTARIO Y DESPACHO")
+        
+    doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
+    print("PDF del Procedimiento PR-ALM-02 creado.")
 
 def generar_pdf_remision_salida(datos_remision, output_pdf_path):
     """
