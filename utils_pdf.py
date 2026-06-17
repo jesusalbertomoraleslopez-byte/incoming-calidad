@@ -2538,5 +2538,281 @@ def generar_pdf_remision_salida(datos_remision, output_pdf_path):
     print(f"PDF de Remisión de Salida {datos_remision.get('Folio_Salida')} creado.")
 
 
+def generar_pdf_reporte_despachos(filtros, df_salidas_filtered, output_pdf_path):
+    """
+    Genera un archivo PDF con el reporte histórico de despachos filtrados.
+    """
+    doc = SimpleDocTemplate(output_pdf_path, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=90, bottomMargin=60)
+    story = []
+    styles = getSampleStyleSheet()
+    
+    # Estilos de texto
+    style_blanco_bold = ParagraphStyle('WB_Disp', parent=styles['Normal'], textColor=colors.white, fontName="Helvetica-Bold", alignment=1, fontSize=8)
+    style_normal_bold = ParagraphStyle('NB_Disp', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8)
+    style_normal_text = ParagraphStyle('NT_Disp', parent=styles['Normal'], fontSize=7.5)
+    style_normal_text_center = ParagraphStyle('NTC_Disp', parent=styles['Normal'], fontSize=7.5, alignment=1)
+    style_title = ParagraphStyle('T_Disp', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=12, textColor=colors.HexColor("#D32F2F"), spaceAfter=5)
+    
+    story.append(Spacer(1, 5))
+    story.append(Paragraph("REPORTE HISTÓRICO DE DESPACHOS Y REMISIONES", style_title))
+    story.append(Paragraph("Este documento consolida el historial de salidas de materia prima (láminas y atados) del almacén de metales bajo los criterios de búsqueda aplicados.", style_normal_text))
+    story.append(Spacer(1, 10))
+    
+    # --- PANEL: FILTROS ACTIVOS ---
+    t_filtros_header = Table([[Paragraph("FILTROS DE BÚSQUEDA ACTIVOS", style_blanco_bold)]], colWidths=[540])
+    t_filtros_header.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#757575")), ('ALIGN', (0,0), (-1,-1), 'CENTER')]))
+    story.append(t_filtros_header)
+    
+    datos_filtros = [
+        [
+            Paragraph("RANGO FECHAS:", style_normal_bold), 
+            Paragraph(f"{filtros.get('fecha_inicio', 'N/D')} a {filtros.get('fecha_fin', 'N/D')}", style_normal_text),
+            Paragraph("SKU(S) SELECCIONADO(S):", style_normal_bold), 
+            Paragraph(str(filtros.get('skus', 'Todos')), style_normal_text)
+        ],
+        [
+            Paragraph("PROYECTO / DESTINO:", style_normal_bold), 
+            Paragraph(str(filtros.get('proyecto', 'Todos')), style_normal_text),
+            Paragraph("TOTAL REGISTROS:", style_normal_bold), 
+            Paragraph(str(len(df_salidas_filtered)), style_normal_text)
+        ]
+    ]
+    t_filtros = Table(datos_filtros, colWidths=[110, 160, 130, 140])
+    t_filtros.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('BACKGROUND', (0,0), (0,-1), colors.HexColor("#F5F5F5")),
+        ('BACKGROUND', (2,0), (2,-1), colors.HexColor("#F5F5F5"))
+    ]))
+    story.append(t_filtros)
+    story.append(Spacer(1, 10))
+    
+    # --- KPIs DE DESPACHOS ---
+    tot_hojas = df_salidas_filtered["Cantidad_Hojas_Despachadas"].sum() if not df_salidas_filtered.empty else 0
+    tot_peso = df_salidas_filtered["Peso_Despachado_Kg"].sum() if not df_salidas_filtered.empty else 0.0
+    tot_atados = df_salidas_filtered["ID_Atado"].nunique() if not df_salidas_filtered.empty else 0
+    
+    datos_kpis = [
+        [
+            Paragraph("LÁMINAS DESPACHADAS TOTAL", style_normal_bold),
+            Paragraph("PESO TOTAL DESPACHADO", style_normal_bold),
+            Paragraph("ATADOS AFECTADOS", style_normal_bold)
+        ],
+        [
+            Paragraph(f"<b>{tot_hojas:,} hojas</b>", style_normal_text_center),
+            Paragraph(f"<b>{tot_peso:,.2f} Kg</b>", style_normal_text_center),
+            Paragraph(f"<b>{tot_atados} atados</b>", style_normal_text_center)
+        ]
+    ]
+    t_kpis = Table(datos_kpis, colWidths=[180, 180, 180])
+    t_kpis.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#EEEEEE"))
+    ]))
+    story.append(t_kpis)
+    story.append(Spacer(1, 15))
+    
+    # --- TABLA DETALLADA ---
+    story.append(Paragraph("<b>DETALLE DE REMISIONES DE SALIDA</b>", style_normal_bold))
+    story.append(Spacer(1, 5))
+    
+    headers_tabla = [
+        Paragraph("FOLIO", style_blanco_bold),
+        Paragraph("FECHA", style_blanco_bold),
+        Paragraph("ATADO", style_blanco_bold),
+        Paragraph("SKU", style_blanco_bold),
+        Paragraph("HOJAS", style_blanco_bold),
+        Paragraph("PESO (KG)", style_blanco_bold),
+        Paragraph("PROYECTO / DESTINO", style_blanco_bold)
+    ]
+    
+    filas_tabla = [headers_tabla]
+    
+    if df_salidas_filtered.empty:
+        filas_tabla.append([Paragraph("No se encontraron registros de despachos con los filtros activos.", style_normal_text)] + [Paragraph("", style_normal_text)] * 6)
+    else:
+        df_sort = df_salidas_filtered.sort_values("Folio_Salida", ascending=False)
+        for _, r in df_sort.iterrows():
+            filas_tabla.append([
+                Paragraph(str(r["Folio_Salida"]), style_normal_bold),
+                Paragraph(str(r["Fecha"]), style_normal_text_center),
+                Paragraph(str(r["ID_Atado"]), style_normal_text),
+                Paragraph(str(r["SKU"]), style_normal_text),
+                Paragraph(f"{int(r['Cantidad_Hojas_Despachadas']):,}", style_normal_text_center),
+                Paragraph(f"{float(r['Peso_Despachado_Kg']):,.2f}", style_normal_text_center),
+                Paragraph(str(r["Destino_Proyecto"]), style_normal_text)
+            ])
+            
+    t_detalle = Table(filas_tabla, colWidths=[95, 55, 65, 85, 45, 55, 140])
+    t_style = [
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#E0E0E0")),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ('TOPPADDING', (0,0), (-1,-1), 4)
+    ]
+    
+    if not df_salidas_filtered.empty:
+        for idx in range(1, len(filas_tabla)):
+            if idx % 2 == 0:
+                t_style.append(('BACKGROUND', (0, idx), (-1, idx), colors.HexColor("#F9F9F9")))
+                
+    t_detalle.setStyle(TableStyle(t_style))
+    story.append(t_detalle)
+    story.append(Spacer(1, 25))
+    
+    # Firmas
+    datos_firmas = [
+        [
+            Paragraph("_____________________________<br/>ELABORÓ (CONTROL DE CALIDAD)", style_normal_bold),
+            Paragraph("_____________________________<br/>REVISÓ Y AUTORIZÓ (AUDITORÍA SGC)", style_normal_bold)
+        ]
+    ]
+    t_firmas = Table(datos_firmas, colWidths=[270, 270])
+    t_firmas.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'TOP')
+    ]))
+    story.append(t_firmas)
+    
+    def decorate(canvas, doc):
+        draw_sigrama_sgc_decorations(canvas, doc, "FO-MET-38", "REPORTE HISTÓRICO DE DESPACHOS")
+        
+    doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
+
+
+def generar_pdf_reporte_auditoria_atados(df_resumen_atados, df_salidas_asociadas, output_pdf_path):
+    """
+    Genera un archivo PDF con el reporte de auditoría de los atados seleccionados.
+    """
+    doc = SimpleDocTemplate(output_pdf_path, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=90, bottomMargin=60)
+    story = []
+    styles = getSampleStyleSheet()
+    
+    style_blanco_bold = ParagraphStyle('WB_Aud', parent=styles['Normal'], textColor=colors.white, fontName="Helvetica-Bold", alignment=1, fontSize=8)
+    style_normal_bold = ParagraphStyle('NB_Aud', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8)
+    style_normal_text = ParagraphStyle('NT_Aud', parent=styles['Normal'], fontSize=7.5)
+    style_normal_text_center = ParagraphStyle('NTC_Aud', parent=styles['Normal'], fontSize=7.5, alignment=1)
+    style_title = ParagraphStyle('T_Aud', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=12, textColor=colors.HexColor("#D32F2F"), spaceAfter=5)
+    style_section = ParagraphStyle('S_Aud', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=9, textColor=colors.HexColor("#0D47A1"), spaceBefore=10, spaceAfter=5)
+    
+    story.append(Spacer(1, 5))
+    story.append(Paragraph("REPORTE DE AUDITORÍA Y CONTROL DE ATADOS FÍSICOS", style_title))
+    story.append(Paragraph("Este informe presenta la trazabilidad total de atados de acero en planta, detallando su cantidad inicial de láminas recibidas en almacén, los consumos/despachos registrados y las existencias actuales.", style_normal_text))
+    story.append(Spacer(1, 10))
+    
+    # --- TABLA RESUMEN DE ATADOS AUDITADOS ---
+    story.append(Paragraph("<b>1. RESUMEN DE TRAZABILIDAD Y EXISTENCIAS EN INVENTARIO</b>", style_section))
+    
+    headers_atados = [
+        Paragraph("ID ATADO", style_blanco_bold),
+        Paragraph("SKU", style_blanco_bold),
+        Paragraph("RECEPCIÓN", style_blanco_bold),
+        Paragraph("LÁMINAS INIC.", style_blanco_bold),
+        Paragraph("LÁMINAS DESP.", style_blanco_bold),
+        Paragraph("LÁMINAS ACT.", style_blanco_bold),
+        Paragraph("PESO ACT. (KG)", style_blanco_bold),
+        Paragraph("ESTADO", style_blanco_bold)
+    ]
+    
+    filas_atados = [headers_atados]
+    for _, r in df_resumen_atados.iterrows():
+        disp = int(r["Hojas Disponibles"])
+        estatus_str = f"<font color='green'><b>DISPONIBLE</b></font>" if disp > 0 else f"<font color='red'><b>AGOTADO</b></font>"
+        
+        filas_atados.append([
+            Paragraph(str(r["ID_Atado"]), style_normal_bold),
+            Paragraph(str(r["SKU"]), style_normal_text),
+            Paragraph(str(r["Folio"]), style_normal_text),
+            Paragraph(f"{int(r['Hojas Iniciales']):,}", style_normal_text_center),
+            Paragraph(f"{int(r['Hojas Despachadas']):,}", style_normal_text_center),
+            Paragraph(f"{disp:,}", style_normal_text_center),
+            Paragraph(f"{float(r['Peso Disponible (Kg)']):,.2f}", style_normal_text_center),
+            Paragraph(estatus_str, style_normal_text_center)
+        ])
+        
+    t_atados = Table(filas_atados, colWidths=[90, 80, 80, 60, 60, 60, 60, 60])
+    t_atados_style = [
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ('TOPPADDING', (0,0), (-1,-1), 4)
+    ]
+    for idx in range(1, len(filas_atados)):
+        if idx % 2 == 0:
+            t_atados_style.append(('BACKGROUND', (0, idx), (-1, idx), colors.HexColor("#F5F5F5")))
+    t_atados.setStyle(TableStyle(t_atados_style))
+    story.append(t_atados)
+    story.append(Spacer(1, 10))
+    
+    # --- TABLA DETALLE DE DESPACHOS ASOCIADOS ---
+    story.append(Paragraph("<b>2. DETALLE HISTÓRICO DE DESPACHOS ASOCIADOS A ESTOS ATADOS</b>", style_section))
+    
+    headers_despachado = [
+        Paragraph("FOLIO SALIDA", style_blanco_bold),
+        Paragraph("FECHA", style_blanco_bold),
+        Paragraph("ID ATADO", style_blanco_bold),
+        Paragraph("HOJAS DESP.", style_blanco_bold),
+        Paragraph("PESO DESP. (KG)", style_blanco_bold),
+        Paragraph("PROYECTO / DESTINO", style_blanco_bold),
+        Paragraph("AUTORIZA / RECIBE", style_blanco_bold)
+    ]
+    
+    filas_despachado = [headers_despachado]
+    if df_salidas_asociadas.empty:
+        filas_despachado.append([Paragraph("No se han registrado despachos para los atados seleccionados.", style_normal_text)] + [Paragraph("", style_normal_text)] * 6)
+    else:
+        df_sort = df_salidas_asociadas.sort_values(["ID_Atado", "Folio_Salida"], ascending=[True, False])
+        for _, r in df_sort.iterrows():
+            filas_despachado.append([
+                Paragraph(str(r["Folio_Salida"]), style_normal_bold),
+                Paragraph(str(r["Fecha"]), style_normal_text_center),
+                Paragraph(str(r["ID_Atado"]), style_normal_text),
+                Paragraph(f"{int(r['Cantidad_Hojas_Despachadas']):,}", style_normal_text_center),
+                Paragraph(f"{float(r['Peso_Despachado_Kg']):,.2f}", style_normal_text_center),
+                Paragraph(str(r["Destino_Proyecto"]), style_normal_text),
+                Paragraph(str(r["Responsable"]), style_normal_text)
+            ])
+            
+    t_desp = Table(filas_despachado, colWidths=[80, 50, 70, 55, 65, 110, 110])
+    t_desp_style = [
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0D47A1")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ('TOPPADDING', (0,0), (-1,-1), 4)
+    ]
+    if not df_salidas_asociadas.empty:
+        for idx in range(1, len(filas_despachado)):
+            if idx % 2 == 0:
+                t_desp_style.append(('BACKGROUND', (0, idx), (-1, idx), colors.HexColor("#F5F5F5")))
+    t_desp.setStyle(TableStyle(t_desp_style))
+    story.append(t_desp)
+    story.append(Spacer(1, 25))
+    
+    # Firmas
+    datos_firmas = [
+        [
+            Paragraph("_____________________________<br/>INSPECTOR DE CALIDAD / AUDITOR", style_normal_bold),
+            Paragraph("_____________________________<br/>REPRESENTANTE DE LA DIRECCIÓN", style_normal_bold)
+        ]
+    ]
+    t_firmas = Table(datos_firmas, colWidths=[270, 270])
+    t_firmas.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'TOP')
+    ]))
+    story.append(t_firmas)
+    
+    def decorate(canvas, doc):
+        draw_sigrama_sgc_decorations(canvas, doc, "FO-MET-39", "REPORTE DE AUDITORÍA Y CONTROL DE ATADOS")
+        
+    doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
+
+
+
 
 

@@ -2012,8 +2012,8 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
             # Filtramos atados que aún tienen material disponible
             df_inv_activo = df_inv[df_inv["Hojas_Disponibles"] > 0].copy()
             
-            # Pestañas: 1. Ver Inventario, 2. Generar Remisión, 3. Historial de Salidas
-            pest_inv1, pest_inv2, pest_inv3 = st.tabs(["📊 Existencias en Inventario", "📝 Registrar Remisión de Salida", "📜 Historial de Despachos"])
+            # Pestañas: 1. Ver Inventario, 2. Generar Remisión, 3. Historial de Salidas, 4. Dashboard de Inventario
+            pest_inv1, pest_inv2, pest_inv3, pest_inv4 = st.tabs(["📊 Existencias en Inventario", "📝 Registrar Remisión de Salida", "📜 Historial de Despachos", "📈 Dashboard de Inventario"])
             
             with pest_inv1:
                 st.write("### 🏢 Inventario Físico Disponible (Acero Conforme)")
@@ -2285,6 +2285,460 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                                 use_container_width=True,
                                 key=f"btn_reprint_{folio_salida_reprint}"
                             )
+
+            with pest_inv4:
+                st.write("### 📈 Tablero y Análisis de Inventario")
+                st.markdown("Visualice indicadores clave de rendimiento (KPIs), tendencias de consumo y consulte reportes históricos de inventario y remisiones.")
+                
+                # --- PROCESAMIENTO SEGURO DE FECHAS EN SALIDAS ---
+                df_salidas_dt = df_salidas.copy() if not df_salidas.empty else pd.DataFrame()
+                if not df_salidas_dt.empty:
+                    df_salidas_dt["Fecha_dt"] = pd.to_datetime(df_salidas_dt["Fecha"], format="%d/%m/%Y", errors="coerce")
+                    # Fallback si hay valores nulos
+                    mask_nat = df_salidas_dt["Fecha_dt"].isna()
+                    if mask_nat.any():
+                        df_salidas_dt.loc[mask_nat, "Fecha_dt"] = pd.to_datetime(df_salidas_dt.loc[mask_nat, "Fecha"], errors="coerce")
+                    df_salidas_dt = df_salidas_dt.dropna(subset=["Fecha_dt"])
+                
+                # --- CONFIGURACIÓN DE FILTROS ---
+                st.write("#### 🔍 Filtros de Búsqueda Avanzada")
+                col_filt1, col_filt2, col_filt3 = st.columns(3)
+                
+                # 1. Rango de Fechas
+                if not df_salidas_dt.empty:
+                    min_date = df_salidas_dt["Fecha_dt"].min().date()
+                    max_date = df_salidas_dt["Fecha_dt"].max().date()
+                else:
+                    min_date = datetime.date.today() - datetime.timedelta(days=30)
+                    max_date = datetime.date.today()
+                
+                with col_filt1:
+                    rango_fechas = st.date_input(
+                        "Rango de Fechas (Despachos):",
+                        value=(min_date, max_date),
+                        min_value=min_date - datetime.timedelta(days=365),
+                        max_value=max_date + datetime.timedelta(days=30),
+                        key="dash_rango_fechas"
+                    )
+                    
+                    start_date, end_date = None, None
+                    if isinstance(rango_fechas, tuple):
+                        if len(rango_fechas) == 2:
+                            start_date, end_date = rango_fechas
+                        elif len(rango_fechas) == 1:
+                            start_date = rango_fechas[0]
+                            end_date = rango_fechas[0]
+                    else:
+                        start_date = rango_fechas
+                        end_date = rango_fechas
+                
+                # 2. Selección de SKUs
+                skus_list = sorted(df_atados["SKU"].dropna().unique().tolist())
+                with col_filt2:
+                    skus_seleccionados = st.multiselect(
+                        "Filtrar por SKU(s):",
+                        options=skus_list,
+                        default=[],
+                        key="dash_skus"
+                    )
+                
+                # 3. Proyecto / Destino
+                with col_filt3:
+                    proyecto_filtro = st.text_input(
+                        "Filtrar por Proyecto/Destino:",
+                        placeholder="Ej. Lote Láser",
+                        key="dash_proyecto"
+                    )
+                
+                # --- APLICACIÓN DE FILTROS ---
+                # Inventario Físico (solo SKU)
+                df_inv_filtered = df_inv_activo.copy()
+                if skus_seleccionados:
+                    df_inv_filtered = df_inv_filtered[df_inv_filtered["SKU"].isin(skus_seleccionados)]
+                
+                # Despachos (Fecha, SKU y Proyecto)
+                df_salidas_filtered = df_salidas_dt.copy() if not df_salidas_dt.empty else pd.DataFrame()
+                if not df_salidas_filtered.empty:
+                    if start_date and end_date:
+                        df_salidas_filtered = df_salidas_filtered[
+                            (df_salidas_filtered["Fecha_dt"].dt.date >= start_date) & 
+                            (df_salidas_filtered["Fecha_dt"].dt.date <= end_date)
+                        ]
+                    if skus_seleccionados:
+                        df_salidas_filtered = df_salidas_filtered[df_salidas_filtered["SKU"].isin(skus_seleccionados)]
+                    if proyecto_filtro.strip():
+                        df_salidas_filtered = df_salidas_filtered[
+                            df_salidas_filtered["Destino_Proyecto"].str.contains(proyecto_filtro, case=False, na=False)
+                        ]
+                
+                # --- SUB-PESTAÑAS DEL DASHBOARD ---
+                pest_dash1, pest_dash2, pest_dash3, pest_dash4 = st.tabs([
+                    "📊 Gráficos y KPIs", 
+                    "📦 Inventario Físico Activo", 
+                    "📜 Remisiones y Despachos",
+                    "🔍 Auditoría de Atados (Histórico)"
+                ])
+                
+                with pest_dash1:
+                    # KPIs
+                    total_hojas_disponibles = df_inv_filtered["Hojas_Disponibles"].sum() if not df_inv_filtered.empty else 0
+                    total_peso_disponible = df_inv_filtered["Peso_Disponible_Kg"].sum() if not df_inv_filtered.empty else 0.0
+                    
+                    total_hojas_despachadas = df_salidas_filtered["Cantidad_Hojas_Despachadas"].sum() if not df_salidas_filtered.empty else 0
+                    total_peso_despachado = df_salidas_filtered["Peso_Despachado_Kg"].sum() if not df_salidas_filtered.empty else 0.0
+                    
+                    total_atados_activos = df_inv_filtered["ID_Atado"].nunique() if not df_inv_filtered.empty else 0
+                    
+                    # Consumo porcentual de los SKUs seleccionados
+                    df_inv_all_filtered = df_inv.copy()
+                    if skus_seleccionados:
+                        df_inv_all_filtered = df_inv_all_filtered[df_inv_all_filtered["SKU"].isin(skus_seleccionados)]
+                    
+                    hojas_totales_recibidas = df_inv_all_filtered["Cantidad_Hojas"].sum() if not df_inv_all_filtered.empty else 0
+                    
+                    df_salidas_skus = df_salidas_dt.copy() if not df_salidas_dt.empty else pd.DataFrame()
+                    if not df_salidas_skus.empty and skus_seleccionados:
+                        df_salidas_skus = df_salidas_skus[df_salidas_skus["SKU"].isin(skus_seleccionados)]
+                        
+                    total_hojas_despachadas_skus = df_salidas_skus["Cantidad_Hojas_Despachadas"].sum() if not df_salidas_skus.empty else 0
+                    consumo_pct = (total_hojas_despachadas_skus / hojas_totales_recibidas * 100) if hojas_totales_recibidas > 0 else 0.0
+                    
+                    col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
+                    
+                    def kpi_card_html(title, value, subtext, gradient):
+                        return f"""
+                        <div style="
+                            background: {gradient};
+                            padding: 16px;
+                            border-radius: 10px;
+                            color: white;
+                            text-align: center;
+                            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                            font-family: 'Inter', sans-serif;
+                            height: 100%;
+                        ">
+                            <div style="font-size: 0.75rem; opacity: 0.85; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">{title}</div>
+                            <div style="font-size: 1.8rem; font-weight: 700; margin: 8px 0;">{value}</div>
+                            <div style="font-size: 0.8rem; opacity: 0.9;">{subtext}</div>
+                        </div>
+                        """
+                    
+                    with col_kpi1:
+                        st.markdown(kpi_card_html(
+                            "Inventario Disponible", 
+                            f"{total_hojas_disponibles:,} Hojas", 
+                            f"{total_peso_disponible:,.2f} Kg en stock", 
+                            "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)"
+                        ), unsafe_allow_html=True)
+                        
+                    with col_kpi2:
+                        st.markdown(kpi_card_html(
+                            "Material Despachado", 
+                            f"{total_hojas_despachadas:,} Hojas", 
+                            f"{total_peso_despachado:,.2f} Kg remisionados", 
+                            "linear-gradient(135deg, #e53935 0%, #e35d5b 100%)"
+                        ), unsafe_allow_html=True)
+                        
+                    with col_kpi3:
+                        st.markdown(kpi_card_html(
+                            "Atados Activos", 
+                            f"{total_atados_activos} Atados", 
+                            "Con existencias físicas", 
+                            "linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)"
+                        ), unsafe_allow_html=True)
+                        
+                    with col_kpi4:
+                        st.markdown(kpi_card_html(
+                            "Tasa de Consumo", 
+                            f"{consumo_pct:.1f}%", 
+                            "Del total recibido (SKUs)", 
+                            "linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%)"
+                        ), unsafe_allow_html=True)
+                    
+                    st.write("---")
+                    
+                    # --- GRÁFICOS PLOTLY ---
+                    col_chart1, col_chart2 = st.columns(2)
+                    
+                    with col_chart1:
+                        # Gráfico 1: Inventario vs Despacho por SKU
+                        df_sku_stats = df_inv_all_filtered.groupby("SKU").agg(
+                            Hojas_Iniciales=("Cantidad_Hojas", "sum"),
+                            Hojas_Despachadas=("Hojas_Despachadas", "sum"),
+                            Hojas_Disponibles=("Hojas_Disponibles", "sum")
+                        ).reset_index()
+                        
+                        if not df_sku_stats.empty:
+                            df_plot = df_sku_stats.melt(
+                                id_vars="SKU", 
+                                value_vars=["Hojas_Disponibles", "Hojas_Despachadas"],
+                                var_name="Estatus", 
+                                value_name="Láminas"
+                            )
+                            df_plot["Estatus"] = df_plot["Estatus"].replace({
+                                "Hojas_Disponibles": "Disponible",
+                                "Hojas_Despachadas": "Despachado"
+                            })
+                            
+                            fig1 = px.bar(
+                                df_plot,
+                                x="SKU",
+                                y="Láminas",
+                                color="Estatus",
+                                barmode="group",
+                                title="Existencias vs. Despachos por SKU",
+                                color_discrete_map={"Disponible": "#2a5298", "Despachado": "#e53935"},
+                                template="plotly_white"
+                            )
+                            fig1.update_layout(
+                                font=dict(family="Inter, sans-serif"),
+                                margin=dict(l=40, r=40, t=50, b=40),
+                                legend=dict(title=None, orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                            )
+                            st.plotly_chart(fig1, use_container_width=True)
+                        else:
+                            st.info("No hay datos suficientes para graficar existencias por SKU.")
+                            
+                    with col_chart2:
+                        # Gráfico 2: Distribución por ubicación
+                        if not df_inv_filtered.empty:
+                            df_ubic_stats = df_inv_filtered.groupby("Ubicacion_Almacen").agg(
+                                Hojas_Disponibles=("Hojas_Disponibles", "sum")
+                            ).reset_index()
+                            
+                            fig2 = px.pie(
+                                df_ubic_stats,
+                                names="Ubicacion_Almacen",
+                                values="Hojas_Disponibles",
+                                hole=0.4,
+                                title="Distribución de Hojas Disponibles por Ubicación",
+                                template="plotly_white"
+                            )
+                            fig2.update_layout(
+                                font=dict(family="Inter, sans-serif"),
+                                margin=dict(l=40, r=40, t=50, b=40),
+                                legend=dict(orientation="h", yanchor="bottom", y=-0.1, xanchor="center", x=0.5)
+                            )
+                            st.plotly_chart(fig2, use_container_width=True)
+                        else:
+                            st.info("No hay material disponible en inventario para graficar distribución.")
+                    
+                    # Gráfico 3: Tendencia temporal
+                    if not df_salidas_filtered.empty:
+                        df_trend = df_salidas_filtered.groupby("Fecha_dt").agg(
+                            Hojas_Despachadas=("Cantidad_Hojas_Despachadas", "sum"),
+                            Peso_Despachado=("Peso_Despachado_Kg", "sum")
+                        ).reset_index().sort_values("Fecha_dt")
+                        
+                        fig3 = px.area(
+                            df_trend,
+                            x="Fecha_dt",
+                            y="Hojas_Despachadas",
+                            title="Tendencia Diaria de Despachos de Acero (Hojas)",
+                            labels={"Fecha_dt": "Fecha", "Hojas_Despachadas": "Hojas Despachadas"},
+                            color_discrete_sequence=["#e53935"],
+                            template="plotly_white"
+                        )
+                        fig3.update_layout(
+                            font=dict(family="Inter, sans-serif"),
+                            margin=dict(l=40, r=40, t=50, b=40),
+                            xaxis=dict(tickformat="%d/%m/%Y")
+                        )
+                        st.plotly_chart(fig3, use_container_width=True)
+                    else:
+                        st.info("No hay registros de salidas en el rango de fechas seleccionado para graficar la tendencia.")
+                
+                with pest_dash2:
+                    st.write("#### 📦 Inventario Físico Activo (En Existencia)")
+                    st.markdown("Detalle de rollos y atados aceptados que aún cuentan con hojas disponibles para despacho.")
+                    
+                    if df_inv_filtered.empty:
+                        st.info("No hay material disponible con los filtros seleccionados.")
+                    else:
+                        df_inv_disp_tbl = df_inv_filtered[[
+                            "ID_Atado", "Folio", "ID_Atado_Proveedor", "SKU", "Grado_Acero", 
+                            "Ubicacion_Almacen", "Cantidad_Hojas", "Hojas_Despachadas", 
+                            "Hojas_Disponibles", "Peso_Total_Kg", "Peso_Disponible_Kg"
+                        ]].rename(columns={
+                            "Cantidad_Hojas": "Hojas Iniciales",
+                            "Hojas_Despachadas": "Hojas Despachadas",
+                            "Hojas_Disponibles": "Hojas Disponibles",
+                            "Peso_Total_Kg": "Peso Inicial (Kg)",
+                            "Peso_Disponible_Kg": "Peso Disponible (Kg)",
+                            "Ubicacion_Almacen": "Ubicación"
+                        })
+                        st.dataframe(df_inv_disp_tbl, use_container_width=True, hide_index=True)
+                        
+                        st.markdown(f"**Totales de Existencias Filtradas:**  \n"
+                                    f"* **Hojas Disponibles:** {total_hojas_disponibles:,} hojas  \n"
+                                    f"* **Peso Disponible:** {total_peso_disponible:,.2f} Kg")
+                
+                with pest_dash3:
+                    st.write("#### 📜 Historial de Remisiones y Despachos Registrados")
+                    st.markdown("Consulte el histórico detallado de salidas y remisiones registradas bajo los filtros activos.")
+                    
+                    if df_salidas_filtered.empty:
+                        st.info("No se encontraron registros de despachos con los filtros de búsqueda aplicados.")
+                    else:
+                        df_sal_tbl = df_salidas_filtered[[
+                            "Folio_Salida", "Fecha", "Hora", "ID_Atado", "SKU", 
+                            "Cantidad_Hojas_Despachadas", "Peso_Despachado_Kg", 
+                            "Destino_Proyecto", "Responsable", "Observaciones"
+                        ]].rename(columns={
+                            "Folio_Salida": "Folio Salida",
+                            "Cantidad_Hojas_Despachadas": "Hojas Despachadas",
+                            "Peso_Despachado_Kg": "Peso Despachado (Kg)",
+                            "Destino_Proyecto": "Destino / Proyecto"
+                        }).sort_values("Folio Salida", ascending=False)
+                        
+                        st.dataframe(df_sal_tbl, use_container_width=True, hide_index=True)
+                        
+                        st.write("---")
+                        st.write("#### 📥 Exportar Reporte de Despachos (Filtrado)")
+                        st.markdown("Descargue la información de despachos mostrada arriba en formato Excel o PDF membretado oficial del SGC.")
+                        
+                        col_dwn1, col_dwn2 = st.columns(2)
+                        
+                        with col_dwn1:
+                            buffer_exc = io.BytesIO()
+                            with pd.ExcelWriter(buffer_exc, engine='openpyxl') as writer:
+                                df_exc = df_salidas_filtered.drop(columns=["Fecha_dt"], errors="ignore")
+                                df_exc.to_excel(writer, index=False, sheet_name="Despachos")
+                            excel_data_disp = buffer_exc.getvalue()
+                            
+                            st.download_button(
+                                label="📥 Descargar Reporte en Excel (.xlsx)",
+                                data=excel_data_disp,
+                                file_name=f"Reporte_Despachos_{datetime.date.today().strftime('%Y%m%d')}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                use_container_width=True,
+                                key="btn_download_excel_despachos"
+                            )
+                            
+                        with col_dwn2:
+                            try:
+                                temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
+                                os.makedirs(temp_pdf_dir, exist_ok=True)
+                                pdf_path_despachos = os.path.join(temp_pdf_dir, f"Reporte_Despachos_{datetime.date.today().strftime('%Y%m%d')}.pdf")
+                                
+                                filtros_pdf = {
+                                    "fecha_inicio": start_date.strftime("%d/%m/%Y") if start_date else "N/D",
+                                    "fecha_fin": end_date.strftime("%d/%m/%Y") if end_date else "N/D",
+                                    "skus": ", ".join(skus_seleccionados) if skus_seleccionados else "Todos",
+                                    "proyecto": proyecto_filtro if proyecto_filtro.strip() else "Todos"
+                                }
+                                
+                                utils_pdf.generar_pdf_reporte_despachos(filtros_pdf, df_salidas_filtered, pdf_path_despachos)
+                                
+                                if os.path.exists(pdf_path_despachos):
+                                    with open(pdf_path_despachos, "rb") as f_pdf:
+                                        pdf_bytes_desp = f_pdf.read()
+                                    st.download_button(
+                                        label="📥 Descargar Reporte en PDF (FO-MET-38)",
+                                        data=pdf_bytes_desp,
+                                        file_name=f"Reporte_Despachos_{datetime.date.today().strftime('%Y%m%d')}.pdf",
+                                        mime="application/pdf",
+                                        use_container_width=True,
+                                        key="btn_download_pdf_despachos"
+                                    )
+                            except Exception as ex_p:
+                                st.error(f"Error al generar el PDF del reporte: {ex_p}")
+                
+                with pest_dash4:
+                    st.write("#### 🔍 Auditoría de Atados (Histórico Completo)")
+                    st.markdown("Consulte la trazabilidad completa de cualquier atado físico en planta, incluyendo su cantidad inicial, despachos y existencias actuales.")
+                    
+                    df_liberados_total = df_inv.copy()
+                    
+                    if df_liberados_total.empty:
+                        st.info("No hay atados registrados y liberados en el sistema.")
+                    else:
+                        atados_universo = sorted(df_liberados_total["ID_Atado"].unique().tolist())
+                        atados_audit_sel = st.multiselect(
+                            "Seleccione ID de Atado(s) para Auditoría:",
+                            options=atados_universo,
+                            default=[],
+                            key="dash_atados_audit"
+                        )
+                        
+                        if not atados_audit_sel:
+                            st.info("Por favor, seleccione al menos un ID de Atado para iniciar la auditoría.")
+                        else:
+                            df_audit_resumen = df_liberados_total[df_liberados_total["ID_Atado"].isin(atados_audit_sel)].copy()
+                            
+                            df_audit_resumen_tbl = df_audit_resumen[[
+                                "ID_Atado", "SKU", "Folio", "Cantidad_Hojas", 
+                                "Hojas_Despachadas", "Hojas_Disponibles", "Peso_Disponible_Kg"
+                            ]].rename(columns={
+                                "Cantidad_Hojas": "Hojas Iniciales",
+                                "Hojas_Despachadas": "Hojas Despachadas",
+                                "Hojas_Disponibles": "Hojas Disponibles",
+                                "Peso_Disponible_Kg": "Peso Disponible (Kg)"
+                            })
+                            
+                            st.write("##### 📊 Resumen de Trazabilidad e Inventario")
+                            st.dataframe(df_audit_resumen_tbl, use_container_width=True, hide_index=True)
+                            
+                            df_salidas_asoc = df_salidas[df_salidas["ID_Atado"].isin(atados_audit_sel)].copy()
+                            
+                            st.write("##### 📜 Despachos/Remisiones Vinculados")
+                            if df_salidas_asoc.empty:
+                                st.warning("No se han registrado despachos para los atados seleccionados.")
+                            else:
+                                df_salidas_asoc_tbl = df_salidas_asoc[[
+                                    "Folio_Salida", "Fecha", "ID_Atado", "Cantidad_Hojas_Despachadas", 
+                                    "Peso_Despachado_Kg", "Destino_Proyecto", "Responsable", "Observaciones"
+                                ]].rename(columns={
+                                    "Folio_Salida": "Folio Salida",
+                                    "Cantidad_Hojas_Despachadas": "Hojas Despachadas",
+                                    "Peso_Despachado_Kg": "Peso Despachado (Kg)",
+                                    "Destino_Proyecto": "Destino / Proyecto"
+                                }).sort_values(["ID_Atado", "Folio Salida"], ascending=[True, False])
+                                
+                                st.dataframe(df_salidas_asoc_tbl, use_container_width=True, hide_index=True)
+                                
+                            st.write("---")
+                            st.write("#### 📥 Exportar Reporte de Auditoría (Atados Seleccionados)")
+                            st.markdown("Descargue el informe detallado de auditoría para estos atados en formato Excel o PDF oficial.")
+                            
+                            col_aud1, col_aud2 = st.columns(2)
+                            
+                            with col_aud1:
+                                buffer_aud = io.BytesIO()
+                                with pd.ExcelWriter(buffer_aud, engine='openpyxl') as writer:
+                                    df_audit_resumen_tbl.to_excel(writer, index=False, sheet_name="Resumen_Atados")
+                                    if not df_salidas_asoc.empty:
+                                        df_salidas_asoc.drop(columns=["Fecha_dt"], errors="ignore").to_excel(writer, index=False, sheet_name="Historial_Despachos")
+                                excel_data_aud = buffer_aud.getvalue()
+                                
+                                st.download_button(
+                                    label="📥 Descargar Auditoría en Excel (.xlsx)",
+                                    data=excel_data_aud,
+                                    file_name=f"Auditoria_Atados_{datetime.date.today().strftime('%Y%m%d')}.xlsx",
+                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                    use_container_width=True,
+                                    key="btn_download_excel_auditoria"
+                                )
+                                
+                            with col_aud2:
+                                try:
+                                    pdf_path_auditoria = os.path.join(temp_pdf_dir, f"Auditoria_Atados_{datetime.date.today().strftime('%Y%m%d')}.pdf")
+                                    
+                                    utils_pdf.generar_pdf_reporte_auditoria_atados(df_audit_resumen_tbl, df_salidas_asoc, pdf_path_auditoria)
+                                    
+                                    if os.path.exists(pdf_path_auditoria):
+                                        with open(pdf_path_auditoria, "rb") as f_aud_pdf:
+                                            pdf_bytes_aud = f_aud_pdf.read()
+                                        st.download_button(
+                                            label="📥 Descargar Auditoría en PDF (FO-MET-39)",
+                                            data=pdf_bytes_aud,
+                                            file_name=f"Auditoria_Atados_{datetime.date.today().strftime('%Y%m%d')}.pdf",
+                                            mime="application/pdf",
+                                            use_container_width=True,
+                                            key="btn_download_pdf_auditoria"
+                                        )
+                                except Exception as ex_ap:
+                                    st.error(f"Error al generar el PDF de auditoría: {ex_ap}")
 
 # =============================================================================
 # MÓDULO 5: CATÁLOGO DE TOLERANCIAS DE SKU
