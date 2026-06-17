@@ -1,5 +1,0 @@
-{
-  "summary":  "PDF generation module (utils_pdf.py) implementing Matplotlib tolerance curves and ReportLab layouts for FO-MET-31 (reception report), FO-MET-32 (bundle label), FO-MET-33 (dossier cover), and automatic pypdf PDF merging.",
-  "updatedAt":  "2026-06-15T16:35:00.831830700Z",
-  "userFacing":  true
-}
