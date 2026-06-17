@@ -3096,6 +3096,21 @@ def generar_pdf_reporte_rechazo(datos_rechazo, output_pdf_path):
     ]))
     story.append(t_firmas)
     
+    # Evidencia fotográfica (Página 2 si aplica)
+    fotos = datos_rechazo.get("Fotos", [])
+    if fotos:
+        story.append(PageBreak())
+        story.append(Paragraph("📸 EVIDENCIA FOTOGRÁFICA DE DEFECTOS", ParagraphStyle('SH_Fotos', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=11, textColor=colors.HexColor("#0D47A1"), spaceBefore=15, spaceAfter=10)))
+        for f_path in fotos:
+            if os.path.exists(f_path):
+                try:
+                    img = Image(f_path, width=400, height=300)
+                    img.hAlign = 'CENTER'
+                    story.append(img)
+                    story.append(Spacer(1, 15))
+                except Exception as img_err:
+                    story.append(Paragraph(f"Error al cargar imagen {os.path.basename(f_path)}: {img_err}", style_normal_text))
+    
     # Decoracion canvas
     def decorate(canvas, doc):
         draw_sigrama_sgc_decorations(canvas, doc, "FO-MET-41", "REPORTE DE RECHAZO POR DEFECTO")

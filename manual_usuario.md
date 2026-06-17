@@ -12,7 +12,7 @@ La aplicación cuenta con tres perfiles de usuario diferentes, administrados en 
 | :--- | :--- | :--- |
 | **Público / Consulta** | *Ninguna (Vacío)* | Solo lectura. Puede navegar por el Módulo 1 (Dashboard) e Historial, así como descargar dosiers e informes. No tiene acceso al Módulo 2 ni puede realizar modificaciones. |
 | **Inspector (Registro)** | *[Consultar con Calidad / Clave de Inspector]* | Acceso de lectura más la capacidad de ingresar al **Módulo 2 (Registro)** para subir plantillas de medición de atados, cargar fotos de defectos y guardar nuevos lotes. |
-| **Operador Láser** | `"SigramaLaser2026"` | Acceso restringido al Módulo de Inventario. Puede registrar rechazos de láminas por defectos en proceso (`REJ-OUT`) para descontarlas de stock, generar el reporte FO-MET-41 y descargar hojas de consumo FO-MET-37. No puede hacer remisiones estándar (`REM-OUT`) ni acceder al Módulo 2. |
+| **Operador Láser** | `"SigramaLaser2026"` | Acceso al Módulo de Inventario. Puede registrar egresos estándar de materia prima (`REM-OUT`) y reportar rechazos de láminas por defectos en proceso (`REJ-OUT`) para descontarlas de stock, generar reportes FO-MET-41 (con fotos de evidencia) y descargar hojas de consumo FO-MET-37. No tiene acceso al Módulo 2 de Recepción. |
 | **Administrador** | *[Clave Restringida / Consultar al departamento de Calidad]* | Acceso total. Incluye permisos de Inspector más la capacidad de eliminar expedientes e historial y agregar o modificar las tolerancias de SKUs. |
 
 > [!TIP]
@@ -108,13 +108,16 @@ Este módulo permite llevar un control cuantitativo y trazable de las existencia
    * Calcula de forma dinámica las **Hojas Disponibles** y el **Peso Disponible (Kg)** restando los consumos acumulados y rechazos.
    * Incluye filtros por SKU y Ubicación de Almacén para localizar lotes conformes rápidamente.
    * Al final de la pantalla, muestra un gráfico de barras apiladas de **% Disponible vs. % Consumido** por atado activo (ordenado de mayor a menor cantidad de hojas originales), proporcionando una visualización rápida del consumo relativo e individual de cada lote.
-2. **📝 Registrar Salida / Reportar Defectos en Proceso**:
-   * **Perfil Operador Láser**: Solo puede registrar reportes de rechazo por defectos (`REJ-OUT`). Las remisiones estándar (`REM-OUT`) están completamente bloqueadas para este usuario.
-   * **Perfil Inspector / Administrador**: Dispone de un selector dinámico para elegir el tipo de movimiento:
-     * **Remisión de Salida Estándar (REM-OUT)**: Despacho normal de láminas para producción. Genera de forma automática la **Remisión de Salida Oficial (PDF - FO-MET-36)**.
-     * **Reporte de Reclamación / Rechazo (REJ-OUT)**: Declaración de láminas que salieron con un defecto no detectado en el INCOMING para descontarlas de inventario. Requiere capturar la cantidad de hojas defectuosas, tipo de defecto (ej. Bordes Ondulados, Rayaduras, Oxidación), gravedad (Crítico, Mayor, Menor) y acción correctiva (ej. Scrap, Retorno a Proveedor). Genera el **Reporte de Rechazo (PDF - FO-MET-41)**.
-3. **📜 Historial de Salidas**:
-   * Listado con la bitácora completa de remisiones de salida (`REM-OUT`) y reportes de rechazo (`REJ-OUT`) emitidos, con opción de reimpresión de cualquier PDF histórico en caliente (llamando al formato respectivo FO-MET-36 o FO-MET-41 según el folio).
+2. **📝 Registrar Salida Normal (REM-OUT)**:
+   * Pestaña dedicada para el despacho de láminas estándar destinadas a celdas de producción (disponible para todos los roles autorizados, incluido Operador Láser).
+   * Permite capturar la cantidad de hojas, destino/proyecto, responsable y observaciones.
+   * Genera de forma automática la **Remisión de Salida Oficial (PDF - FO-MET-36)** y la **Hoja de Control de Consumo (PDF - FO-MET-37)**.
+3. **⚠️ Reportar Rechazo en Proceso (REJ-OUT)**:
+   * Pestaña dedicada para declarar láminas que presentaron defectos no detectados en la recepción inicial.
+   * **Carga de Evidencia Fotográfica**: Permite subir fotos del defecto directamente desde la interfaz. Estas fotos se archivan y se incrustan en el reporte PDF en una página de anexos de evidencia.
+   * Genera el **Reporte de Rechazo por Defecto en Proceso (PDF - FO-MET-41)** con las firmas y fotos de evidencia.
+4. **📜 Historial de Salidas**:
+   * Listado con la bitácora completa de remisiones de salida (`REM-OUT`) y reportes de rechazo (`REJ-OUT`) emitidos, con opción de reimpresión de cualquier PDF histórico en caliente (llamando al formato respectivo FO-MET-36 o FO-MET-41 con sus fotos integradas según el folio).
 
 ---
 

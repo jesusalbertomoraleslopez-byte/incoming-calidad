@@ -2024,8 +2024,14 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
             # Filtramos atados que aún tienen material disponible
             df_inv_activo = df_inv[df_inv["Hojas_Disponibles"] > 0].copy()
             
-            # Pestañas: 1. Ver Inventario, 2. Generar Remisión, 3. Historial de Salidas, 4. Dashboard de Inventario
-            pest_inv1, pest_inv2, pest_inv3, pest_inv4 = st.tabs(["📊 Existencias en Inventario", "📝 Registrar Remisión de Salida", "📜 Historial de Despachos", "📈 Dashboard de Inventario"])
+            # Pestañas: 1. Ver Inventario, 2. Registrar Salida Normal, 3. Reportar Rechazo en Proceso, 4. Historial de Salidas, 5. Dashboard de Inventario
+            pest_inv1, pest_inv2, pest_inv_rechazo, pest_inv3, pest_inv4 = st.tabs([
+                "📊 Existencias en Inventario", 
+                "📝 Registrar Salida Normal (REM)", 
+                "⚠️ Reportar Rechazo en Proceso (REJ)", 
+                "📜 Historial de Despachos", 
+                "📈 Dashboard de Inventario"
+            ])
             
             with pest_inv1:
                 st.write("### 🏢 Inventario Físico Disponible (Acero Conforme)")
@@ -2157,204 +2163,96 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                         st.plotly_chart(fig_pct, use_container_width=True, key="fig_pct_inventario_disponible")
             
             with pest_inv2:
-                st.write("### ➕ Registrar Nueva Transacción de Salida")
-                st.markdown("Registre una remisión de salida estándar o declare un reporte de rechazo por defectos de calidad detectados en producción para descontar láminas del inventario.")
+                st.write("### 📝 Registrar Salida Normal (REM-OUT)")
+                st.markdown("Registre el egreso de materia prima estándar para celdas de producción mediante la emisión de una remisión de salida (FO-MET-36).")
                 
-                # Solo Inspectores/Administradores u Operadores Láser pueden registrar salidas
                 if not is_inspector and not is_laser:
                     st.error("🔒 Área Protegida. Ingrese la contraseña de Inspector, Administrador u Operador Láser en la barra lateral para registrar salidas.")
                 else:
                     if df_inv_activo.empty:
                         st.warning("No hay atados con hojas disponibles para despachar.")
                     else:
-                        # Selección de Atado
-                        atado_options = {}
+                        atado_options_rem = {}
                         for _, r in df_inv_activo.iterrows():
-                            desc = f"{r['ID_Atado']} ({r['SKU']} - {r['Hojas_Disponibles']} hojas disponibles en {r['Ubicacion_Almacen']})"
-                            atado_options[desc] = r
+                            desc = f"{r['ID_Atado']} ({r['SKU']} - {r['Hojas_Disponibles']} hojas en {r['Ubicacion_Almacen']})"
+                            atado_options_rem[desc] = r
                             
-                        seleccion_desc = st.selectbox("Seleccione el Atado de Origen:", list(atado_options.keys()))
-                        atado_selected = atado_options[seleccion_desc]
+                        seleccion_desc_rem = st.selectbox("Seleccione el Atado de Origen:", list(atado_options_rem.keys()), key="select_atado_rem")
+                        atado_selected_rem = atado_options_rem[seleccion_desc_rem]
                         
-                        # Selector de Tipo de Movimiento
-                        if is_laser and not is_inspector:
-                            tipo_mov = "Reporte de Reclamación / Rechazo (REJ-OUT)"
-                            st.info("ℹ️ **Perfil de Operador Láser:** Su usuario solo está autorizado para registrar Reportes de Rechazo por Defecto en Proceso (REJ-OUT). Las remisiones de materia prima (REM-OUT) están bloqueadas.")
-                        else:
-                            tipo_mov = st.radio(
-                                "Seleccione el Tipo de Movimiento:",
-                                ["Remisión de Salida Estándar (REM-OUT)", "Reporte de Reclamación / Rechazo (REJ-OUT)"],
-                                horizontal=True,
-                                key="radio_tipo_movimiento_salida"
-                            )
-                        
-                        # Formulario de despacho / rechazo
-                        with st.form("form_remision_salida"):
+                        with st.form("form_salida_normal"):
                             col_s1, col_s2 = st.columns(2)
+                            hojas_disp = int(atado_selected_rem["Hojas_Disponibles"])
                             
-                            hojas_disp = int(atado_selected["Hojas_Disponibles"])
+                            with col_s1:
+                                hojas_despacho = st.number_input("Cantidad de Hojas a Despachar:", min_value=1, max_value=hojas_disp, value=min(5, hojas_disp), key="rem_hojas_despacho")
+                                destino = st.text_input("Destino / Proyecto de Producción:", placeholder="Ej. Lote Láser Tolva Proyecto 240", max_chars=100, key="rem_destino")
+                            with col_s2:
+                                responsable = st.text_input("Responsable Autoriza / Solicita:", value="Operador Láser" if is_laser else "", placeholder="Ej. Ing. Carlos Pérez", max_chars=100, key="rem_responsable")
+                                observaciones = st.text_area("Observaciones de Despacho:", placeholder="Ej. Láminas retiradas para corte de soportes.", key="rem_observaciones")
+                                
+                            btn_submit_rem = st.form_submit_button("💾 Procesar y Registrar Salida Normal")
                             
-                            if tipo_mov == "Remisión de Salida Estándar (REM-OUT)":
-                                with col_s1:
-                                    hojas_despacho = st.number_input("Cantidad de Hojas a Despachar:", min_value=1, max_value=hojas_disp, value=min(5, hojas_disp))
-                                    destino = st.text_input("Destino / Proyecto de Producción:", placeholder="Ej. Lote Láser Tolva Proyecto 240", max_chars=100)
-                                with col_s2:
-                                    responsable = st.text_input("Responsable Autoriza / Solicita:", placeholder="Ej. Ing. Carlos Pérez", max_chars=100)
-                                    observaciones = st.text_area("Observaciones de Despacho:", placeholder="Ej. Láminas retiradas para corte de soportes.")
-                            else:
-                                # Reporte de Rechazo (REJ-OUT)
-                                with col_s1:
-                                    hojas_despacho = st.number_input("Cantidad de Hojas Defectuosas a Rechazar:", min_value=1, max_value=hojas_disp, value=min(1, hojas_disp))
-                                    tipo_defecto = st.selectbox("Tipo de Defecto:", ["Raya / Rasguño", "Porosidad / Grietas", "Variación de Espesor", "Plano / Doblez", "Oxidación / Corrosión", "Otros"])
-                                    gravedad_defecto = st.selectbox("Gravedad del Defecto:", ["Leve", "Moderado", "Crítico"])
-                                with col_s2:
-                                    accion_defecto = st.selectbox("Acción Correctiva / Destino del Material:", ["Scrap / Desecho", "Reclamación a Proveedor", "Reproceso", "Otros"])
-                                    responsable = st.text_input("Responsable del Reporte:", value="Operador Láser" if is_laser else "", placeholder="Ej. Ing. Juan Pérez", max_chars=100)
-                                    observaciones = st.text_area("Descripción Detallada del Defecto y Hallazgos:", placeholder="Ej. Se detectaron fisuras en las láminas al momento del corte por láser.")
-                                    
-                            btn_submit_salida = st.form_submit_button("💾 Procesar y Registrar Transacción")
-                            
-                            if btn_submit_salida:
+                            if btn_submit_rem:
                                 if "last_remision_creada" in st.session_state:
                                     del st.session_state.last_remision_creada
                                     
-                                if tipo_mov == "Remisión de Salida Estándar (REM-OUT)":
-                                    if not destino.strip() or not responsable.strip():
-                                        st.error("Por favor, complete los campos de Destino/Proyecto y Responsable.")
-                                    else:
-                                        # Generar Folio de Salida
-                                        next_num = len(df_salidas) + 1
-                                        folio_salida = f"REM-OUT-{datetime.date.today().year}-{next_num:04d}"
-                                        
-                                        # Calcular peso proporcional despachado
-                                        peso_inicial_atado = float(atado_selected["Peso_Total_Kg"])
-                                        hojas_iniciales_atado = int(atado_selected["Cantidad_Hojas"])
-                                        peso_despacho = (hojas_despacho / hojas_iniciales_atado) * peso_inicial_atado
-                                        
-                                        # Registrar en la base de datos
-                                        nueva_salida = {
-                                            "Folio_Salida": folio_salida,
-                                            "Fecha": datetime.date.today().strftime("%d/%m/%Y"),
-                                            "Hora": datetime.datetime.now().strftime("%H:%M"),
-                                            "ID_Atado": atado_selected["ID_Atado"],
-                                            "SKU": atado_selected["SKU"],
-                                            "Cantidad_Hojas_Despachadas": hojas_despacho,
-                                            "Peso_Despachado_Kg": peso_despacho,
-                                            "Destino_Proyecto": destino.strip(),
-                                            "Responsable": responsable.strip(),
-                                            "Observaciones": observaciones.strip(),
-                                            "Hojas_Defectuosas": 0,
-                                            "Tipo_Defecto": "",
-                                            "Gravedad_Defecto": "",
-                                            "Accion_Defecto": ""
-                                        }
-                                        
-                                        st.session_state.BD_Salidas = pd.concat([st.session_state.BD_Salidas, pd.DataFrame([nueva_salida])], ignore_index=True)
-                                        guardar_db(st.session_state.BD_Salidas, BD_SALIDAS, "Salidas_Detalle")
-                                        
-                                        # Generar PDF de la remisión
-                                        pdf_remision_dir = os.path.join(CARPETAS_DIR, "remisiones_salida")
-                                        os.makedirs(pdf_remision_dir, exist_ok=True)
-                                        pdf_path_remision = os.path.join(pdf_remision_dir, f"Remision_Salida_{folio_salida}.pdf")
-                                        
-                                        datos_pdf = nueva_salida.copy()
-                                        datos_pdf["Grado_Acero"] = atado_selected["Grado_Acero"]
-                                        datos_pdf["Ubicacion_Almacen"] = atado_selected["Ubicacion_Almacen"]
-                                        
-                                        utils_pdf.generar_pdf_remision_salida(datos_pdf, pdf_path_remision)
-                                        
-                                        # Sincronización en la nube si hay token
-                                        with st.spinner("Sincronizando despacho con GitHub..."):
-                                            auto_commit_and_push_to_github(f"SALIDA-{folio_salida}")
-                                            
-                                        st.session_state.last_remision_creada = {
-                                            "folio": folio_salida,
-                                            "pdf_path": pdf_path_remision,
-                                            "hojas": hojas_despacho,
-                                            "atado_id": atado_selected['ID_Atado']
-                                        }
-                                        
-                                        st.session_state.BD_Salidas = cargar_db(BD_SALIDAS, "Salidas_Detalle")
-                                        st.rerun()
+                                if not destino.strip() or not responsable.strip():
+                                    st.error("Por favor, complete los campos de Destino/Proyecto y Responsable.")
                                 else:
-                                    # Registro de Rechazo (REJ-OUT)
-                                    if not responsable.strip():
-                                        st.error("Por favor, complete el campo de Responsable del Reporte.")
-                                    else:
-                                        # Generar Folio de Rechazo
-                                        next_num = len(df_salidas) + 1
-                                        folio_salida = f"REJ-OUT-{datetime.date.today().year}-{next_num:04d}"
+                                    next_num = len(df_salidas) + 1
+                                    folio_salida = f"REM-OUT-{datetime.date.today().year}-{next_num:04d}"
+                                    
+                                    peso_inicial_atado = float(atado_selected_rem["Peso_Total_Kg"])
+                                    hojas_iniciales_atado = int(atado_selected_rem["Cantidad_Hojas"])
+                                    peso_despacho = (hojas_despacho / hojas_iniciales_atado) * peso_inicial_atado
+                                    
+                                    nueva_salida = {
+                                        "Folio_Salida": folio_salida,
+                                        "Fecha": datetime.date.today().strftime("%d/%m/%Y"),
+                                        "Hora": datetime.datetime.now().strftime("%H:%M"),
+                                        "ID_Atado": atado_selected_rem["ID_Atado"],
+                                        "SKU": atado_selected_rem["SKU"],
+                                        "Cantidad_Hojas_Despachadas": hojas_despacho,
+                                        "Peso_Despachado_Kg": peso_despacho,
+                                        "Destino_Proyecto": destino.strip(),
+                                        "Responsable": responsable.strip(),
+                                        "Observaciones": observaciones.strip(),
+                                        "Hojas_Defectuosas": 0,
+                                        "Tipo_Defecto": "",
+                                        "Gravedad_Defecto": "",
+                                        "Accion_Defecto": ""
+                                    }
+                                    
+                                    st.session_state.BD_Salidas = pd.concat([st.session_state.BD_Salidas, pd.DataFrame([nueva_salida])], ignore_index=True)
+                                    guardar_db(st.session_state.BD_Salidas, BD_SALIDAS, "Salidas_Detalle")
+                                    
+                                    pdf_remision_dir = os.path.join(CARPETAS_DIR, "remisiones_salida")
+                                    os.makedirs(pdf_remision_dir, exist_ok=True)
+                                    pdf_path_remision = os.path.join(pdf_remision_dir, f"Remision_Salida_{folio_salida}.pdf")
+                                    
+                                    datos_pdf = nueva_salida.copy()
+                                    datos_pdf["Grado_Acero"] = atado_selected_rem["Grado_Acero"]
+                                    datos_pdf["Ubicacion_Almacen"] = atado_selected_rem["Ubicacion_Almacen"]
+                                    
+                                    utils_pdf.generar_pdf_remision_salida(datos_pdf, pdf_path_remision)
+                                    
+                                    with st.spinner("Sincronizando despacho con GitHub..."):
+                                        auto_commit_and_push_to_github(f"SALIDA-{folio_salida}")
                                         
-                                        # Calcular peso proporcional rechazado
-                                        peso_inicial_atado = float(atado_selected["Peso_Total_Kg"])
-                                        hojas_iniciales_atado = int(atado_selected["Cantidad_Hojas"])
-                                        peso_despacho = (hojas_despacho / hojas_iniciales_atado) * peso_inicial_atado
-                                        
-                                        # Registrar en la base de datos
-                                        nueva_salida = {
-                                            "Folio_Salida": folio_salida,
-                                            "Fecha": datetime.date.today().strftime("%d/%m/%Y"),
-                                            "Hora": datetime.datetime.now().strftime("%H:%M"),
-                                            "ID_Atado": atado_selected["ID_Atado"],
-                                            "SKU": atado_selected["SKU"],
-                                            "Cantidad_Hojas_Despachadas": hojas_despacho,
-                                            "Peso_Despachado_Kg": peso_despacho,
-                                            "Destino_Proyecto": "Rechazo de Láminas - Defecto en Proceso",
-                                            "Responsable": responsable.strip(),
-                                            "Observaciones": observaciones.strip(),
-                                            "Hojas_Defectuosas": hojas_despacho,
-                                            "Tipo_Defecto": tipo_defecto,
-                                            "Gravedad_Defecto": gravedad_defecto,
-                                            "Accion_Defecto": accion_defecto
-                                        }
-                                        
-                                        st.session_state.BD_Salidas = pd.concat([st.session_state.BD_Salidas, pd.DataFrame([nueva_salida])], ignore_index=True)
-                                        guardar_db(st.session_state.BD_Salidas, BD_SALIDAS, "Salidas_Detalle")
-                                        
-                                        # Generar PDF del reporte de rechazo
-                                        pdf_remision_dir = os.path.join(CARPETAS_DIR, "remisiones_salida")
-                                        os.makedirs(pdf_remision_dir, exist_ok=True)
-                                        pdf_path_remision = os.path.join(pdf_remision_dir, f"Reporte_Rechazo_{folio_salida}.pdf")
-                                        
-                                        datos_pdf = nueva_salida.copy()
-                                        datos_pdf["Grado_Acero"] = atado_selected["Grado_Acero"]
-                                        datos_pdf["Ubicacion_Almacen"] = atado_selected["Ubicacion_Almacen"]
-                                        
-                                        utils_pdf.generar_pdf_reporte_rechazo(datos_pdf, pdf_path_remision)
-                                        
-                                        # Sincronización en la nube si hay token
-                                        with st.spinner("Sincronizando reporte de rechazo con GitHub..."):
-                                            auto_commit_and_push_to_github(f"RECHAZO-{folio_salida}")
-                                            
-                                        st.session_state.last_remision_creada = {
-                                            "folio": folio_salida,
-                                            "pdf_path": pdf_path_remision,
-                                            "hojas": hojas_despacho,
-                                            "atado_id": atado_selected['ID_Atado']
-                                        }
-                                        
-                                        st.session_state.BD_Salidas = cargar_db(BD_SALIDAS, "Salidas_Detalle")
-                                        st.rerun()
-                        
+                                    st.session_state.last_remision_creada = {
+                                        "folio": folio_salida,
+                                        "pdf_path": pdf_path_remision,
+                                        "hojas": hojas_despacho,
+                                        "atado_id": atado_selected_rem['ID_Atado']
+                                    }
+                                    st.session_state.BD_Salidas = cargar_db(BD_SALIDAS, "Salidas_Detalle")
+                                    st.rerun()
+                                    
                         # Mostrar botón de descarga fuera del formulario
                         if "last_remision_creada" in st.session_state:
                             rem = st.session_state.last_remision_creada
-                            es_rej = rem["folio"].startswith("REJ-OUT")
-                            
-                            if es_rej:
-                                st.success(f"✅ Reporte de Rechazo '{rem['folio']}' registrado con éxito. Se descontaron {rem['hojas']} hojas del atado {rem['atado_id']}.")
-                                if os.path.exists(rem["pdf_path"]):
-                                    with open(rem["pdf_path"], "rb") as f:
-                                        pdf_bytes = f.read()
-                                    st.download_button(
-                                        label="📥 Descargar Reporte de Rechazo (FO-MET-41)",
-                                        data=pdf_bytes,
-                                        file_name=f"Reporte_Rechazo_{rem['folio']}.pdf",
-                                        mime="application/pdf",
-                                        use_container_width=True,
-                                        key="btn_download_reporte_rechazo"
-                                    )
-                            else:
+                            if rem["folio"].startswith("REM-OUT"):
                                 st.success(f"✅ Remisión '{rem['folio']}' registrada con éxito. Se descontaron {rem['hojas']} hojas del atado {rem['atado_id']}.")
                                 col_btns1, col_btns2 = st.columns(2)
                                 with col_btns1:
@@ -2367,10 +2265,9 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                                             file_name=f"Remision_Salida_{rem['folio']}.pdf",
                                             mime="application/pdf",
                                             use_container_width=True,
-                                            key="btn_download_remision_salida"
+                                            key="btn_download_remision_salida_tab"
                                         )
                                 with col_btns2:
-                                    # Buscar el atado original para generar su Hoja de Consumo FO-MET-37
                                     atd_orig_match = df_atados[df_atados["ID_Atado"] == rem["atado_id"]]
                                     if not atd_orig_match.empty:
                                         atd_orig_data = atd_orig_match.iloc[0].to_dict()
@@ -2387,10 +2284,138 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                                                     file_name=f"Control_Consumo_{rem['atado_id']}.pdf",
                                                     mime="application/pdf",
                                                     use_container_width=True,
-                                                    key="btn_download_remision_consumo"
+                                                    key="btn_download_remision_consumo_tab"
                                                 )
                                         except Exception as ex_c:
                                             st.warning(f"No se pudo generar la Hoja de Consumo: {ex_c}")
+
+            with pest_inv_rechazo:
+                st.write("### ⚠️ Reportar Rechazo de Láminas por Defecto (REJ-OUT)")
+                st.markdown("Declare el desecho o rechazo de láminas que presentaron defectos no detectados durante la inspección en recepción (Incoming), para descontarlas de stock y generar el reporte FO-MET-41.")
+                
+                if not is_inspector and not is_laser:
+                    st.error("🔒 Área Protegida. Ingrese la contraseña de Inspector, Administrador u Operador Láser en la barra lateral para registrar rechazos.")
+                else:
+                    if df_inv_activo.empty:
+                        st.warning("No hay atados con hojas disponibles para descontar.")
+                    else:
+                        atado_options_rej = {}
+                        for _, r in df_inv_activo.iterrows():
+                            desc = f"{r['ID_Atado']} ({r['SKU']} - {r['Hojas_Disponibles']} hojas en {r['Ubicacion_Almacen']})"
+                            atado_options_rej[desc] = r
+                            
+                        seleccion_desc_rej = st.selectbox("Seleccione el Atado de Origen:", list(atado_options_rej.keys()), key="select_atado_rej")
+                        atado_selected_rej = atado_options_rej[seleccion_desc_rej]
+                        
+                        with st.form("form_reporte_rechazo_con_foto"):
+                            col_s1, col_s2 = st.columns(2)
+                            hojas_disp = int(atado_selected_rej["Hojas_Disponibles"])
+                            
+                            with col_s1:
+                                hojas_despacho = st.number_input("Cantidad de Hojas Defectuosas a Rechazar:", min_value=1, max_value=hojas_disp, value=min(1, hojas_disp), key="rej_hojas_despacho")
+                                tipo_defecto = st.selectbox("Tipo de Defecto:", ["Raya / Rasguño", "Porosidad / Grietas", "Variación de Espesor", "Plano / Doblez", "Oxidación / Corrosión", "Otros"], key="rej_tipo_defecto")
+                                gravedad_defecto = st.selectbox("Gravedad del Defecto:", ["Leve", "Moderado", "Crítico"], key="rej_gravedad_defecto")
+                            with col_s2:
+                                accion_defecto = st.selectbox("Acción Correctiva / Destino del Material:", ["Scrap / Desecho", "Reclamación a Proveedor", "Reproceso", "Otros"], key="rej_accion_defecto")
+                                responsable = st.text_input("Responsable del Reporte:", value="Operador Láser" if is_laser else "", placeholder="Ej. Ing. Juan Pérez", max_chars=100, key="rej_responsable")
+                                observaciones = st.text_area("Descripción Detallada del Defecto y Hallazgos:", placeholder="Ej. Se detectaron fisuras en las láminas al momento del corte por láser.", key="rej_observaciones")
+                            
+                            # Subir fotos de evidencia
+                            st.write("---")
+                            st.write("📸 **Evidencia Fotográfica de Calidad**")
+                            uploaded_rej_files = st.file_uploader(
+                                "Subir Fotos del Defecto / Daño (JPG/PNG/JPEG):", 
+                                type=["jpg", "png", "jpeg"], 
+                                accept_multiple_files=True, 
+                                key="rej_defect_photos_uploader"
+                            )
+                            
+                            btn_submit_rej = st.form_submit_button("💾 Registrar Reporte de Rechazo y Descontar")
+                            
+                            if btn_submit_rej:
+                                if "last_remision_creada" in st.session_state:
+                                    del st.session_state.last_remision_creada
+                                    
+                                if not responsable.strip():
+                                    st.error("Por favor, complete el campo de Responsable del Reporte.")
+                                else:
+                                    next_num = len(df_salidas) + 1
+                                    folio_salida = f"REJ-OUT-{datetime.date.today().year}-{next_num:04d}"
+                                    
+                                    peso_inicial_atado = float(atado_selected_rej["Peso_Total_Kg"])
+                                    hojas_iniciales_atado = int(atado_selected_rej["Cantidad_Hojas"])
+                                    peso_despacho = (hojas_despacho / hojas_iniciales_atado) * peso_inicial_atado
+                                    
+                                    # Guardar fotos de defectos en el disco
+                                    saved_photo_paths = []
+                                    pdf_remision_dir = os.path.join(CARPETAS_DIR, "remisiones_salida")
+                                    os.makedirs(pdf_remision_dir, exist_ok=True)
+                                    
+                                    if uploaded_rej_files:
+                                        for idx_ph, ph in enumerate(uploaded_rej_files):
+                                            ph_ext = os.path.splitext(ph.name)[1]
+                                            ph_name = f"Foto_Rechazo_{folio_salida}_{idx_ph+1}{ph_ext}"
+                                            ph_path = os.path.join(pdf_remision_dir, ph_name)
+                                            with open(ph_path, "wb") as f_ph:
+                                                f_ph.write(ph.read())
+                                            saved_photo_paths.append(ph_path)
+                                            
+                                    nueva_salida = {
+                                        "Folio_Salida": folio_salida,
+                                        "Fecha": datetime.date.today().strftime("%d/%m/%Y"),
+                                        "Hora": datetime.datetime.now().strftime("%H:%M"),
+                                        "ID_Atado": atado_selected_rej["ID_Atado"],
+                                        "SKU": atado_selected_rej["SKU"],
+                                        "Cantidad_Hojas_Despachadas": hojas_despacho,
+                                        "Peso_Despachado_Kg": peso_despacho,
+                                        "Destino_Proyecto": "Rechazo de Láminas - Defecto en Proceso",
+                                        "Responsable": responsable.strip(),
+                                        "Observaciones": observaciones.strip(),
+                                        "Hojas_Defectuosas": hojas_despacho,
+                                        "Tipo_Defecto": tipo_defecto,
+                                        "Gravedad_Defecto": gravedad_defecto,
+                                        "Accion_Defecto": accion_defecto
+                                    }
+                                    
+                                    st.session_state.BD_Salidas = pd.concat([st.session_state.BD_Salidas, pd.DataFrame([nueva_salida])], ignore_index=True)
+                                    guardar_db(st.session_state.BD_Salidas, BD_SALIDAS, "Salidas_Detalle")
+                                    
+                                    pdf_path_remision = os.path.join(pdf_remision_dir, f"Reporte_Rechazo_{folio_salida}.pdf")
+                                    
+                                    datos_pdf = nueva_salida.copy()
+                                    datos_pdf["Grado_Acero"] = atado_selected_rej["Grado_Acero"]
+                                    datos_pdf["Ubicacion_Almacen"] = atado_selected_rej["Ubicacion_Almacen"]
+                                    datos_pdf["Fotos"] = saved_photo_paths
+                                    
+                                    utils_pdf.generar_pdf_reporte_rechazo(datos_pdf, pdf_path_remision)
+                                    
+                                    with st.spinner("Sincronizando reporte de rechazo con GitHub..."):
+                                        auto_commit_and_push_to_github(f"RECHAZO-{folio_salida}")
+                                        
+                                    st.session_state.last_remision_creada = {
+                                        "folio": folio_salida,
+                                        "pdf_path": pdf_path_remision,
+                                        "hojas": hojas_despacho,
+                                        "atado_id": atado_selected_rej['ID_Atado']
+                                    }
+                                    st.session_state.BD_Salidas = cargar_db(BD_SALIDAS, "Salidas_Detalle")
+                                    st.rerun()
+                                    
+                        if "last_remision_creada" in st.session_state:
+                            rem = st.session_state.last_remision_creada
+                            if rem["folio"].startswith("REJ-OUT"):
+                                st.success(f"✅ Reporte de Rechazo '{rem['folio']}' registrado con éxito. Se descontaron {rem['hojas']} hojas del atado {rem['atado_id']}.")
+                                if os.path.exists(rem["pdf_path"]):
+                                    with open(rem["pdf_path"], "rb") as f:
+                                        pdf_bytes = f.read()
+                                    st.download_button(
+                                        label="📥 Descargar Reporte de Rechazo (FO-MET-41)",
+                                        data=pdf_bytes,
+                                        file_name=f"Reporte_Rechazo_{rem['folio']}.pdf",
+                                        mime="application/pdf",
+                                        use_container_width=True,
+                                        key="btn_download_reporte_rechazo_tab"
+                                    )
             
             with pest_inv3:
                 st.write("### 📜 Historial de Remisiones y Despachos")
@@ -2426,28 +2451,33 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                         if es_rej:
                             pdf_path_reprint = os.path.join(pdf_remision_dir, f"Reporte_Rechazo_{folio_salida_reprint}.pdf")
                             
-                            # Regenerar si no existe
-                            if not os.path.exists(pdf_path_reprint):
-                                os.makedirs(pdf_remision_dir, exist_ok=True)
-                                datos_pdf_reprint = {
-                                    "Folio_Salida": info_salida["Folio_Salida"],
-                                    "Fecha": info_salida["Fecha"],
-                                    "Hora": info_salida["Hora"],
-                                    "ID_Atado": info_salida["ID_Atado"],
-                                    "SKU": info_salida["SKU"],
-                                    "Cantidad_Hojas_Despachadas": info_salida["Cantidad_Hojas_Despachadas"],
-                                    "Peso_Despachado_Kg": info_salida["Peso_Despachado_Kg"],
-                                    "Destino_Proyecto": info_salida["Destino_Proyecto"],
-                                    "Responsable": info_salida["Responsable"],
-                                    "Observaciones": info_salida["Observaciones"],
-                                    "Hojas_Defectuosas": info_salida.get("Hojas_Defectuosas", info_salida["Cantidad_Hojas_Despachadas"]),
-                                    "Tipo_Defecto": info_salida.get("Tipo_Defecto", "Otros"),
-                                    "Gravedad_Defecto": info_salida.get("Gravedad_Defecto", "Moderado"),
-                                    "Accion_Defecto": info_salida.get("Accion_Defecto", "Scrap / Desecho"),
-                                    "Grado_Acero": grado,
-                                    "Ubicacion_Almacen": ubic
-                                }
-                                utils_pdf.generar_pdf_reporte_rechazo(datos_pdf_reprint, pdf_path_reprint)
+                            # Buscar fotos de defectos asociadas en el disco
+                            import glob
+                            photo_pattern = os.path.join(pdf_remision_dir, f"Foto_Rechazo_{folio_salida_reprint}_*")
+                            found_photos = sorted(glob.glob(photo_pattern))
+                            
+                            # Regenerar PDF para asegurar consistencia e inclusión de fotos
+                            os.makedirs(pdf_remision_dir, exist_ok=True)
+                            datos_pdf_reprint = {
+                                "Folio_Salida": info_salida["Folio_Salida"],
+                                "Fecha": info_salida["Fecha"],
+                                "Hora": info_salida["Hora"],
+                                "ID_Atado": info_salida["ID_Atado"],
+                                "SKU": info_salida["SKU"],
+                                "Cantidad_Hojas_Despachadas": info_salida["Cantidad_Hojas_Despachadas"],
+                                "Peso_Despachado_Kg": info_salida["Peso_Despachado_Kg"],
+                                "Destino_Proyecto": info_salida["Destino_Proyecto"],
+                                "Responsable": info_salida["Responsable"],
+                                "Observaciones": info_salida["Observaciones"],
+                                "Hojas_Defectuosas": info_salida.get("Hojas_Defectuosas", info_salida["Cantidad_Hojas_Despachadas"]),
+                                "Tipo_Defecto": info_salida.get("Tipo_Defecto", "Otros"),
+                                "Gravedad_Defecto": info_salida.get("Gravedad_Defecto", "Moderado"),
+                                "Accion_Defecto": info_salida.get("Accion_Defecto", "Scrap / Desecho"),
+                                "Grado_Acero": grado,
+                                "Ubicacion_Almacen": ubic,
+                                "Fotos": found_photos
+                            }
+                            utils_pdf.generar_pdf_reporte_rechazo(datos_pdf_reprint, pdf_path_reprint)
                                 
                             if os.path.exists(pdf_path_reprint):
                                 with open(pdf_path_reprint, "rb") as f:
