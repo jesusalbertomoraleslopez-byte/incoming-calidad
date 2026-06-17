@@ -2321,6 +2321,117 @@ def generar_pdf_procedimiento_pralm02(output_pdf_path):
     doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
     print("PDF del Procedimiento PR-ALM-02 creado.")
 
+def generar_pdf_hoja_consumo_fomet37(datos_atado, output_pdf_path):
+    """
+    Genera el formato FO-MET-37 (Hoja de Control de Consumo de Láminas) en PDF
+    que lista secuencialmente las hojas de un atado específico con espacio
+    para llenar a mano la OT de Corte, fecha y firma del operador.
+    """
+    doc = SimpleDocTemplate(output_pdf_path, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=90, bottomMargin=60)
+    story = []
+    styles = getSampleStyleSheet()
+    
+    style_title = ParagraphStyle('T_Cons', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=14, textColor=colors.HexColor("#D32F2F"), spaceAfter=5)
+    style_subtitle = ParagraphStyle('S_Cons', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=9, textColor=colors.HexColor("#757575"), spaceAfter=15)
+    style_normal_bold = ParagraphStyle('NB_Cons', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8.5)
+    style_normal_text = ParagraphStyle('NT_Cons', parent=styles['Normal'], fontName="Helvetica", fontSize=8.5, leading=12)
+    style_blanco_bold = ParagraphStyle('WB_Cons', parent=styles['Normal'], textColor=colors.white, fontName="Helvetica-Bold", alignment=1, fontSize=8.5)
+    style_table_center = ParagraphStyle('TC_Cons', parent=styles['Normal'], fontName="Helvetica", fontSize=8, alignment=1)
+    style_table_center_bold = ParagraphStyle('TCB_Cons', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8, alignment=1)
+    
+    story.append(Spacer(1, 5))
+    story.append(Paragraph("CONTROL DE CONSUMO DE LÁMINAS POR ATADO", style_title))
+    story.append(Paragraph("Formato oficial de registro para el reporte de hojas consumidas y asignación a órdenes de trabajo (OT).", style_subtitle))
+    
+    # 1. Tabla de Datos del Atado
+    id_atado = datos_atado.get("ID_Atado", "N/D")
+    id_prov = datos_atado.get("ID_Atado_Proveedor", "N/D")
+    sku = datos_atado.get("SKU", "N/D")
+    colada = datos_atado.get("Num_Colada", "N/D")
+    hojas_totales = int(datos_atado.get("Cantidad_Hojas", 0))
+    
+    datos_meta = [
+        [Paragraph("ID ATADO INTERNO:", style_normal_bold), Paragraph(str(id_atado), style_normal_text),
+         Paragraph("ATADO PROVEEDOR:", style_normal_bold), Paragraph(str(id_prov), style_normal_text)],
+        [Paragraph("SKU / CALIBRE:", style_normal_bold), Paragraph(str(sku), style_normal_text),
+         Paragraph("NÚM. COLADA (HEAT):", style_normal_bold), Paragraph(str(colada), style_normal_text)],
+        [Paragraph("HOJAS EN ATADO:", style_normal_bold), Paragraph(str(hojas_totales), style_normal_text),
+         Paragraph("ESTATUS:", style_normal_bold), Paragraph("LIBERADO (APTO PARA USO)", style_normal_text)]
+    ]
+    t_meta = Table(datos_meta, colWidths=[130, 140, 130, 140])
+    t_meta.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
+        ('BACKGROUND', (0,0), (0,-1), colors.HexColor("#F5F5F5")),
+        ('BACKGROUND', (2,0), (2,-1), colors.HexColor("#F5F5F5")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4)
+    ]))
+    story.append(t_meta)
+    story.append(Spacer(1, 15))
+    
+    # Instrucciones para el Operador
+    story.append(Paragraph("⚠️ <b>Instrucciones para el Operador de Corte:</b> Complete a mano la Orden de Trabajo (OT) / Proyecto, la Fecha y firme de conformidad por cada hoja que retire física y secuencialmente de este atado.", style_normal_bold))
+    story.append(Spacer(1, 8))
+    
+    # 2. Tabla de Registro de Hojas (1 a Hojas Totales)
+    table_data = [
+        [
+            Paragraph("No. Hoja", style_blanco_bold),
+            Paragraph("Orden de Trabajo (OT) / Proyecto (Llenar a mano)", style_blanco_bold),
+            Paragraph("Fecha de Uso", style_blanco_bold),
+            Paragraph("Firma Operador", style_blanco_bold)
+        ]
+    ]
+    
+    for i in range(1, hojas_totales + 1):
+        table_data.append([
+            Paragraph(f"<b>Hoja {i}</b>", style_table_center),
+            Paragraph("", style_normal_text),
+            Paragraph("", style_normal_text),
+            Paragraph("", style_normal_text)
+        ])
+        
+    t_consumo = Table(table_data, colWidths=[60, 280, 100, 100], repeatRows=1)
+    
+    # Estilo de la tabla de consumo
+    t_styles = [
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0D47A1")),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 5)
+    ]
+    
+    t_consumo.setStyle(TableStyle(t_styles))
+    story.append(t_consumo)
+    story.append(Spacer(1, 15))
+    
+    # 3. Sección de firmas y saldos al retornar
+    story.append(Paragraph("<b>CONTROL DE DEVOLUCIÓN (Al finalizar el proceso de corte):</b>", style_normal_bold))
+    story.append(Spacer(1, 5))
+    
+    firmas_devolucion = [
+        [Paragraph("<b>Hojas Consumidas Reales:</b> ____________", style_normal_text),
+         Paragraph("<b>Hojas Devueltas a Almacén:</b> ____________", style_normal_text)],
+        [Paragraph("<br/><br/>_________________________________<br/>Firma Supervisor de Corte (Autoriza)", style_table_center),
+         Paragraph("<br/><br/>_________________________________<br/>Firma Almacenista (Recibe y actualiza)", style_table_center)]
+    ]
+    t_firmas = Table(firmas_devolucion, colWidths=[270, 270])
+    t_firmas.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#E0E0E0")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6)
+    ]))
+    story.append(t_firmas)
+    
+    def decorate(canvas, doc):
+        draw_sigrama_sgc_decorations(canvas, doc, "FO-MET-37", "CONTROL DE CONSUMO DE LÁMINAS POR ATADO")
+        
+    doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
+    print(f"PDF del Formato FO-MET-37 creado para el atado {id_atado}.")
+
 def generar_pdf_remision_salida(datos_remision, output_pdf_path):
     """
     Genera una remisión de salida formal en PDF (FO-MET-36)

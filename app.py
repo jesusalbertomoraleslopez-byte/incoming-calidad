@@ -2056,6 +2056,41 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                     tot_hojas = df_inv_display["Hojas_Disponibles"].sum()
                     tot_peso = df_inv_display["Peso_Disponible_Kg"].sum()
                     st.markdown(f"**Resumen de Inventario Filtrado:**  \n* **Total Hojas Disponibles:** {tot_hojas} hojas  \n* **Total Peso Disponible:** {tot_peso:,.2f} Kg")
+                    
+                    st.write("---")
+                    st.write("📋 **Generar Hoja de Control de Consumo de Láminas (FO-MET-37) por Atado**")
+                    st.markdown("Imprima un formato físico para reportar secuencialmente el consumo de láminas por atado y asociarlo a Órdenes de Trabajo (OT) de corte a mano.")
+                    
+                    col_pdf1, col_pdf2 = st.columns([2, 1])
+                    with col_pdf1:
+                        atado_sel_pdf = st.selectbox("Seleccione el Atado físico:", df_inv_display["ID_Atado"].unique(), key="sb_atado_fomet37")
+                    with col_pdf2:
+                        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+                        btn_gen_fomet37 = st.button("📄 Generar Formato FO-MET-37", key="btn_gen_fomet37")
+                        
+                    if btn_gen_fomet37:
+                        # Obtener los datos originales del atado
+                        atd_orig_data = df_atados[df_atados["ID_Atado"] == atado_sel_pdf].iloc[0].to_dict()
+                        try:
+                            temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
+                            os.makedirs(temp_pdf_dir, exist_ok=True)
+                            pdf_path_consumo = os.path.join(temp_pdf_dir, f"Control_Consumo_{atado_sel_pdf}.pdf")
+                            
+                            utils_pdf.generar_pdf_hoja_consumo_fomet37(atd_orig_data, pdf_path_consumo)
+                            
+                            if os.path.exists(pdf_path_consumo):
+                                with open(pdf_path_consumo, "rb") as f:
+                                    pdf_bytes = f.read()
+                                st.download_button(
+                                    label=f"📥 Descargar Hoja de Consumo - Atado {atado_sel_pdf} (PDF)",
+                                    data=pdf_bytes,
+                                    file_name=f"Control_Consumo_{atado_sel_pdf}.pdf",
+                                    mime="application/pdf",
+                                    use_container_width=True,
+                                    key="btn_download_fomet37"
+                                )
+                        except Exception as ex_pdf:
+                            st.error(f"Error al generar el formato FO-MET-37: {ex_pdf}")
             
             with pest_inv2:
                 st.write("### ➕ Registrar Nueva Remisión de Salida")
@@ -2152,17 +2187,42 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                         if "last_remision_creada" in st.session_state:
                             rem = st.session_state.last_remision_creada
                             st.success(f"✅ Remisión '{rem['folio']}' registrada con éxito. Se descontaron {rem['hojas']} hojas del atado {rem['atado_id']}.")
-                            if os.path.exists(rem["pdf_path"]):
-                                with open(rem["pdf_path"], "rb") as f:
-                                    pdf_bytes = f.read()
-                                st.download_button(
-                                    label="📥 Descargar Remisión de Salida Oficial (PDF)",
-                                    data=pdf_bytes,
-                                    file_name=f"Remision_Salida_{rem['folio']}.pdf",
-                                    mime="application/pdf",
-                                    use_container_width=True,
-                                    key="btn_download_remision_salida"
-                                )
+                            
+                            col_btns1, col_btns2 = st.columns(2)
+                            with col_btns1:
+                                if os.path.exists(rem["pdf_path"]):
+                                    with open(rem["pdf_path"], "rb") as f:
+                                        pdf_bytes = f.read()
+                                    st.download_button(
+                                        label="📥 Descargar Remisión (FO-MET-36)",
+                                        data=pdf_bytes,
+                                        file_name=f"Remision_Salida_{rem['folio']}.pdf",
+                                        mime="application/pdf",
+                                        use_container_width=True,
+                                        key="btn_download_remision_salida"
+                                    )
+                            with col_btns2:
+                                # Buscar el atado original para generar su Hoja de Consumo FO-MET-37
+                                atd_orig_match = df_atados[df_atados["ID_Atado"] == rem["atado_id"]]
+                                if not atd_orig_match.empty:
+                                    atd_orig_data = atd_orig_match.iloc[0].to_dict()
+                                    try:
+                                        temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
+                                        pdf_path_consumo_rem = os.path.join(temp_pdf_dir, f"Control_Consumo_{rem['atado_id']}_{rem['folio']}.pdf")
+                                        utils_pdf.generar_pdf_hoja_consumo_fomet37(atd_orig_data, pdf_path_consumo_rem)
+                                        if os.path.exists(pdf_path_consumo_rem):
+                                            with open(pdf_path_consumo_rem, "rb") as f_c:
+                                                pdf_bytes_c = f_c.read()
+                                            st.download_button(
+                                                label="📄 Descargar Hoja de Consumo (FO-MET-37)",
+                                                data=pdf_bytes_c,
+                                                file_name=f"Control_Consumo_{rem['atado_id']}.pdf",
+                                                mime="application/pdf",
+                                                use_container_width=True,
+                                                key="btn_download_remision_consumo"
+                                            )
+                                    except Exception as ex_c:
+                                        st.warning(f"No se pudo generar la Hoja de Consumo: {ex_c}")
             
             with pest_inv3:
                 st.write("### 📜 Historial de Remisiones y Despachos")
