@@ -2930,112 +2930,147 @@ def generar_pdf_reporte_ejecutivo_inventario(filtros, df_inv_filtered, output_pd
     story.append(Spacer(1, 15))
     
     # --- RESUMEN CONSOLIDADO POR MATERIAL (SKU) ---
-    if not df_inv_filtered.empty:
-        story.append(Paragraph("<b>RESUMEN CONSOLIDADO POR TIPO DE MATERIAL</b>", style_normal_bold))
-        story.append(Spacer(1, 5))
-        
-        # 1. Agrupar y consolidar
-        df_copy = df_inv_filtered.copy()
-        df_copy["Material"] = df_copy["SKU"].apply(obtener_nombre_amigable_sku)
-        
-        df_consolidado = df_copy.groupby("Material").agg(
+    story.append(Paragraph("<b>RESUMEN CONSOLIDADO POR TIPO DE MATERIAL</b>", style_normal_bold))
+    story.append(Spacer(1, 5))
+    
+    # 1. Cargar todos los SKUs registrados del catálogo de parámetros
+    param_path = os.path.join(BASE_DIR, "BD_Parametros_Materia_Prima.xlsx")
+    try:
+        df_param = pd.read_excel(param_path)
+        all_skus = df_param["SKU"].dropna().unique().tolist()
+    except Exception as e:
+        # Fallback en caso de que falle la lectura del archivo
+        all_skus = ["SKU-GALV-10", "SKU-GALV-12", "SKU-GALV-14", "SKU-GALV-16", "SKU-DECP-12", "SKU-DECP-14", "SKU-DECP-16"]
+        print(f"Error cargando catálogo de SKUs: {e}")
+
+    # Agrupar existencias actuales por SKU ID
+    df_copy = df_inv_filtered.copy()
+    if not df_copy.empty:
+        df_existente = df_copy.groupby("SKU").agg(
             Atados=("ID_Atado", "nunique"),
             Hojas_Disponibles=("Hojas_Disponibles", "sum"),
             Peso_Disponible_Kg=("Peso_Disponible_Kg", "sum")
         ).reset_index()
-        
-        # Ordenar para Pareto por peso descendente
-        df_consolidado = df_consolidado.sort_values(by="Peso_Disponible_Kg", ascending=False)
-        total_peso_inv = df_consolidado["Peso_Disponible_Kg"].sum()
-        
-        # 2. Generar tabla consolidada
-        headers_consol = [
-            Paragraph("MATERIAL (SKU)", style_blanco_bold),
-            Paragraph("ATADOS", style_blanco_bold),
-            Paragraph("HOJAS DISPONIBLES", style_blanco_bold),
-            Paragraph("PESO DISPONIBLE (KG)", style_blanco_bold),
-            Paragraph("% DEL INVENTARIO", style_blanco_bold)
-        ]
-        filas_consol = [headers_consol]
-        
-        for _, r_c in df_consolidado.iterrows():
-            peso_c = float(r_c["Peso_Disponible_Kg"])
-            pct_c = (peso_c / total_peso_inv * 100) if total_peso_inv > 0 else 0.0
-            filas_consol.append([
-                Paragraph(str(r_c["Material"]), style_normal_bold),
-                Paragraph(f"{int(r_c['Atados']):,}", style_normal_text_center),
-                Paragraph(f"{int(r_c['Hojas_Disponibles']):,}", style_normal_text_center),
-                Paragraph(f"{peso_c:,.2f}", style_normal_text_center),
-                Paragraph(f"{pct_c:.1f}%", style_normal_text_center)
-            ])
+    else:
+        df_existente = pd.DataFrame(columns=["SKU", "Atados", "Hojas_Disponibles", "Peso_Disponible_Kg"])
+
+    # Combinar con todos los SKUs para asegurar la presencia de inventario Cero
+    rows_consol = []
+    for sku in all_skus:
+        nombre_amigable = obtener_nombre_amigable_sku(sku)
+        match = df_existente[df_existente["SKU"] == sku]
+        if not match.empty:
+            atados = int(match.iloc[0]["Atados"])
+            hojas = int(match.iloc[0]["Hojas_Disponibles"])
+            peso = float(match.iloc[0]["Peso_Disponible_Kg"])
+        else:
+            atados = 0
+            hojas = 0
+            peso = 0.0
             
-        t_consol = Table(filas_consol, colWidths=[220, 60, 90, 90, 80])
-        t_consol_style = [
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0D47A1")), # Azul corporativo para consolidado
-            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-            ('TOPPADDING', (0,0), (-1,-1), 4)
-        ]
-        for idx in range(1, len(filas_consol)):
-            if idx % 2 == 0:
-                t_consol_style.append(('BACKGROUND', (0, idx), (-1, idx), colors.HexColor("#F5F5F5")))
-        t_consol.setStyle(TableStyle(t_consol_style))
-        story.append(t_consol)
+        rows_consol.append({
+            "SKU": sku,
+            "Material": nombre_amigable,
+            "Atados": atados,
+            "Hojas_Disponibles": hojas,
+            "Peso_Disponible_Kg": peso
+        })
+        
+    df_consolidado = pd.DataFrame(rows_consol)
+    
+    # Ordenar para Pareto por peso descendente
+    df_consolidado = df_consolidado.sort_values(by="Peso_Disponible_Kg", ascending=False)
+    total_peso_inv = df_consolidado["Peso_Disponible_Kg"].sum()
+    
+    # 2. Generar tabla consolidada
+    headers_consol = [
+        Paragraph("MATERIAL (SKU)", style_blanco_bold),
+        Paragraph("ATADOS", style_blanco_bold),
+        Paragraph("HOJAS DISPONIBLES", style_blanco_bold),
+        Paragraph("PESO DISPONIBLE (KG)", style_blanco_bold),
+        Paragraph("% DEL INVENTARIO", style_blanco_bold)
+    ]
+    filas_consol = [headers_consol]
+    
+    for _, r_c in df_consolidado.iterrows():
+        peso_c = float(r_c["Peso_Disponible_Kg"])
+        pct_c = (peso_c / total_peso_inv * 100) if total_peso_inv > 0 else 0.0
+        filas_consol.append([
+            Paragraph(str(r_c["Material"]), style_normal_bold),
+            Paragraph(f"{int(r_c['Atados']):,}", style_normal_text_center),
+            Paragraph(f"{int(r_c['Hojas_Disponibles']):,}", style_normal_text_center),
+            Paragraph(f"{peso_c:,.2f}", style_normal_text_center),
+            Paragraph(f"{pct_c:.1f}%", style_normal_text_center)
+        ])
+        
+    t_consol = Table(filas_consol, colWidths=[220, 60, 90, 90, 80])
+    t_consol_style = [
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#0D47A1")), # Azul corporativo para consolidado
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ('TOPPADDING', (0,0), (-1,-1), 4)
+    ]
+    for idx in range(1, len(filas_consol)):
+        if idx % 2 == 0:
+            t_consol_style.append(('BACKGROUND', (0, idx), (-1, idx), colors.HexColor("#F5F5F5")))
+    t_consol.setStyle(TableStyle(t_consol_style))
+    story.append(t_consol)
+    story.append(Spacer(1, 10))
+    
+    # 3. Generar gráfico de Pareto (Matplotlib)
+    try:
+        import os
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        
+        temp_pdf_dir = os.path.dirname(output_pdf_path)
+        chart_path = os.path.join(temp_pdf_dir, f"pareto_skus_{datetime.date.today().strftime('%Y%m%d')}.png")
+        
+        # Gráfico de Pareto
+        df_consolidado = df_consolidado.copy()
+        df_consolidado["Cum_Pct"] = (df_consolidado["Peso_Disponible_Kg"].cumsum() / total_peso_inv * 100) if total_peso_inv > 0 else 0.0
+        
+        fig, ax1 = plt.subplots(figsize=(6.2, 2.2))
+        
+        # Barras
+        color_bar = '#0D47A1'
+        bars = ax1.bar(df_consolidado["Material"], df_consolidado["Peso_Disponible_Kg"], color=color_bar, alpha=0.8, width=0.45)
+        ax1.set_ylabel("Peso Disponible (Kg)", color=color_bar, fontsize=8)
+        ax1.tick_params(axis='y', labelcolor=color_bar, labelsize=7)
+        
+        # Limpiar etiquetas en eje X
+        ax1.set_xticks(range(len(df_consolidado)))
+        ax1.set_xticklabels(df_consolidado["Material"], rotation=12, ha="right", fontsize=7)
+        ax1.tick_params(axis='x', labelsize=7)
+        
+        # Línea de % acumulado
+        ax2 = ax1.twinx()
+        color_line = '#D32F2F'
+        ax2.plot(df_consolidado["Material"], df_consolidado["Cum_Pct"], color=color_line, marker="o", ms=4, lw=1.5)
+        ax2.set_ylabel("% Acumulado", color=color_line, fontsize=8)
+        ax2.tick_params(axis='y', labelcolor=color_line, labelsize=7)
+        ax2.set_ylim(0, 105)
+        
+        # Valores sobre las barras
+        for bar in bars:
+            yval = bar.get_height()
+            offset = (total_peso_inv * 0.02) if total_peso_inv > 0 else 0.5
+            ax1.text(bar.get_x() + bar.get_width()/2.0, yval + offset, f"{yval:,.0f} kg", ha='center', va='bottom', fontsize=6, fontweight='bold')
+            
+        plt.title("Diagrama de Pareto: Distribución de Materiales en Inventario", fontsize=9, fontweight='bold', pad=8)
+        plt.tight_layout()
+        plt.savefig(chart_path, dpi=200)
+        plt.close()
+        
+        if os.path.exists(chart_path):
+            story.append(Image(chart_path, width=500, height=180))
+            story.append(Spacer(1, 15))
+    except Exception as ex_chart:
+        print(f"Error al generar gráfico de Pareto en PDF: {ex_chart}")
+        story.append(Paragraph(f"<i>No se pudo renderizar el gráfico de Pareto: {ex_chart}</i>", style_normal_text))
         story.append(Spacer(1, 10))
-        
-        # 3. Generar gráfico de Pareto (Matplotlib)
-        try:
-            import os
-            import matplotlib
-            matplotlib.use('Agg')
-            import matplotlib.pyplot as plt
-            
-            temp_pdf_dir = os.path.dirname(output_pdf_path)
-            chart_path = os.path.join(temp_pdf_dir, f"pareto_skus_{datetime.date.today().strftime('%Y%m%d')}.png")
-            
-            # Gráfico de Pareto
-            df_consolidado = df_consolidado.copy()
-            df_consolidado["Cum_Pct"] = (df_consolidado["Peso_Disponible_Kg"].cumsum() / total_peso_inv * 100) if total_peso_inv > 0 else 0.0
-            
-            fig, ax1 = plt.subplots(figsize=(6.2, 2.2))
-            
-            # Barras
-            color_bar = '#0D47A1'
-            bars = ax1.bar(df_consolidado["Material"], df_consolidado["Peso_Disponible_Kg"], color=color_bar, alpha=0.8, width=0.45)
-            ax1.set_ylabel("Peso Disponible (Kg)", color=color_bar, fontsize=8)
-            ax1.tick_params(axis='y', labelcolor=color_bar, labelsize=7)
-            
-            # Limpiar etiquetas en eje X
-            ax1.set_xticks(range(len(df_consolidado)))
-            ax1.set_xticklabels(df_consolidado["Material"], rotation=12, ha="right", fontsize=7)
-            ax1.tick_params(axis='x', labelsize=7)
-            
-            # Línea de % acumulado
-            ax2 = ax1.twinx()
-            color_line = '#D32F2F'
-            ax2.plot(df_consolidado["Material"], df_consolidado["Cum_Pct"], color=color_line, marker="o", ms=4, lw=1.5)
-            ax2.set_ylabel("% Acumulado", color=color_line, fontsize=8)
-            ax2.tick_params(axis='y', labelcolor=color_line, labelsize=7)
-            ax2.set_ylim(0, 105)
-            
-            # Valores sobre las barras
-            for bar in bars:
-                yval = bar.get_height()
-                ax1.text(bar.get_x() + bar.get_width()/2.0, yval + (total_peso_inv * 0.02), f"{yval:,.0f} kg", ha='center', va='bottom', fontsize=6, fontweight='bold')
-                
-            plt.title("Diagrama de Pareto: Distribución de Materiales en Inventario", fontsize=9, fontweight='bold', pad=8)
-            plt.tight_layout()
-            plt.savefig(chart_path, dpi=200)
-            plt.close()
-            
-            if os.path.exists(chart_path):
-                story.append(Image(chart_path, width=500, height=180))
-                story.append(Spacer(1, 15))
-        except Exception as ex_chart:
-            print(f"Error al generar gráfico de Pareto en PDF: {ex_chart}")
-            story.append(Paragraph(f"<i>No se pudo renderizar el gráfico de Pareto: {ex_chart}</i>", style_normal_text))
-            story.append(Spacer(1, 10))
             
     # --- DETALLE DE STOCK ---
     story.append(Paragraph("<b>EXISTENCIAS DETALLADAS EN ALMACÉN DE METALES</b>", style_normal_bold))
