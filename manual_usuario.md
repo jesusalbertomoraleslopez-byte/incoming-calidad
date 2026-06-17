@@ -12,7 +12,7 @@ La aplicación cuenta con tres perfiles de usuario diferentes, administrados en 
 | :--- | :--- | :--- |
 | **Público / Consulta** | *Ninguna (Vacío)* | Solo lectura. Puede navegar por el Módulo 1 (Dashboard) e Historial, así como descargar dosiers e informes. No tiene acceso al Módulo 2 ni puede realizar modificaciones. |
 | **Inspector (Registro)** | *[Consultar con Calidad / Clave de Inspector]* | Acceso de lectura más la capacidad de ingresar al **Módulo 2 (Registro)** para subir plantillas de medición de atados, cargar fotos de defectos y guardar nuevos lotes. |
-| **Operador Láser** | `"SigramaLaser2026"` | Acceso al Módulo de Inventario. Puede registrar egresos estándar de materia prima (`REM-OUT`) y reportar rechazos de láminas por defectos en proceso (`REJ-OUT`) para descontarlas de stock, generar reportes FO-MET-41 (con fotos de evidencia) y descargar hojas de consumo FO-MET-37. No tiene acceso al Módulo 2 de Recepción. |
+| **Operador Láser** | *[Consultar con Calidad / Clave de Operador]* | Acceso al Módulo de Inventario. Puede registrar egresos estándar de materia prima (`REM-OUT`) y reportar rechazos de láminas por defectos en proceso (`REJ-OUT`) para descontarlas de stock, generar reportes FO-MET-41 (con fotos de evidencia) y descargar hojas de consumo FO-MET-37. No tiene acceso al Módulo 2 de Recepción. |
 | **Administrador** | *[Clave Restringida / Consultar al departamento de Calidad]* | Acceso total. Incluye permisos de Inspector más la capacidad de eliminar expedientes e historial y agregar o modificar las tolerancias de SKUs. |
 
 > [!TIP]
