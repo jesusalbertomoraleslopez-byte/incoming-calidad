@@ -3119,6 +3119,59 @@ def generar_pdf_reporte_rechazo(datos_rechazo, output_pdf_path):
     print(f"PDF de Reporte de Rechazo {datos_rechazo.get('Folio_Salida')} creado.")
 
 
+def crear_pdf_generico_muestra(doc_id, titulo, columnas, filas, output_path):
+    """
+    Genera un PDF genérico de muestra con el logotipo y cabecera de SIGRAMA.
+    """
+    doc = SimpleDocTemplate(output_path, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=90, bottomMargin=60)
+    story = []
+    styles = getSampleStyleSheet()
+    
+    style_t = ParagraphStyle('T_Mock', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=13, textColor=colors.HexColor("#0D47A1"), spaceAfter=15)
+    style_h = ParagraphStyle('H_Mock', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8.5, textColor=colors.white, alignment=1)
+    style_b = ParagraphStyle('B_Mock', parent=styles['Normal'], fontName="Helvetica", fontSize=8, leading=10)
+    style_b_bold = ParagraphStyle('BB_Mock', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8, leading=10)
+    
+    story.append(Paragraph(f"MUESTRA DE FORMATO OFICIAL: {titulo}", style_t))
+    story.append(Paragraph("Este documento es una muestra de control regulada bajo el Sistema de Gestión de Calidad (SGC) de Industria SIGRAMA.", style_b))
+    story.append(Spacer(1, 15))
+    
+    # Tabla de datos
+    table_data = [[Paragraph(col, style_h) for col in columnas]]
+    for fila in filas:
+        table_data.append([Paragraph(str(cell), style_b) for cell in fila])
+        
+    col_w = [doc.width / len(columnas)] * len(columnas)
+    t = Table(table_data, colWidths=col_w)
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER')
+    ]))
+    story.append(t)
+    story.append(Spacer(1, 40))
+    
+    # Firmas
+    datos_firmas = [
+        [Paragraph("_____________________________<br/>ELABORÓ (DEPARTAMENTO DE CALIDAD)", style_b_bold),
+         Paragraph("_____________________________<br/>APROBÓ (CONTROL DOCUMENTAL / SGC)", style_b_bold)]
+    ]
+    tf = Table(datos_firmas, colWidths=[doc.width/2.0, doc.width/2.0])
+    tf.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'TOP')
+    ]))
+    story.append(tf)
+    
+    def decorate(canvas, doc):
+        draw_sigrama_sgc_decorations(canvas, doc, doc_id, titulo)
+        
+    doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
+
+
 
 
 

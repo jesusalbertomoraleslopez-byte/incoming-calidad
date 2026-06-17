@@ -68,6 +68,90 @@ def guardar_db(df, path, sheet_name="Datos_Sistema"):
         st.error(f"Error guardando base de datos ({os.path.basename(path)}): {e}")
         return False
 
+
+def obtener_link_descarga_muestra(doc_id, display_name):
+    import base64
+    import os
+    import datetime
+    
+    temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
+    os.makedirs(temp_pdf_dir, exist_ok=True)
+    
+    if doc_id.endswith(".xlsx"):
+        file_path = os.path.join(temp_pdf_dir, doc_id)
+        if not os.path.exists(file_path):
+            import openpyxl
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Bitácora de Salidas"
+            ws.append(["Folio_Salida", "Fecha", "Hora", "ID_Atado", "SKU", "Cantidad_Hojas_Despachadas", "Peso_Despachado_Kg", "Destino_Proyecto", "Responsable", "Observaciones"])
+            ws.append(["REM-OUT-2026-0001", "17/06/2026", "10:30", "INC-2026-0001-A01", "SKU-GALV-14", 10, 225.5, "Proyecto Tolva", "Carlos Pérez", "Entrega estándar"])
+            ws.append(["REJ-OUT-2026-0001", "17/06/2026", "11:15", "INC-2026-0001-A02", "SKU-DECP-16", 2, 90.18, "Scrap / Desecho", "Operador Láser", "Rayaduras profundas"])
+            wb.save(file_path)
+            
+        with open(file_path, "rb") as f:
+            b64_data = base64.b64encode(f.read()).decode("utf-8")
+        mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        download_name = doc_id
+    else:
+        file_path = os.path.join(temp_pdf_dir, f"{doc_id}_Muestra.pdf")
+        if not os.path.exists(file_path):
+            if doc_id == "PR-ALM-01":
+                utils_pdf.generar_pdf_procedimiento_pralm01(file_path)
+            elif doc_id == "PR-ALM-02":
+                utils_pdf.generar_pdf_procedimiento_pralm02(file_path)
+            elif doc_id == "FO-MET-31":
+                columnas = ["No. Atado", "Espesor 1 (in)", "Espesor 2 (in)", "Espesor 3 (in)", "Ancho (in)", "Largo (in)", "Estatus"]
+                filas = [
+                    ["AT-001", "0.0750", "0.0751", "0.0749", "48.0", "120.0", "Aceptado"],
+                    ["AT-002", "0.0782", "0.0751", "0.0753", "48.0", "120.0", "Aceptado"]
+                ]
+                utils_pdf.crear_pdf_generico_muestra(doc_id, "Reporte Consolidado de Inspección Dimensional de Materia Prima", columnas, filas, file_path)
+            elif doc_id == "FO-MET-32":
+                columnas = ["ID Atado", "Proveedor", "Colada", "SKU", "Estatus"]
+                filas = [["INC-2026-0001-A01", "Ternium México", "COL-77621", "SKU-GALV-14", "Aceptado"]]
+                utils_pdf.crear_pdf_generico_muestra(doc_id, "Tarjeta de Identificación de Atado (Etiqueta)", columnas, filas, file_path)
+            elif doc_id == "FO-MET-33":
+                columnas = ["Documento", "Descripción", "Estatus"]
+                filas = [
+                    ["Certificado", "Certificado de Calidad de Molino", "Entregado"],
+                    ["Orden de Compra", "OC firmada de SIGRAMA", "Entregado"]
+                ]
+                utils_pdf.crear_pdf_generico_muestra(doc_id, "Portada y Resumen de Contenido del Dosier de Calidad", columnas, filas, file_path)
+            elif doc_id == "FO-MET-36":
+                columnas = ["ID Atado", "SKU", "Hojas Despachadas", "Destino Proyecto", "Responsable"]
+                filas = [["INC-2026-0001-A01", "SKU-GALV-14", "50", "Proyecto Soportes Láser", "Operador Láser"]]
+                utils_pdf.crear_pdf_generico_muestra(doc_id, "Remisión de Salida de Lámina", columnas, filas, file_path)
+            elif doc_id == "FO-MET-41":
+                columnas = ["ID Atado", "SKU", "Hojas Defectuosas", "Defecto", "Gravedad"]
+                filas = [["INC-2026-0001-A01", "SKU-GALV-14", "5", "Raya / Rasguño", "Leve"]]
+                utils_pdf.crear_pdf_generico_muestra(doc_id, "Reporte de Rechazo por Defecto en Proceso", columnas, filas, file_path)
+            elif doc_id == "PR-SGC-04":
+                columnas = ["Sección", "Descripción del Control", "Responsable"]
+                filas = [
+                    ["1. Identificación", "Etiquetar con tarjeta roja todo material no conforme.", "Inspector Calidad"],
+                    ["2. Segregación", "Mover al almacén de producto no conforme.", "Auxiliar Almacén"]
+                ]
+                utils_pdf.crear_pdf_generico_muestra(doc_id, "Procedimiento para Control de Producto / Servicio No Conforme", columnas, filas, file_path)
+            elif doc_id == "PR-SGC-02":
+                columnas = ["Registro", "Tiempo de Retención", "Disposición Final"]
+                filas = [
+                    ["Dosier de Calidad", "5 Años", "Archivo Muerto / Triturar"],
+                    ["Remisiones de Salida", "3 Años", "Reciclar"]
+                ]
+                utils_pdf.crear_pdf_generico_muestra(doc_id, "Procedimiento para el Control de Registros", columnas, filas, file_path)
+            else:
+                columnas = ["Muestra", "Descripción"]
+                filas = [["Muestra", f"Muestra para el formato {doc_id}"]]
+                utils_pdf.crear_pdf_generico_muestra(doc_id, f"Muestra de Formato {doc_id}", columnas, filas, file_path)
+                
+        with open(file_path, "rb") as f:
+            b64_data = base64.b64encode(f.read()).decode("utf-8")
+        mime = "application/pdf"
+        download_name = f"{doc_id}_Muestra.pdf"
+        
+    return f'<a href="data:{mime};base64,{b64_data}" download="{download_name}" style="color: #0D47A1; font-weight: bold; text-decoration: underline;">{display_name}</a>'
+
 def auto_commit_and_push_to_github(nuevo_folio):
     """
     Agrega las bases de datos Excel modificadas y el expediente PDF del nuevo folio,
@@ -2084,10 +2168,40 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                         hide_index=True
                     )
                     
-                    # Totales
+                    # Totales e Imprimir Reporte
                     tot_hojas = df_inv_display["Hojas_Disponibles"].sum()
                     tot_peso = df_inv_display["Peso_Disponible_Kg"].sum()
-                    st.markdown(f"**Resumen de Inventario Filtrado:**  \n* **Total Hojas Disponibles:** {tot_hojas} hojas  \n* **Total Peso Disponible:** {tot_peso:,.2f} Kg")
+                    
+                    col_tot1, col_tot2 = st.columns([2, 1])
+                    with col_tot1:
+                        st.markdown(f"**Resumen de Inventario Filtrado:**  \n* **Total Hojas Disponibles:** {tot_hojas} hojas  \n* **Total Peso Disponible:** {tot_peso:,.2f} Kg")
+                    with col_tot2:
+                        try:
+                            temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
+                            os.makedirs(temp_pdf_dir, exist_ok=True)
+                            pdf_path_inventario = os.path.join(temp_pdf_dir, f"Reporte_Ejecutivo_Inventario_{datetime.date.today().strftime('%Y%m%d')}.pdf")
+                            
+                            filtros_pdf_inv = {
+                                "skus": filtro_sku if filtro_sku != "Todos" else "Todos"
+                            }
+                            if filtro_ubic != "Todas":
+                                filtros_pdf_inv["skus"] += f" (Ubicación: {filtro_ubic})"
+                                
+                            utils_pdf.generar_pdf_reporte_ejecutivo_inventario(filtros_pdf_inv, df_inv_display, pdf_path_inventario)
+                            
+                            if os.path.exists(pdf_path_inventario):
+                                with open(pdf_path_inventario, "rb") as f_pdf_inv:
+                                    pdf_bytes_inv = f_pdf_inv.read()
+                                st.download_button(
+                                    label="📥 Reporte Ejecutivo PDF (FO-MET-40)",
+                                    data=pdf_bytes_inv,
+                                    file_name=f"Reporte_Ejecutivo_Inventario_{datetime.date.today().strftime('%Y%m%d')}.pdf",
+                                    mime="application/pdf",
+                                    use_container_width=True,
+                                    key="btn_download_pdf_inventario_pest1"
+                                )
+                        except Exception as ex_pi:
+                            st.error(f"Error al generar el PDF del reporte ejecutivo: {ex_pi}")
                     
                     st.write("---")
                     st.write("📋 **Generar Hoja de Control de Consumo de Láminas (FO-MET-37) por Atado**")
@@ -3436,13 +3550,16 @@ elif opcion_menu == "📋 Procedimiento de Recepción (PR-ALM-01)":
     ##### 6.5 Cierre y Auto-Guardado en la Nube
     El sistema recopila automáticamente los archivos PDF de portada, reporte consolidado de mediciones, reporte estadístico de Gauss y las etiquetas de identificación en un único archivo **Dosier de Calidad (FO-MET-33)**. Una vez validado por el inspector, se realiza una sincronización en segundo plano con el repositorio web de GitHub mediante un Token seguro de acceso, permitiendo persistencia y auditoría inmediata.
     
-    #### 7. DOCUMENTOS RELACIONADOS
-    * **FO-MET-31:** Reporte Consolidado de Inspección Dimensional de Materia Prima.
-    * **FO-MET-32:** Tarjeta de Identificación de Atado de Materia Prima (Etiqueta).
-    * **FO-MET-33:** Portada y Resumen de Contenido del Dosier de Calidad.
-    * **PR-SGC-04:** Procedimiento para Control de Producto / Servicio No Conforme.
-    * **PR-SGC-02:** Procedimiento para el Control de Registros.
+    """, unsafe_allow_html=True)
     
+    st.markdown("#### 7. DOCUMENTOS RELACIONADOS")
+    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-31', 'FO-MET-31')}**: Reporte Consolidado de Inspección Dimensional de Materia Prima.", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-32', 'FO-MET-32')}**: Tarjeta de Identificación de Atado de Materia Prima (Etiqueta).", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-33', 'FO-MET-33')}**: Portada y Resumen de Contenido del Dosier de Calidad.", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('PR-SGC-04', 'PR-SGC-04')}**: Procedimiento para Control de Producto / Servicio No Conforme.", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('PR-SGC-02', 'PR-SGC-02')}**: Procedimiento para el Control de Registros.", unsafe_allow_html=True)
+    
+    st.markdown("""
     #### 8. CONTROL DE REVISIONES
     * **Rev. 00:** Emisión inicial y adaptación completa para reestructuración del Sistema de Gestión de Calidad (SGC) digital SIGRAMA.
     """, unsafe_allow_html=True)
@@ -3541,12 +3658,15 @@ elif opcion_menu == "📋 Procedimiento de Despacho (PR-ALM-02)":
     ##### 6.5 Registro de Rechazos por Defectos en Proceso
     En caso de detectarse defectos de calidad o daños en las láminas durante producción (ej. corte láser) que no hayan sido detectados en la recepción inicial, el Operador Láser o Inspector de Calidad debe reportar el rechazo en el módulo correspondiente del sistema. Al declarar la cantidad de hojas afectadas, tipo de defecto y gravedad, el sistema asignará un folio 'REJ-OUT-YYYY-NNNN', generará de forma automática el Reporte de Rechazo (FO-MET-41) en PDF, y descontará las láminas y el peso proporcional de la base de datos de existencias.
     
-    #### 7. DOCUMENTOS RELACIONADOS
-    * **FO-MET-36:** Remisión de Salida de Lámina (Formato de Transferencia de Custodia).
-    * **FO-MET-41:** Reporte de Rechazo por Defecto en Proceso (Formato de Declaración de Scrap).
-    * **BD_Salidas_Incoming.xlsx:** Bitácora Digital de Despachos y Registro Histórico.
-    * **PR-ALM-01:** Procedimiento de Recepción de Materia Prima.
+    """, unsafe_allow_html=True)
     
+    st.markdown("#### 7. DOCUMENTOS RELACIONADOS")
+    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-36', 'FO-MET-36')}**: Remisión de Salida de Lámina (Formato de Transferencia de Custodia).", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-41', 'FO-MET-41')}**: Reporte de Rechazo por Defecto en Proceso (Formato de Declaración de Scrap).", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('BD_Salidas_Incoming.xlsx', 'BD_Salidas_Incoming.xlsx')}**: Bitácora Digital de Despachos y Registro Histórico.", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('PR-ALM-01', 'PR-ALM-01')}**: Procedimiento de Recepción de Materia Prima.", unsafe_allow_html=True)
+    
+    st.markdown("""
     #### 8. CONTROL DE REVISIONES
     * **Rev. 00:** Emisión inicial y digitalización integrada para el control de inventario y remisiones del sistema SGC digital SIGRAMA.
     """, unsafe_allow_html=True)
