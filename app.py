@@ -683,19 +683,22 @@ if opcion_menu == "📊 Analíticas y Dashboard":
             df_atd_filtered = df_atd_filtered[df_atd_filtered["SKU"].apply(lambda x: obtener_calibre(x)) == cal_sel]
             df_rep_filtered = df_rep_filtered[df_rep_filtered["Folio"].isin(df_atd_filtered["Folio"].unique())]
             
+        # Filtrar duplicados de atados para conteos y sumas de volumen físico
+        df_atd_unicos = df_atd_filtered.drop_duplicates(subset=["ID_Atado"])
+        
         # Calcular KPIs
         total_lotes = len(df_rep_filtered)
-        total_atados = len(df_atd_filtered)
+        total_atados = len(df_atd_unicos)
         
         lotes_aceptados = len(df_rep_filtered[df_rep_filtered["Estatus_General"] == "Aceptado"])
         lotes_condicionados = len(df_rep_filtered[df_rep_filtered["Estatus_General"] == "Condicionado"])
         lotes_rechazados = len(df_rep_filtered[df_rep_filtered["Estatus_General"] == "Rechazado"])
         
-        atados_aceptados = len(df_atd_filtered[df_atd_filtered["Estatus_Calidad"] == "Aceptado"])
-        atados_rechazados = len(df_atd_filtered[df_atd_filtered["Estatus_Calidad"] == "Rechazado"])
+        atados_aceptados = len(df_atd_unicos[df_atd_unicos["Estatus_Calidad"] == "Aceptado"])
+        atados_rechazados = len(df_atd_unicos[df_atd_unicos["Estatus_Calidad"] == "Rechazado"])
         
-        peso_total_kg = df_atd_filtered["Peso_Total_Kg"].sum()
-        peso_total_lb = df_atd_filtered["Peso_Total_Lb"].sum()
+        peso_total_kg = df_atd_unicos["Peso_Total_Kg"].sum()
+        peso_total_lb = df_atd_unicos["Peso_Total_Lb"].sum()
         
         # Mostrar Objetivos y Resultados Clave (OKRs)
         st.markdown("<h3 style='color:#D32F2F;'>🎯 OKR 1: Conformidad y Calidad de Materia Prima</h3>", unsafe_allow_html=True)
@@ -721,7 +724,7 @@ if opcion_menu == "📊 Analíticas y Dashboard":
             delta_color="normal"
         )
         
-        peso_aceptado_kg = df_atd_filtered[df_atd_filtered["Estatus_Calidad"] == "Aceptado"]["Peso_Total_Kg"].sum()
+        peso_aceptado_kg = df_atd_unicos[df_atd_unicos["Estatus_Calidad"] == "Aceptado"]["Peso_Total_Kg"].sum()
         tasa_peso = (peso_aceptado_kg / peso_total_kg * 100) if peso_total_kg > 0 else 100.0
         val_diff_peso = tasa_peso - 95.0
         o1_col3.metric(
@@ -771,7 +774,7 @@ if opcion_menu == "📊 Analíticas y Dashboard":
             
         with col_g2:
             st.subheader("🏢 Distribución de Volumen por Proveedor (Kg)")
-            df_prov = df_atd_filtered.merge(df_rep_filtered[["Folio", "Proveedor"]], on="Folio", how="left")
+            df_prov = df_atd_unicos.merge(df_rep_filtered[["Folio", "Proveedor"]], on="Folio", how="left")
             if not df_prov.empty and "Proveedor" in df_prov.columns:
                 df_prov_grouped = df_prov.groupby("Proveedor")["Peso_Total_Kg"].sum().reset_index()
                 fig_bar = px.bar(
@@ -793,7 +796,7 @@ if opcion_menu == "📊 Analíticas y Dashboard":
         
         # Calcular causas de rechazo de forma dinámica
         causas_list = []
-        df_atd_rech = df_atd_filtered[df_atd_filtered["Estatus_Calidad"] == "Rechazado"]
+        df_atd_rech = df_atd_unicos[df_atd_unicos["Estatus_Calidad"] == "Rechazado"]
         df_params = st.session_state.BD_Parametros
         
         for _, row in df_atd_rech.iterrows():
@@ -852,9 +855,9 @@ if opcion_menu == "📊 Analíticas y Dashboard":
                     
         with col_ca1:
             st.subheader("📋 Estado de Calidad en Atados Recibidos")
-            if not df_atd_filtered.empty:
+            if not df_atd_unicos.empty:
                 fig_pie_atd = px.pie(
-                    df_atd_filtered, 
+                    df_atd_unicos, 
                     names="Estatus_Calidad", 
                     color="Estatus_Calidad",
                     color_discrete_map={"Aceptado": "#2E7D32", "Rechazado": "#C62828"},
@@ -888,10 +891,11 @@ if opcion_menu == "📊 Analíticas y Dashboard":
         st.write("---")
         st.subheader("📋 Listado de Recepciones Recientes")
         
-        # Calcular tasa de aceptación de atados por folio
+        # Calcular tasa de aceptación de atados por folio (considerando atados únicos)
         dict_acep = {}
         if not st.session_state.BD_Atados.empty:
-            grouped = st.session_state.BD_Atados.groupby("Folio")
+            df_atd_unicos_all = st.session_state.BD_Atados.drop_duplicates(subset=["ID_Atado"])
+            grouped = df_atd_unicos_all.groupby("Folio")
             for folio, group in grouped:
                 total_a = len(group)
                 aceptados_a = len(group[group["Estatus_Calidad"] == "Aceptado"])
@@ -927,7 +931,7 @@ if opcion_menu == "📊 Analíticas y Dashboard":
         tasa_atados_pdf = (atados_aceptados / total_atados * 100) if total_atados > 0 else 100.0
         tasa_lotes_pdf = (lotes_aceptados / total_lotes * 100) if total_lotes > 0 else 100.0
         
-        peso_aceptado_kg = df_atd_filtered[df_atd_filtered["Estatus_Calidad"] == "Aceptado"]["Peso_Total_Kg"].sum()
+        peso_aceptado_kg = df_atd_unicos[df_atd_unicos["Estatus_Calidad"] == "Aceptado"]["Peso_Total_Kg"].sum()
         tasa_peso_pdf = (peso_aceptado_kg / peso_total_kg * 100) if peso_total_kg > 0 else 100.0
         
         okr_data_pdf = {
