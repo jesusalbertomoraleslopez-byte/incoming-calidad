@@ -542,6 +542,7 @@ opcion_menu = st.sidebar.radio("Seleccione un Módulo:", [
     "🔍 Consulta de Historial",
     "📦 Inventario y Remisiones de Salida",
     "⚙️ Catálogo de Tolerancias de SKU",
+    "📚 Glosario de Documentos",
     "📖 Manual de Operación",
     "📋 Procedimiento de Recepción (PR-ALM-01)",
     "📋 Procedimiento de Despacho (PR-ALM-02)",

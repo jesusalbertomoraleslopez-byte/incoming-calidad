@@ -4,7 +4,7 @@ echo =======================================================================
 echo     INICIANDO SISTEMA DE CONTROL DE CALIDAD EN RECEPCION - SIGRAMA
 echo =======================================================================
 echo.
-cd /d "C:\Users\albertol\.gemini\antigravity\scratch\incoming_calidad"
+cd /d "%~dp0"
 py -m streamlit run app.py --server.port 8505
 if %ERRORLEVEL% neq 0 (
     echo.
