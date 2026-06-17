@@ -2038,10 +2038,11 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                     st.info("No hay material disponible con los filtros seleccionados.")
                 else:
                     # Mostrar tabla
+                    df_inv_display["% Disponible"] = (df_inv_display["Hojas_Disponibles"] / df_inv_display["Cantidad_Hojas"] * 100).fillna(100.0)
                     df_inv_clean = df_inv_display[[
                         "ID_Atado", "Folio", "ID_Atado_Proveedor", "SKU", "Grado_Acero", 
                         "Num_Colada", "Ubicacion_Almacen", "Cantidad_Hojas", 
-                        "Hojas_Despachadas", "Hojas_Disponibles", "Peso_Total_Kg", "Peso_Disponible_Kg"
+                        "Hojas_Despachadas", "Hojas_Disponibles", "% Disponible", "Peso_Total_Kg", "Peso_Disponible_Kg"
                     ]].rename(columns={
                         "Cantidad_Hojas": "Hojas Iniciales",
                         "Hojas_Despachadas": "Hojas Despachadas",
@@ -2050,7 +2051,20 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                         "Peso_Disponible_Kg": "Peso Disponible (Kg)",
                         "Ubicacion_Almacen": "Ubicación"
                     })
-                    st.dataframe(df_inv_clean, use_container_width=True, hide_index=True)
+                    st.dataframe(
+                        df_inv_clean,
+                        column_config={
+                            "% Disponible": st.column_config.ProgressColumn(
+                                "% Disponible",
+                                help="Porcentaje de láminas disponibles en almacén",
+                                format="%.1f%%",
+                                min_value=0.0,
+                                max_value=100.0
+                            )
+                        },
+                        use_container_width=True,
+                        hide_index=True
+                    )
                     
                     # Totales
                     tot_hojas = df_inv_display["Hojas_Disponibles"].sum()
@@ -2595,10 +2609,11 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                     if df_inv_filtered.empty:
                         st.info("No hay material disponible con los filtros seleccionados.")
                     else:
+                        df_inv_filtered["% Disponible"] = (df_inv_filtered["Hojas_Disponibles"] / df_inv_filtered["Cantidad_Hojas"] * 100).fillna(100.0)
                         df_inv_disp_tbl = df_inv_filtered[[
                             "ID_Atado", "Folio", "ID_Atado_Proveedor", "SKU", "Grado_Acero", 
                             "Ubicacion_Almacen", "Cantidad_Hojas", "Hojas_Despachadas", 
-                            "Hojas_Disponibles", "Peso_Total_Kg", "Peso_Disponible_Kg"
+                            "Hojas_Disponibles", "% Disponible", "Peso_Total_Kg", "Peso_Disponible_Kg"
                         ]].rename(columns={
                             "Cantidad_Hojas": "Hojas Iniciales",
                             "Hojas_Despachadas": "Hojas Despachadas",
@@ -2607,7 +2622,20 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                             "Peso_Disponible_Kg": "Peso Disponible (Kg)",
                             "Ubicacion_Almacen": "Ubicación"
                         })
-                        st.dataframe(df_inv_disp_tbl, use_container_width=True, hide_index=True)
+                        st.dataframe(
+                            df_inv_disp_tbl,
+                            column_config={
+                                "% Disponible": st.column_config.ProgressColumn(
+                                    "% Disponible",
+                                    help="Porcentaje de láminas disponibles en almacén",
+                                    format="%.1f%%",
+                                    min_value=0.0,
+                                    max_value=100.0
+                                )
+                            },
+                            use_container_width=True,
+                            hide_index=True
+                        )
                         
                         st.markdown(f"**Totales de Existencias Filtradas:**  \n"
                                     f"* **Hojas Disponibles:** {total_hojas_disponibles:,} hojas  \n"
