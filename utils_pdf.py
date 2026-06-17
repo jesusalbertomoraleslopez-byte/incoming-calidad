@@ -2685,7 +2685,8 @@ def generar_pdf_reporte_despachos(filtros, df_salidas_filtered, output_pdf_path)
 
 def generar_pdf_reporte_auditoria_atados(df_resumen_atados, df_salidas_asociadas, output_pdf_path):
     """
-    Genera un archivo PDF con el reporte de auditoría de los atados seleccionados.
+    Genera un archivo PDF con el reporte de auditoría de los atados seleccionados,
+    incluyendo barras gráficas de progreso para el consumo individual.
     """
     doc = SimpleDocTemplate(output_pdf_path, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=90, bottomMargin=60)
     story = []
@@ -2709,37 +2710,52 @@ def generar_pdf_reporte_auditoria_atados(df_resumen_atados, df_salidas_asociadas
     headers_atados = [
         Paragraph("ID ATADO", style_blanco_bold),
         Paragraph("SKU", style_blanco_bold),
-        Paragraph("RECEPCIÓN", style_blanco_bold),
         Paragraph("LÁMINAS INIC.", style_blanco_bold),
         Paragraph("LÁMINAS DESP.", style_blanco_bold),
         Paragraph("LÁMINAS ACT.", style_blanco_bold),
-        Paragraph("PESO ACT. (KG)", style_blanco_bold),
+        Paragraph("% DISP.", style_blanco_bold),
+        Paragraph("% CONSUMO (GRÁFICO)", style_blanco_bold),
         Paragraph("ESTADO", style_blanco_bold)
     ]
     
     filas_atados = [headers_atados]
     for _, r in df_resumen_atados.iterrows():
+        h_ini = float(r["Hojas Iniciales"])
+        h_des = float(r["Hojas Despachadas"])
         disp = int(r["Hojas Disponibles"])
+        
+        pct_consumo = h_des / h_ini if h_ini > 0 else 0.0
+        pct_disp_str = f"{(disp / h_ini * 100):.1f}%" if h_ini > 0 else "0.0%"
+        
         estatus_str = f"<font color='green'><b>DISPONIBLE</b></font>" if disp > 0 else f"<font color='red'><b>AGOTADO</b></font>"
         
+        # Barra gráfica en ReportLab usando un inline Drawing
+        d_bar = Drawing(70, 10)
+        # Rectángulo de fondo gris
+        d_bar.add(Rect(0, 1, 70, 8, fillColor=colors.HexColor("#E0E0E0"), strokeColor=None))
+        # Rectángulo rojo de progreso
+        if pct_consumo > 0:
+            d_bar.add(Rect(0, 1, 70 * min(pct_consumo, 1.0), 8, fillColor=colors.HexColor("#D32F2F"), strokeColor=None))
+            
         filas_atados.append([
             Paragraph(str(r["ID_Atado"]), style_normal_bold),
             Paragraph(str(r["SKU"]), style_normal_text),
-            Paragraph(str(r["Folio"]), style_normal_text),
-            Paragraph(f"{int(r['Hojas Iniciales']):,}", style_normal_text_center),
-            Paragraph(f"{int(r['Hojas Despachadas']):,}", style_normal_text_center),
+            Paragraph(f"{int(h_ini):,}", style_normal_text_center),
+            Paragraph(f"{int(h_des):,}", style_normal_text_center),
             Paragraph(f"{disp:,}", style_normal_text_center),
-            Paragraph(f"{float(r['Peso Disponible (Kg)']):,.2f}", style_normal_text_center),
+            Paragraph(pct_disp_str, style_normal_text_center),
+            d_bar,  # Insertar el Flowable Drawing directamente en la tabla
             Paragraph(estatus_str, style_normal_text_center)
         ])
         
-    t_atados = Table(filas_atados, colWidths=[90, 80, 80, 60, 60, 60, 60, 60])
+    t_atados = Table(filas_atados, colWidths=[90, 80, 55, 55, 55, 50, 90, 65])
     t_atados_style = [
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
         ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-        ('TOPPADDING', (0,0), (-1,-1), 4)
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('ALIGN', (6,1), (6,-1), 'CENTER') # Centrar el dibujo en la columna
     ]
     for idx in range(1, len(filas_atados)):
         if idx % 2 == 0:
@@ -2809,6 +2825,144 @@ def generar_pdf_reporte_auditoria_atados(df_resumen_atados, df_salidas_asociadas
     
     def decorate(canvas, doc):
         draw_sigrama_sgc_decorations(canvas, doc, "FO-MET-39", "REPORTE DE AUDITORÍA Y CONTROL DE ATADOS")
+        
+    doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
+
+
+def generar_pdf_reporte_ejecutivo_inventario(filtros, df_inv_filtered, output_pdf_path):
+    """
+    Genera un archivo PDF con el reporte ejecutivo de existencias de inventario disponible (conforme) FO-MET-40.
+    """
+    doc = SimpleDocTemplate(output_pdf_path, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=90, bottomMargin=60)
+    story = []
+    styles = getSampleStyleSheet()
+    
+    style_blanco_bold = ParagraphStyle('WB_Exec', parent=styles['Normal'], textColor=colors.white, fontName="Helvetica-Bold", alignment=1, fontSize=8)
+    style_normal_bold = ParagraphStyle('NB_Exec', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8)
+    style_normal_text = ParagraphStyle('NT_Exec', parent=styles['Normal'], fontSize=7.5)
+    style_normal_text_center = ParagraphStyle('NTC_Exec', parent=styles['Normal'], fontSize=7.5, alignment=1)
+    style_title = ParagraphStyle('T_Exec', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=12, textColor=colors.HexColor("#D32F2F"), spaceAfter=5)
+    
+    story.append(Spacer(1, 5))
+    story.append(Paragraph("REPORTE EJECUTIVO DE INVENTARIO DISPONIBLE", style_title))
+    story.append(Paragraph("Este informe presenta un resumen consolidado de las existencias físicas de materia prima aprobada y liberada por el departamento de Calidad que se encuentra en el Almacén de Metales.", style_normal_text))
+    story.append(Spacer(1, 10))
+    
+    # --- PANEL: FILTROS ACTIVOS ---
+    t_filtros_header = Table([[Paragraph("FILTROS DE INVENTARIO APLICADOS", style_blanco_bold)]], colWidths=[540])
+    t_filtros_header.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#757575")), ('ALIGN', (0,0), (-1,-1), 'CENTER')]))
+    story.append(t_filtros_header)
+    
+    datos_filtros = [
+        [
+            Paragraph("SKU(S) FILTRADO(S):", style_normal_bold), 
+            Paragraph(str(filtros.get('skus', 'Todos')), style_normal_text),
+            Paragraph("FECHA DEL REPORTE:", style_normal_bold), 
+            Paragraph(datetime.date.today().strftime("%d/%m/%Y"), style_normal_text)
+        ]
+    ]
+    t_filtros = Table(datos_filtros, colWidths=[130, 140, 130, 140])
+    t_filtros.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('BACKGROUND', (0,0), (0,-1), colors.HexColor("#F5F5F5")),
+        ('BACKGROUND', (2,0), (2,-1), colors.HexColor("#F5F5F5"))
+    ]))
+    story.append(t_filtros)
+    story.append(Spacer(1, 10))
+    
+    # --- KPIs DE INVENTARIO ---
+    total_hojas = df_inv_filtered["Hojas_Disponibles"].sum() if not df_inv_filtered.empty else 0
+    total_peso = df_inv_filtered["Peso_Disponible_Kg"].sum() if not df_inv_filtered.empty else 0.0
+    total_atados = df_inv_filtered["ID_Atado"].nunique() if not df_inv_filtered.empty else 0
+    
+    datos_kpis = [
+        [
+            Paragraph("TOTAL HOJAS DISPONIBLES", style_normal_bold),
+            Paragraph("PESO NETO DISPONIBLE", style_normal_bold),
+            Paragraph("ROLLOS/ATADOS ACTIVOS", style_normal_bold)
+        ],
+        [
+            Paragraph(f"<b>{total_hojas:,} hojas</b>", style_normal_text_center),
+            Paragraph(f"<b>{total_peso:,.2f} Kg</b>", style_normal_text_center),
+            Paragraph(f"<b>{total_atados} atados</b>", style_normal_text_center)
+        ]
+    ]
+    t_kpis = Table(datos_kpis, colWidths=[180, 180, 180])
+    t_kpis.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#EEEEEE"))
+    ]))
+    story.append(t_kpis)
+    story.append(Spacer(1, 15))
+    
+    # --- DETALLE DE STOCK ---
+    story.append(Paragraph("<b>EXISTENCIAS DETALLADAS EN ALMACÉN DE METALES</b>", style_normal_bold))
+    story.append(Spacer(1, 5))
+    
+    headers_tabla = [
+        Paragraph("ID ATADO", style_blanco_bold),
+        Paragraph("SKU", style_blanco_bold),
+        Paragraph("RECEPCIÓN", style_blanco_bold),
+        Paragraph("UBICACIÓN", style_blanco_bold),
+        Paragraph("INICIAL (HOJAS)", style_blanco_bold),
+        Paragraph("DISP. (HOJAS)", style_blanco_bold),
+        Paragraph("PESO DISP. (KG)", style_blanco_bold)
+    ]
+    
+    filas_tabla = [headers_tabla]
+    
+    if df_inv_filtered.empty:
+        filas_tabla.append([Paragraph("No se encontraron existencias físicas en el inventario disponible.", style_normal_text)] + [Paragraph("", style_normal_text)] * 6)
+    else:
+        df_sort = df_inv_filtered.sort_values("ID_Atado")
+        for _, r in df_sort.iterrows():
+            filas_tabla.append([
+                Paragraph(str(r["ID_Atado"]), style_normal_bold),
+                Paragraph(str(r["SKU"]), style_normal_text),
+                Paragraph(str(r["Folio"]), style_normal_text),
+                Paragraph(str(r["Ubicacion_Almacen"]), style_normal_text),
+                Paragraph(f"{int(r['Cantidad_Hojas']):,}", style_normal_text_center),
+                Paragraph(f"{int(r['Hojas_Disponibles']):,}", style_normal_text_center),
+                Paragraph(f"{float(r['Peso_Disponible_Kg']):,.2f}", style_normal_text_center)
+            ])
+            
+    t_detalle = Table(filas_tabla, colWidths=[90, 80, 70, 85, 75, 70, 70])
+    t_style = [
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#E0E0E0")),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+        ('TOPPADDING', (0,0), (-1,-1), 4)
+    ]
+    
+    if not df_inv_filtered.empty:
+        for idx in range(1, len(filas_tabla)):
+            if idx % 2 == 0:
+                t_style.append(('BACKGROUND', (0, idx), (-1, idx), colors.HexColor("#F9F9F9")))
+                
+    t_detalle.setStyle(TableStyle(t_style))
+    story.append(t_detalle)
+    story.append(Spacer(1, 25))
+    
+    # Firmas
+    datos_firmas = [
+        [
+            Paragraph("_____________________________<br/>INSPECTOR DE CALIDAD / AUDITOR", style_normal_bold),
+            Paragraph("_____________________________<br/>JEFE DE ALMACÉN DE METALES", style_normal_bold)
+        ]
+    ]
+    t_firmas = Table(datos_firmas, colWidths=[270, 270])
+    t_firmas.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'TOP')
+    ]))
+    story.append(t_firmas)
+    
+    def decorate(canvas, doc):
+        draw_sigrama_sgc_decorations(canvas, doc, "FO-MET-40", "REPORTE EJECUTIVO DE INVENTARIO DISPONIBLE")
         
     doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
 

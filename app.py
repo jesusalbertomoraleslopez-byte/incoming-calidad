@@ -2572,6 +2572,53 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                         st.markdown(f"**Totales de Existencias Filtradas:**  \n"
                                     f"* **Hojas Disponibles:** {total_hojas_disponibles:,} hojas  \n"
                                     f"* **Peso Disponible:** {total_peso_disponible:,.2f} Kg")
+                        
+                        st.write("---")
+                        st.write("#### 📥 Exportar Reporte Ejecutivo de Inventario")
+                        st.markdown("Descargue el listado de existencias mostrado arriba en formato Excel o PDF ejecutivo membretado oficial del SGC.")
+                        
+                        col_inv_dwn1, col_inv_dwn2 = st.columns(2)
+                        
+                        with col_inv_dwn1:
+                            buffer_exc_inv = io.BytesIO()
+                            with pd.ExcelWriter(buffer_exc_inv, engine='openpyxl') as writer:
+                                df_inv_disp_tbl.to_excel(writer, index=False, sheet_name="Inventario_Activo")
+                            excel_data_inv = buffer_exc_inv.getvalue()
+                            
+                            st.download_button(
+                                label="📥 Descargar Inventario en Excel (.xlsx)",
+                                data=excel_data_inv,
+                                file_name=f"Inventario_Activo_{datetime.date.today().strftime('%Y%m%d')}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                use_container_width=True,
+                                key="btn_download_excel_inventario_activo"
+                            )
+                            
+                        with col_inv_dwn2:
+                            try:
+                                temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
+                                os.makedirs(temp_pdf_dir, exist_ok=True)
+                                pdf_path_inventario = os.path.join(temp_pdf_dir, f"Reporte_Ejecutivo_Inventario_{datetime.date.today().strftime('%Y%m%d')}.pdf")
+                                
+                                filtros_pdf_inv = {
+                                    "skus": ", ".join(skus_seleccionados) if skus_seleccionados else "Todos"
+                                }
+                                
+                                utils_pdf.generar_pdf_reporte_ejecutivo_inventario(filtros_pdf_inv, df_inv_filtered, pdf_path_inventario)
+                                
+                                if os.path.exists(pdf_path_inventario):
+                                    with open(pdf_path_inventario, "rb") as f_pdf_inv:
+                                        pdf_bytes_inv = f_pdf_inv.read()
+                                    st.download_button(
+                                        label="📥 Descargar Reporte en PDF (FO-MET-40)",
+                                        data=pdf_bytes_inv,
+                                        file_name=f"Reporte_Ejecutivo_Inventario_{datetime.date.today().strftime('%Y%m%d')}.pdf",
+                                        mime="application/pdf",
+                                        use_container_width=True,
+                                        key="btn_download_pdf_inventario_activo"
+                                    )
+                            except Exception as ex_pi:
+                                st.error(f"Error al generar el PDF del reporte ejecutivo: {ex_pi}")
                 
                 with pest_dash3:
                     st.write("#### 📜 Historial de Remisiones y Despachos Registrados")
@@ -2697,6 +2744,34 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                                 
                                 st.dataframe(df_salidas_asoc_tbl, use_container_width=True, hide_index=True)
                                 
+                            # 3. Tabla de disponibilidad porcentual
+                            df_prog_tbl = df_audit_resumen.copy()
+                            df_prog_tbl["% Disponible"] = (df_prog_tbl["Hojas_Disponibles"] / df_prog_tbl["Cantidad_Hojas"] * 100).fillna(100.0)
+                            
+                            df_prog_tbl_display = df_prog_tbl[[
+                                "ID_Atado", "Cantidad_Hojas", "Hojas_Despachadas", "% Disponible"
+                            ]].rename(columns={
+                                "ID_Atado": "Nombre de Rollo / Atado",
+                                "Cantidad_Hojas": "Cantidad Piezas Original",
+                                "Hojas_Despachadas": "Cantidad Piezas Consumidas"
+                            })
+                            
+                            st.write("##### 📈 Porcentaje Disponible por Rollo / Atado")
+                            st.dataframe(
+                                df_prog_tbl_display,
+                                column_config={
+                                    "% Disponible": st.column_config.ProgressColumn(
+                                        "% Disponible",
+                                        help="Porcentaje de láminas disponibles en almacén",
+                                        format="%.1f%%",
+                                        min_value=0.0,
+                                        max_value=100.0
+                                    )
+                                },
+                                use_container_width=True,
+                                hide_index=True
+                            )
+                            
                             st.write("---")
                             st.write("#### 📥 Exportar Reporte de Auditoría (Atados Seleccionados)")
                             st.markdown("Descargue el informe detallado de auditoría para estos atados en formato Excel o PDF oficial.")
