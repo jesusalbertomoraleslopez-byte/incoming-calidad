@@ -3020,7 +3020,6 @@ def generar_pdf_reporte_ejecutivo_inventario(filtros, df_inv_filtered, output_pd
     
     # 3. Generar gráfico de Pareto (Matplotlib)
     try:
-        import os
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
