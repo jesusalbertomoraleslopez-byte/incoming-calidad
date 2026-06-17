@@ -2547,6 +2547,46 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                         st.plotly_chart(fig3, use_container_width=True)
                     else:
                         st.info("No hay registros de salidas en el rango de fechas seleccionado para graficar la tendencia.")
+                        
+                    # Gráfico 4: Análisis de Consumo por Atado (Pareto Stacked Bar)
+                    df_inv_chart = df_inv.copy()
+                    if skus_seleccionados:
+                        df_inv_chart = df_inv_chart[df_inv_chart["SKU"].isin(skus_seleccionados)]
+                    
+                    if not df_inv_chart.empty:
+                        # Ordenar por cantidad original de mayor a menor (Pareto)
+                        df_inv_chart = df_inv_chart.sort_values("Cantidad_Hojas", ascending=False)
+                        
+                        df_inv_melt = df_inv_chart.melt(
+                            id_vars="ID_Atado",
+                            value_vars=["Hojas_Disponibles", "Hojas_Despachadas"],
+                            var_name="Estado",
+                            value_name="Láminas"
+                        )
+                        df_inv_melt["Estado"] = df_inv_melt["Estado"].replace({
+                            "Hojas_Disponibles": "Disponible",
+                            "Hojas_Despachadas": "Remesada"
+                        })
+                        
+                        fig4 = px.bar(
+                            df_inv_melt,
+                            x="ID_Atado",
+                            y="Láminas",
+                            color="Estado",
+                            title="Análisis de Consumo y Disponibilidad por Atado (Orden Pareto)",
+                            color_discrete_map={"Disponible": "#2a5298", "Remesada": "#e53935"},
+                            template="plotly_white",
+                            category_orders={"ID_Atado": df_inv_chart["ID_Atado"].tolist()}
+                        )
+                        fig4.update_layout(
+                            font=dict(family="Inter, sans-serif"),
+                            margin=dict(l=40, r=40, t=50, b=40),
+                            xaxis=dict(title="Atado / Rollo", tickangle=-45),
+                            yaxis=dict(title="Cantidad de Hojas"),
+                            barmode="stack",
+                            legend=dict(title=None, orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                        )
+                        st.plotly_chart(fig4, use_container_width=True)
                 
                 with pest_dash2:
                     st.write("#### 📦 Inventario Físico Activo (En Existencia)")
