@@ -1279,9 +1279,11 @@ elif opcion_menu == "📥 Registro de Recepción (Incoming)":
                             st.stop()
                         sku_info = sku_match_principal.iloc[0].to_dict()
                         
+                        unique_no_atados = list(df_med["No_Atado"].unique())
                         for idx_atd, row_med in df_med.iterrows():
-                            id_atd_int = f"{nuevo_folio}-A{idx_atd+1:02d}"
                             id_atd_prov = str(row_med["No_Atado"])
+                            bundle_idx = unique_no_atados.index(id_atd_prov)
+                            id_atd_int = f"{nuevo_folio}-A{bundle_idx+1:02d}"
                             
                             # Reconstruir SKU específico para este atado
                             row_calibre = row_med["Calibre"]

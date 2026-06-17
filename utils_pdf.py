@@ -193,18 +193,23 @@ def consolidar_df_atados_para_pdf(df_atados):
         # 5. ID Interno consolidado (rango del primero al último, por ej: INC-2026-0001-A01 a A04)
         if "ID_Atado" in group.columns:
             internal_ids = group["ID_Atado"].astype(str).tolist()
-            if len(internal_ids) > 1:
+            unique_ids = list(set(internal_ids))
+            if len(unique_ids) == 1:
+                final_internal_id = unique_ids[0]
+            elif len(internal_ids) > 1:
                 first_id = internal_ids[0]
                 last_id = internal_ids[-1]
-                # Intentar formatear como "Folio-A01 a A04"
-                parts = first_id.split("-")
-                if len(parts) > 1:
-                    first_suffix = parts[-1]
-                    last_suffix = last_id.split("-")[-1]
-                    base_id = "-".join(parts[:-1])
-                    final_internal_id = f"{base_id}-{first_suffix} a {last_suffix}"
+                if first_id == last_id:
+                    final_internal_id = first_id
                 else:
-                    final_internal_id = f"{first_id} a {last_id.split('-')[-1]}"
+                    parts = first_id.split("-")
+                    if len(parts) > 1:
+                        first_suffix = parts[-1]
+                        last_suffix = last_id.split("-")[-1]
+                        base_id = "-".join(parts[:-1])
+                        final_internal_id = f"{base_id}-{first_suffix} a {last_suffix}"
+                    else:
+                        final_internal_id = f"{first_id} a {last_id.split('-')[-1]}"
             else:
                 final_internal_id = internal_ids[0]
         else:
