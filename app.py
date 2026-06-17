@@ -2588,6 +2588,11 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                 ])
                 
                 with pest_dash1:
+                    # Consumo porcentual de los SKUs seleccionados
+                    df_inv_all_filtered = df_inv.copy()
+                    if skus_seleccionados:
+                        df_inv_all_filtered = df_inv_all_filtered[df_inv_all_filtered["SKU"].isin(skus_seleccionados)]
+                    
                     # KPIs
                     total_hojas_disponibles = df_inv_filtered["Hojas_Disponibles"].sum() if not df_inv_filtered.empty else 0
                     total_peso_disponible = df_inv_filtered["Peso_Disponible_Kg"].sum() if not df_inv_filtered.empty else 0.0
