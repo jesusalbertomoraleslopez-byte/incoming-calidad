@@ -3466,18 +3466,18 @@ elif opcion_menu == "📚 Glosario de Documentos":
     st.markdown("A continuación se presenta el glosario oficial de todos los documentos y formatos generados por la aplicación y el Sistema de Gestión de Calidad (SGC) de Planta Metales. Puede descargar una muestra en formato PDF/Excel haciendo clic en el enlace correspondiente.")
     
     glosario = [
-        {"id": "PR-ALM-01", "descripcion": "Procedimiento de Recepción de Materia Prima"},
-        {"id": "PR-ALM-02", "descripcion": "Procedimiento de Despacho de Materia Prima"},
-        {"id": "FO-MET-31", "descripcion": "Reporte Consolidado de Inspección Dimensional de Materia Prima (Dossier)"},
-        {"id": "FO-MET-32", "descripcion": "Tarjeta de Identificación de Atado (Etiqueta Física)"},
-        {"id": "FO-MET-33", "descripcion": "Portada y Resumen de Contenido del Dossier de Calidad"},
-        {"id": "FO-MET-36", "descripcion": "Remisión de Salida de Lámina (Salida Normal/Rechazo)"},
-        {"id": "FO-MET-37", "descripcion": "Hoja de Control de Consumo de Láminas por Atado (Control Físico)"},
-        {"id": "FO-MET-40", "descripcion": "Reporte Ejecutivo de Inventario Disponible (Existencias de Acero)"},
-        {"id": "FO-MET-41", "descripcion": "Reporte de Rechazo por Defecto en Proceso (Registro de Scrap)"},
-        {"id": "PR-SGC-02", "descripcion": "Procedimiento General para el Control de Registros del SGC"},
-        {"id": "PR-SGC-04", "descripcion": "Procedimiento General para Control de Producto o Servicio No Conforme"},
-        {"id": "BD_Salidas_Incoming.xlsx", "descripcion": "Bitácora Digital de Despachos y Registro Histórico de Salidas"}
+        {"id": "PR-ALM-01", "descripcion": "Procedimiento de Recepción de Materia Prima", "asociado": "Control de Calidad / Manual de Operación"},
+        {"id": "PR-ALM-02", "descripcion": "Procedimiento de Despacho de Materia Prima", "asociado": "Control de Almacén / Manual de Operación"},
+        {"id": "FO-MET-31", "descripcion": "Reporte Consolidado de Inspección Dimensional de Materia Prima (Dossier)", "asociado": "PR-ALM-01 (Sección 5.2)"},
+        {"id": "FO-MET-32", "descripcion": "Tarjeta de Identificación de Atado (Etiqueta Física)", "asociado": "PR-ALM-01 (Sección 5.3) y PR-SGC-04"},
+        {"id": "FO-MET-33", "descripcion": "Portada y Resumen de Contenido del Dossier de Calidad", "asociado": "PR-ALM-01 (Sección 5.4)"},
+        {"id": "FO-MET-36", "descripcion": "Remisión de Salida de Lámina (Salida Normal/Rechazo)", "asociado": "PR-ALM-02 (Sección 5.1)"},
+        {"id": "FO-MET-37", "descripcion": "Hoja de Control de Consumo de Láminas por Atado (Control Físico)", "asociado": "PR-ALM-02 (Sección 5.3) / Operación Láser"},
+        {"id": "FO-MET-40", "descripcion": "Reporte Ejecutivo de Inventario Disponible (Existencias de Acero)", "asociado": "PR-ALM-01 / PR-ALM-02 / Control Mensual"},
+        {"id": "FO-MET-41", "descripcion": "Reporte de Rechazo por Defecto en Proceso (Registro de Scrap)", "asociado": "PR-ALM-02 (Sección 5.2) y PR-SGC-04"},
+        {"id": "PR-SGC-02", "descripcion": "Procedimiento General para el Control de Registros del SGC", "asociado": "SGC General (Control de Calidad)"},
+        {"id": "PR-SGC-04", "descripcion": "Procedimiento General para Control de Producto o Servicio No Conforme", "asociado": "PR-ALM-01 / PR-ALM-02 / Desviaciones"},
+        {"id": "BD_Salidas_Incoming.xlsx", "descripcion": "Bitácora Digital de Despachos y Registro Histórico de Salidas", "asociado": "PR-ALM-02 (Registro Digital)"}
     ]
     
     # Renderizar tabla HTML premium con CSS adaptado a Sigrama
@@ -3524,6 +3524,7 @@ elif opcion_menu == "📚 Glosario de Documentos":
     <tr>
       <th>Código de Documento</th>
       <th>Descripción / Nombre Oficial</th>
+      <th>Asociado a / Referenciado en</th>
       <th>Descarga de Muestra</th>
     </tr>
   </thead>
@@ -3534,6 +3535,7 @@ elif opcion_menu == "📚 Glosario de Documentos":
         html_table += f"""<tr>
   <td><strong>{doc["id"]}</strong></td>
   <td>{doc["descripcion"]}</td>
+  <td><em>{doc["asociado"]}</em></td>
   <td>{link}</td>
 </tr>"""
         
