@@ -123,6 +123,47 @@ def auto_commit_and_push_to_github(nuevo_folio):
         print(f"❌ Excepción durante la sincronización con GitHub: {e}")
         return False
 
+def auto_push_deletions_to_github(mensaje_commit):
+    """
+    Agrega todas las eliminaciones y modificaciones locales a Git,
+    realiza un commit con el mensaje especificado y hace push a GitHub.
+    """
+    import subprocess
+    import os
+
+    github_token = st.secrets.get("GITHUB_TOKEN")
+    if not github_token:
+        print("⚠️ GITHUB_TOKEN no está configurado. Se omite el push a GitHub.")
+        return False
+
+    github_user = "jesusalbertomoraleslopez-byte"
+    github_repo = "incoming-calidad"
+    remote_url = f"https://{github_token}@github.com/{github_user}/{github_repo}.git"
+
+    try:
+        subprocess.run(["git", "config", "user.name", "Sigrama Quality Bot"], capture_output=True)
+        subprocess.run(["git", "config", "user.email", "quality-bot@sigrama.com.mx"], capture_output=True)
+        
+        # Pull rebase preventivo
+        subprocess.run(["git", "pull", remote_url, "main", "--rebase"], capture_output=True)
+
+        # Stage ALL changes (including deletions)
+        subprocess.run(["git", "add", "-A"], capture_output=True)
+
+        # Commit
+        commit_res = subprocess.run(["git", "commit", "-m", mensaje_commit], capture_output=True, text=True)
+        
+        if "nothing to commit" in commit_res.stdout or "nada para hacer commit" in commit_res.stdout or "no changes added" in commit_res.stdout:
+            print("No hay cambios de eliminación que commitear.")
+            return True
+
+        # Push
+        push_res = subprocess.run(["git", "push", remote_url, "main"], capture_output=True, text=True)
+        return push_res.returncode == 0
+    except Exception as e:
+        print(f"Excepción al hacer push de eliminación: {e}")
+        return False
+
 
 # Inicialización de catálogos en session_state
 if "BD_Parametros" not in st.session_state:
@@ -413,7 +454,8 @@ opcion_menu = st.sidebar.radio("Seleccione un Módulo:", [
     "⚙️ Catálogo de Tolerancias de SKU",
     "📖 Manual de Operación",
     "📋 Procedimiento de Recepción (PR-ALM-01)",
-    "💡 Manufactura Inteligente y Tecnología"
+    "💡 Manufactura Inteligente y Tecnología",
+    "🗑️ Limpieza y Explorador Git (Admin)"
 ])
 
 
@@ -2537,4 +2579,173 @@ elif opcion_menu == "💡 Manufactura Inteligente y Tecnología":
         ##### ☁️ Control de Versiones e Integración Nube
         * **GitHub API Integration:** Integración fluida mediante Token de GitHub para la subida automatizada y almacenamiento inmutable del Dosier de Calidad en el repositorio remoto, respaldando los expedientes en tiempo real.
         """)
+
+# =============================================================================
+# MÓDULO 9: LIMPIEZA Y EXPLORADOR GIT (ADMIN)
+# =============================================================================
+elif opcion_menu == "🗑️ Limpieza y Explorador Git (Admin)":
+    st.title("🗑️ Explorador y Limpieza de Almacenamiento en GitHub")
+    st.markdown("Gestione y elimine las carpetas físicas de registros y expedientes en el servidor local y en GitHub para mantener limpio el almacenamiento.")
+    
+    if not is_admin:
+        st.error("🔒 Acceso Restringido. Este módulo requiere privilegios de **Administrador**. Por favor, ingrese la contraseña de Administrador en la barra lateral izquierda para desbloquear.")
+    else:
+        st.success("🔓 Acceso de Administrador Autorizado. Utilice este explorador con precaución; las eliminaciones se sincronizarán directamente en GitHub.")
+        
+        st.write("---")
+        
+        # Explorar carpetas_electronicas/
+        target_dir = CARPETAS_DIR
+        if not os.path.exists(target_dir):
+            os.makedirs(target_dir, exist_ok=True)
+            
+        # Listar carpetas de primer nivel (Folios, remisiones, etc.)
+        subfolders = [f for f in os.listdir(target_dir) if os.path.isdir(os.path.join(target_dir, f))]
+        
+        col_exp1, col_exp2 = st.columns([1, 2])
+        
+        with col_exp1:
+            st.subheader("📁 Carpetas en Disco")
+            if not subfolders:
+                st.info("No hay carpetas de expedientes en el directorio de almacenamiento.")
+                selected_folder = None
+            else:
+                selected_folder = st.selectbox("Seleccione una Carpeta para explorar:", sorted(subfolders))
+                
+                if selected_folder:
+                    folder_path = os.path.join(target_dir, selected_folder)
+                    
+                    st.write("---")
+                    st.warning("⚠️ **Zona de Peligro**")
+                    confirm_del_folder = st.checkbox(f"Confirmar eliminación de la carpeta completa: '{selected_folder}'", key="conf_del_fld_exp")
+                    
+                    if st.button("🗑️ Eliminar Carpeta Completa", type="primary", disabled=not confirm_del_folder, key="btn_del_fld_exp"):
+                        with st.spinner("Eliminando carpeta y sincronizando con GitHub..."):
+                            try:
+                                # Eliminar localmente
+                                shutil.rmtree(folder_path)
+                                
+                                # Sincronizar en la nube
+                                auto_push_deletions_to_github(f"Eliminación administrativa de carpeta: {selected_folder}")
+                                
+                                st.success(f"✅ Carpeta '{selected_folder}' eliminada y sincronizada correctamente en GitHub.")
+                                st.rerun()
+                            except Exception as ex:
+                                st.error(f"Error al eliminar la carpeta: {ex}")
+                                
+        with col_exp2:
+            st.subheader("📄 Contenido de la Carpeta")
+            if not selected_folder:
+                st.write("Seleccione una carpeta a la izquierda para ver su contenido.")
+            else:
+                folder_path = os.path.join(target_dir, selected_folder)
+                files_in_folder = os.listdir(folder_path)
+                
+                if not files_in_folder:
+                    st.info("La carpeta está vacía.")
+                else:
+                    # Mostrar listado de archivos con detalles
+                    file_details = []
+                    for f in files_in_folder:
+                        f_path = os.path.join(folder_path, f)
+                        if os.path.isfile(f_path):
+                            size_kb = os.path.getsize(f_path) / 1024.0
+                            mtime = datetime.datetime.fromtimestamp(os.path.getmtime(f_path)).strftime('%Y-%m-%d %H:%M:%S')
+                            file_details.append({"Archivo": f, "Tamaño (KB)": f"{size_kb:.2f}", "Modificado": mtime})
+                            
+                    if file_details:
+                        df_files = pd.DataFrame(file_details)
+                        st.dataframe(df_files, use_container_width=True, hide_index=True)
+                        
+                        # Opción para eliminar un archivo individual
+                        st.write("---")
+                        selected_file = st.selectbox("Seleccione un archivo individual para eliminar:", files_in_folder)
+                        
+                        if selected_file:
+                            file_to_del_path = os.path.join(folder_path, selected_file)
+                            confirm_del_file = st.checkbox(f"Confirmar eliminación del archivo: '{selected_file}'", key="conf_del_fil_exp")
+                            
+                            if st.button("🗑️ Eliminar Archivo", type="primary", disabled=not confirm_del_file, key="btn_del_fil_exp"):
+                                with st.spinner("Eliminando archivo y sincronizando con GitHub..."):
+                                    try:
+                                        os.remove(file_to_del_path)
+                                        # Sincronizar en la nube
+                                        auto_push_deletions_to_github(f"Eliminación administrativa de archivo: {selected_folder}/{selected_file}")
+                                        
+                                        st.success(f"✅ Archivo '{selected_file}' eliminado y sincronizada correctamente en GitHub.")
+                                        st.rerun()
+                                    except Exception as ex:
+                                        st.error(f"Error al eliminar el archivo: {ex}")
+                    else:
+                        st.info("No hay archivos individuales en esta carpeta (solo subdirectorios).")
+                        
+        # Limpieza de base de datos
+        st.write("---")
+        st.subheader("🧹 Limpieza y Depuración de Datos (Excel)")
+        st.markdown("Busque y resuelva inconsistencias entre el almacenamiento en disco y los registros de la base de datos Excel.")
+        
+        col_clean1, col_clean2 = st.columns(2)
+        
+        with col_clean1:
+            st.write("**Carpetas sin Registro de Recepción (Huérfanas)**")
+            # Buscar carpetas en carpetas_electronicas que no corresponden a un folio en BD_Reportes
+            folios_db = set(st.session_state.BD_Reportes["Folio"].dropna().tolist())
+            
+            # Solo consideramos folios con patrón de nombre INC-
+            huerfanas = []
+            for f in subfolders:
+                if f.startswith("INC-") and f not in folios_db:
+                    huerfanas.append(f)
+                    
+            if not huerfanas:
+                st.success("✅ No se encontraron carpetas huérfanas en el almacenamiento.")
+            else:
+                st.warning(f"⚠️ Se encontraron {len(huerfanas)} carpeta(s) huérfana(s) en disco sin registro en la base de datos:")
+                st.write(huerfanas)
+                
+                confirm_clean_huerfanas = st.checkbox("Confirmar limpieza de todas las carpetas huérfanas encontradas.", key="conf_clean_huerfanas")
+                if st.button("🧹 Eliminar Carpetas Huérfanas", type="primary", disabled=not confirm_clean_huerfanas, key="btn_clean_huerfanas"):
+                    with st.spinner("Eliminando carpetas huérfanas..."):
+                        deleted_folders = []
+                        for h_folder in huerfanas:
+                            h_path = os.path.join(target_dir, h_folder)
+                            if os.path.exists(h_path):
+                                shutil.rmtree(h_path)
+                                deleted_folders.append(h_folder)
+                        if deleted_folders:
+                            auto_push_deletions_to_github(f"Depuración de carpetas huérfanas: {', '.join(deleted_folders)}")
+                            st.success("Depuración completada y sincronizada en GitHub.")
+                            st.rerun()
+                            
+        with col_clean2:
+            st.write("**Registros sin Carpeta Física**")
+            # Buscar registros en la base de datos que no tengan carpeta en disco
+            registros_sin_carpeta = []
+            for _, row in st.session_state.BD_Reportes.iterrows():
+                folio_val = row["Folio"]
+                if pd.notna(folio_val):
+                    f_path = os.path.join(target_dir, folio_val)
+                    if not os.path.exists(f_path):
+                        registros_sin_carpeta.append(folio_val)
+                        
+            if not registros_sin_carpeta:
+                st.success("✅ Todos los registros de la base de datos cuentan con su carpeta física.")
+            else:
+                st.warning(f"⚠️ Se encontraron {len(registros_sin_carpeta)} registro(s) en Excel cuya carpeta física fue eliminada:")
+                st.write(registros_sin_carpeta)
+                
+                # Podemos ofrecer eliminarlos de Excel
+                confirm_clean_db = st.checkbox("Confirmar depuración de los registros de Excel sin carpeta física (se borrarán de BD_Reportes y BD_Atados).", key="conf_clean_db")
+                if st.button("🧹 Limpiar Registros de Excel", type="primary", disabled=not confirm_clean_db, key="btn_clean_db"):
+                    with st.spinner("Depurando registros de Excel..."):
+                        st.session_state.BD_Reportes = st.session_state.BD_Reportes[~st.session_state.BD_Reportes["Folio"].isin(registros_sin_carpeta)]
+                        st.session_state.BD_Atados = st.session_state.BD_Atados[~st.session_state.BD_Atados["Folio"].isin(registros_sin_carpeta)]
+                        
+                        guardar_db(st.session_state.BD_Reportes, BD_REPORTES, "Recepciones")
+                        guardar_db(st.session_state.BD_Atados, BD_ATADOS, "Atados_Detalle")
+                        
+                        auto_push_deletions_to_github(f"Depuración de registros Excel sin carpeta: {', '.join(registros_sin_carpeta)}")
+                        st.success("Depuración de Excel completada y sincronizada en GitHub.")
+                        st.rerun()
+
 
