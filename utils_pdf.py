@@ -2187,8 +2187,12 @@ def generar_pdf_procedimiento_pralm01(output_pdf_path):
     story.append(Paragraph("8. CONTROL DE REVISIONES", style_sec_proc))
     story.append(Paragraph("• <b>Rev. 00:</b> Emisión inicial y adaptación completa para reestructuración del Sistema de Gestión de Calidad (SGC) digital SIGRAMA.", style_bullet_proc))
     
+    def decorate(canvas, doc):
+        draw_sigrama_sgc_decorations(canvas, doc, "PR-ALM-01", "PROCEDIMIENTO DE RECEPCIÓN DE MATERIA PRIMA")
+        
     doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
     print("PDF del Procedimiento PR-ALM-01 creado.")
+
 
 def generar_pdf_procedimiento_pralm02(output_pdf_path):
     """
@@ -2231,8 +2235,8 @@ def generar_pdf_procedimiento_pralm02(output_pdf_path):
     story.append(Paragraph(
         "Establecer de manera clara y estricta los lineamientos operativos y de calidad para el control físico de existencias, "
         "la solicitud, verificación y despacho de láminas de acero desde el Almacén de Metales hacia la célula de Corte (cizalla, láser, etc.) "
-        "mediante la aplicación digital, garantizando la trazabilidad total del material por número de colada y el mantenimiento "
-        "del inventario en tiempo real.",
+        "mediante la aplicación digital, así como el registro y disposición de rechazos de material por defectos detectados en producción, "
+        "garantizando la trazabilidad total del material por número de colada y el mantenimiento del inventario en tiempo real.",
         style_body_proc
     ))
     
@@ -2240,7 +2244,8 @@ def generar_pdf_procedimiento_pralm02(output_pdf_path):
     story.append(Paragraph("2. ALCANCE", style_sec_proc))
     story.append(Paragraph(
         "Este procedimiento aplica para todo el personal de Almacén (auxiliares, jefes de almacén), Operadores del área de Corte "
-        "e Inspectores de Calidad involucrados en el control logístico, egreso físico y registro del material en el SGC de SIGRAMA.",
+        "(incluyendo el Operador Láser) e Inspectores de Calidad involucrados en el control logístico, egreso físico, reporte de defectos "
+        "y registro del material en el SGC de SIGRAMA.",
         style_body_proc
     ))
     
@@ -2253,6 +2258,8 @@ def generar_pdf_procedimiento_pralm02(output_pdf_path):
     # 4. DEFINICIONES
     story.append(Paragraph("4. DEFINICIONES", style_sec_proc))
     story.append(Paragraph("• <b>Remisión de Salida (FO-MET-36):</b> Formato oficial y pase de salida digital generado por la aplicación que ampara la transferencia de custodia del material del Almacén al área de Corte.", style_bullet_proc))
+    story.append(Paragraph("• <b>Reporte de Rechazo en Proceso (FO-MET-41):</b> Formato digital regulado en el SGC para declarar láminas con defectos de calidad en producción (ej. corte láser), permitiendo su deducción de inventarios.", style_bullet_proc))
+    story.append(Paragraph("• <b>Operador Láser:</b> Rol operativo con permisos restringidos para registrar únicamente rechazos por defectos en proceso (`REJ-OUT`), teniendo bloqueada la creación de remisiones estándar de salida.", style_bullet_proc))
     story.append(Paragraph("• <b>Área de Corte:</b> Célula de manufactura encargada del corte por láser, punzonado o cizallado de las láminas para la estructura de los gabinetes.", style_bullet_proc))
     story.append(Paragraph("• <b>Bitácora de Salidas (BD_Salidas_Incoming.xlsx):</b> Registro cronológico digital en el cual se asientan todos los egresos del almacén, detallando folios, hojas, peso proporcional y responsables.", style_bullet_proc))
     story.append(Paragraph("• <b>PEPS (Primeras Entradas, Primeras Salidas):</b> Método logístico que prioriza la salida del material que tiene más tiempo en almacén, previniendo la oxidación de las láminas.", style_bullet_proc))
@@ -2269,7 +2276,8 @@ def generar_pdf_procedimiento_pralm02(output_pdf_path):
         [Paragraph("Auxiliar de Almacén", style_body_proc_bold), Paragraph("Verifica disponibilidad de stock aceptado y aplica regla PEPS para seleccionar el atado en la app.", style_body_proc), Paragraph("Módulo de Existencias.", style_body_proc)],
         [Paragraph("Auxiliar de Almacén", style_body_proc_bold), Paragraph("Registra digitalmente el despacho (se descuentan hojas del inventario automáticamente) y descarga la remisión.", style_body_proc), Paragraph("Remisión de Salida Digital (FO-MET-36).", style_body_proc)],
         [Paragraph("Auxiliar de Almacén", style_body_proc_bold), Paragraph("Prepara y entrega el material físico al área de corte acompañado de la remisión impresa.", style_body_proc), Paragraph("Remisión FO-MET-36 Física.", style_body_proc)],
-        [Paragraph("Operador de Corte", style_body_proc_bold), Paragraph("Valida características del material contra la remisión y firma de conformidad para archivar.", style_body_proc), Paragraph("Remisión FO-MET-36 Firmada.", style_body_proc)]
+        [Paragraph("Operador de Corte", style_body_proc_bold), Paragraph("Valida características del material contra la remisión y firma de conformidad para archivar.", style_body_proc), Paragraph("Remisión FO-MET-36 Firmada.", style_body_proc)],
+        [Paragraph("Operador Láser / Inspector", style_body_proc_bold), Paragraph("Declara láminas defectuosas en producción en la app especificando tipo de defecto, gravedad y acción correctiva.", style_body_proc), Paragraph("Reporte de Rechazo (FO-MET-41).", style_body_proc)]
     ]
     t_flow = Table(flow_data, colWidths=[110, 250, 180])
     t_flow.setStyle(TableStyle([
@@ -2305,9 +2313,13 @@ def generar_pdf_procedimiento_pralm02(output_pdf_path):
     story.append(Paragraph("• El operador de corte valida que el calibre, tipo de lámina y cantidad de hojas correspondan físicamente.", style_bullet_proc))
     story.append(Paragraph("• Ambas partes firman de conformidad de recepción en el formato impreso. La remisión física firmada se resguarda en archivo para trazabilidad.", style_bullet_proc))
     
+    story.append(Paragraph("6.5 Registro de Rechazos por Defectos en Proceso", style_body_proc_bold))
+    story.append(Paragraph("En caso de detectarse defectos de calidad o daños en las láminas durante producción (ej. corte láser) que no hayan sido detectados en la recepción inicial, el Operador Láser o Inspector de Calidad debe reportar el rechazo en el módulo correspondiente del sistema. Al declarar la cantidad de hojas afectadas, tipo de defecto y gravedad, el sistema asignará un folio 'REJ-OUT-YYYY-NNNN', generará de forma automática el Reporte de Rechazo (FO-MET-41) en PDF, y descontará las láminas y el peso proporcional de la base de datos de existencias.", style_body_proc))
+    
     # 7. DOCUMENTOS RELACIONADOS
     story.append(Paragraph("7. DOCUMENTOS RELACIONADOS", style_sec_proc))
     story.append(Paragraph("• <b>FO-MET-36:</b> Remisión de Salida de Lámina (Formato de Transferencia de Custodia).", style_bullet_proc))
+    story.append(Paragraph("• <b>FO-MET-41:</b> Reporte de Rechazo por Defecto en Proceso (Formato de Declaración de Scrap).", style_bullet_proc))
     story.append(Paragraph("• <b>BD_Salidas_Incoming.xlsx:</b> Bitácora Digital de Despachos y Registro Histórico.", style_bullet_proc))
     story.append(Paragraph("• <b>PR-ALM-01:</b> Procedimiento de Recepción de Materia Prima.", style_bullet_proc))
     
@@ -2965,6 +2977,131 @@ def generar_pdf_reporte_ejecutivo_inventario(filtros, df_inv_filtered, output_pd
         draw_sigrama_sgc_decorations(canvas, doc, "FO-MET-40", "REPORTE EJECUTIVO DE INVENTARIO DISPONIBLE")
         
     doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
+
+
+def generar_pdf_reporte_rechazo(datos_rechazo, output_pdf_path):
+    """
+    Genera un Reporte de Rechazo por Defecto en Proceso en PDF (FO-MET-41)
+    para el registro de defectos detectados durante producción (ej. corte láser).
+    """
+    doc = SimpleDocTemplate(output_pdf_path, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=90, bottomMargin=60)
+    story = []
+    styles = getSampleStyleSheet()
+    
+    style_title = ParagraphStyle('T_Rej', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=14, textColor=colors.HexColor("#D32F2F"), spaceAfter=5)
+    style_subtitle = ParagraphStyle('S_Rej', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=10, textColor=colors.HexColor("#757575"), spaceAfter=15)
+    style_normal_bold = ParagraphStyle('NB_Rej', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8.5)
+    style_normal_text = ParagraphStyle('NT_Rej', parent=styles['Normal'], fontName="Helvetica", fontSize=8.5, leading=12)
+    style_blanco_bold = ParagraphStyle('WB_Rej', parent=styles['Normal'], textColor=colors.white, fontName="Helvetica-Bold", alignment=1, fontSize=8.5)
+    
+    story.append(Spacer(1, 5))
+    story.append(Paragraph("REPORTE DE RECHAZO POR DEFECTO EN PROCESO", style_title))
+    story.append(Paragraph("Documento de registro interno para declarar láminas con defectos detectados en producción.", style_subtitle))
+    
+    # Tabla de Datos Generales del Reporte
+    datos_meta = [
+        [Paragraph("FOLIO RECHAZO:", style_normal_bold), Paragraph(str(datos_rechazo.get("Folio_Salida", "REJ-OUT-XXXX")), style_normal_text),
+         Paragraph("FECHA REPORTE:", style_normal_bold), Paragraph(f"{datos_rechazo.get('Fecha', '')} {datos_rechazo.get('Hora', '')}", style_normal_text)],
+        [Paragraph("RESPONSABLE REPORTE:", style_normal_bold), Paragraph(str(datos_rechazo.get("Responsable", "N/D")), style_normal_text),
+         Paragraph("ORIGEN DEL RECHAZO:", style_normal_bold), Paragraph(str(datos_rechazo.get("Destino_Proyecto", "N/D")), style_normal_text)]
+    ]
+    t_meta = Table(datos_meta, colWidths=[130, 140, 130, 140])
+    t_meta.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
+        ('BACKGROUND', (0,0), (0,-1), colors.HexColor("#F5F5F5")),
+        ('BACKGROUND', (2,0), (2,-1), colors.HexColor("#F5F5F5")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
+    ]))
+    story.append(t_meta)
+    story.append(Spacer(1, 15))
+    
+    # Tabla de Detalle del Material Rechazado
+    story.append(Paragraph("📦 DETALLE DE MATERIAL RECHAZADO", ParagraphStyle('SH_Rej', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=10, textColor=colors.HexColor("#0D47A1"), spaceAfter=5)))
+    
+    headers_detalle = [
+        Paragraph("ID ATADO", style_blanco_bold),
+        Paragraph("SKU", style_blanco_bold),
+        Paragraph("GRADO ACERO", style_blanco_bold),
+        Paragraph("UBICACIÓN", style_blanco_bold),
+        Paragraph("HOJAS RECHAZADAS", style_blanco_bold),
+        Paragraph("PESO APROX. (KG)", style_blanco_bold)
+    ]
+    
+    tabla_detalle_data = [
+        headers_detalle,
+        [
+            Paragraph(str(datos_rechazo.get("ID_Atado", "")), style_normal_text),
+            Paragraph(str(datos_rechazo.get("SKU", "")), style_normal_text),
+            Paragraph(str(datos_rechazo.get("Grado_Acero", "N/D")), style_normal_text),
+            Paragraph(str(datos_rechazo.get("Ubicacion_Almacen", "N/D")), style_normal_text),
+            Paragraph(str(datos_rechazo.get("Cantidad_Hojas_Despachadas", "")), style_normal_text),
+            Paragraph(f"{float(datos_rechazo.get('Peso_Despachado_Kg', 0)):.2f}", style_normal_text)
+        ]
+    ]
+    t_detalle = Table(tabla_detalle_data, colWidths=[110, 95, 95, 80, 80, 80])
+    t_detalle.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#757575")),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+        ('TOPPADDING', (0,0), (-1,-1), 8)
+    ]))
+    story.append(t_detalle)
+    story.append(Spacer(1, 15))
+
+    # Tabla de Información de Defectos
+    story.append(Paragraph("⚠️ ANÁLISIS DEL DEFECTO Y DISPOSICIÓN", ParagraphStyle('SH_Def', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=10, textColor=colors.HexColor("#0D47A1"), spaceAfter=5)))
+    
+    datos_defecto = [
+        [Paragraph("TIPO DE DEFECTO:", style_normal_bold), Paragraph(str(datos_rechazo.get("Tipo_Defecto", "Otros")), style_normal_text),
+         Paragraph("GRAVEDAD DEL DEFECTO:", style_normal_bold), Paragraph(str(datos_rechazo.get("Gravedad_Defecto", "Moderado")), style_normal_text)],
+        [Paragraph("ACCIÓN CORRECTIVA / DESTINO:", style_normal_bold), Paragraph(str(datos_rechazo.get("Accion_Defecto", "Scrap / Desecho")), style_normal_text),
+         Paragraph("CANTIDAD AFECTADA:", style_normal_bold), Paragraph(f"{datos_rechazo.get('Hojas_Defectuosas', 0)} hojas", style_normal_text)]
+    ]
+    t_def = Table(datos_defecto, colWidths=[160, 110, 160, 110])
+    t_def.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
+        ('BACKGROUND', (0,0), (0,-1), colors.HexColor("#F5F5F5")),
+        ('BACKGROUND', (2,0), (2,-1), colors.HexColor("#F5F5F5")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
+    ]))
+    story.append(t_def)
+    story.append(Spacer(1, 15))
+    
+    # Campo de Observaciones / Descripción del Defecto
+    story.append(Paragraph("📝 DESCRIPCIÓN DETALLADA DEL DEFECTO Y HALLAZGOS", ParagraphStyle('SH_Obs_Rej', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=9, textColor=colors.HexColor("#0D47A1"), spaceAfter=3)))
+    obs_text = str(datos_rechazo.get("Observaciones", "Ninguna."))
+    if not obs_text.strip():
+        obs_text = "Sin observaciones registradas."
+    story.append(Paragraph(obs_text, style_normal_text))
+    story.append(Spacer(1, 30))
+    
+    # Panel de Firmas
+    datos_firmas = [
+        [
+            Paragraph("_____________________________<br/>REPORTA (OPERADOR LÁSER / PRODUCCIÓN)", style_normal_bold),
+            Paragraph("_____________________________<br/>VALIDA (INSPECTOR DE CALIDAD / AUDITOR)", style_normal_bold)
+        ],
+        [Spacer(1, 15), Spacer(1, 15)],
+        [
+            Paragraph("_____________________________<br/>AUTORIZA (JEFE DE OPERACIONES / PRODUCCIÓN)", style_normal_bold),
+            Paragraph("_____________________________<br/>SGI / CONTROL DOCUMENTAL", style_normal_bold)
+        ]
+    ]
+    t_firmas = Table(datos_firmas, colWidths=[270, 270])
+    t_firmas.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'TOP')
+    ]))
+    story.append(t_firmas)
+    
+    # Decoracion canvas
+    def decorate(canvas, doc):
+        draw_sigrama_sgc_decorations(canvas, doc, "FO-MET-41", "REPORTE DE RECHAZO POR DEFECTO")
+        
+    doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
+    print(f"PDF de Reporte de Rechazo {datos_rechazo.get('Folio_Salida')} creado.")
 
 
 

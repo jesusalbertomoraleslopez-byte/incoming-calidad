@@ -10,9 +10,10 @@ La aplicación cuenta con tres perfiles de usuario diferentes, administrados en 
 
 | Perfil de Usuario | Contraseña | Permisos y Cobertura |
 | :--- | :--- | :--- |
-| **Público / Consulta** | *Ninguna (Vacío)* | Solo lectura. Puede navegar por el Módulo 1 (Dashboard) y Módulo 3 (Historial), así como descargar dosiers e informes. No tiene acceso al Módulo 2 ni puede realizar modificaciones. |
+| **Público / Consulta** | *Ninguna (Vacío)* | Solo lectura. Puede navegar por el Módulo 1 (Dashboard) e Historial, así como descargar dosiers e informes. No tiene acceso al Módulo 2 ni puede realizar modificaciones. |
 | **Inspector (Registro)** | *[Consultar con Calidad / Clave de Inspector]* | Acceso de lectura más la capacidad de ingresar al **Módulo 2 (Registro)** para subir plantillas de medición de atados, cargar fotos de defectos y guardar nuevos lotes. |
-| **Administrador** | *[Clave Restringida / Consultar al departamento de Calidad]* | Acceso total. Incluye permisos de Inspector más la capacidad de eliminar expedientes en Módulo 3 y agregar o modificar las tolerancias de SKUs en el Módulo 4. |
+| **Operador Láser** | `"SigramaLaser2026"` | Acceso restringido al Módulo de Inventario. Puede registrar rechazos de láminas por defectos en proceso (`REJ-OUT`) para descontarlas de stock, generar el reporte FO-MET-41 y descargar hojas de consumo FO-MET-37. No puede hacer remisiones estándar (`REM-OUT`) ni acceder al Módulo 2. |
+| **Administrador** | *[Clave Restringida / Consultar al departamento de Calidad]* | Acceso total. Incluye permisos de Inspector más la capacidad de eliminar expedientes e historial y agregar o modificar las tolerancias de SKUs. |
 
 > [!TIP]
 > **Intercambiabilidad de campos (Mejora de UX):**
@@ -100,18 +101,20 @@ Este módulo permite consultar recepciones pasadas:
 
 ## 📦 5. Módulo 4: Inventario y Remisiones de Salida
 
-Este módulo permite llevar un control cuantitativo y trazable de las existencias físicas de materia prima liberada y registrar los consumos diarios para producción:
+Este módulo permite llevar un control cuantitativo y trazable de las existencias físicas de materia prima liberada y registrar los consumos diarios para producción o rejections por defectos en proceso:
 
 1. **📊 Existencias en Inventario (Stock Disponible)**:
    * Muestra únicamente los atados que fueron **Aceptados** por el departamento de Calidad.
-   * Calcula de forma dinámica las **Hojas Disponibles** y el **Peso Disponible (Kg)** restando los consumos acumulados.
+   * Calcula de forma dinámica las **Hojas Disponibles** y el **Peso Disponible (Kg)** restando los consumos acumulados y rechazos.
    * Incluye filtros por SKU y Ubicación de Almacén para localizar lotes conformes rápidamente.
-2. **📝 Registrar Remisión de Salida (Despacho Diario)**:
-   * *Requiere contraseña de **Inspector** o **Administrador**.*
-   * Formulario para descontar láminas de un atado específico seleccionado. Al despachar hojas, el sistema calcula proporcionalmente el peso retirado.
-   * Genera de forma automática la **Remisión de Salida Oficial (PDF - FO-MET-36)** con firmas de entrega/recepción para control físico del almacén.
-3. **📜 Historial de Despachos**:
-   * Listado con la bitácora completa de remisiones de salida emitidas, con opción de reimpresión de cualquier PDF de remisión histórico en caliente.
+   * Al final de la pantalla, muestra un gráfico de barras apiladas de **% Disponible vs. % Consumido** por atado activo (ordenado de mayor a menor cantidad de hojas originales), proporcionando una visualización rápida del consumo relativo e individual de cada lote.
+2. **📝 Registrar Salida / Reportar Defectos en Proceso**:
+   * **Perfil Operador Láser**: Solo puede registrar reportes de rechazo por defectos (`REJ-OUT`). Las remisiones estándar (`REM-OUT`) están completamente bloqueadas para este usuario.
+   * **Perfil Inspector / Administrador**: Dispone de un selector dinámico para elegir el tipo de movimiento:
+     * **Remisión de Salida Estándar (REM-OUT)**: Despacho normal de láminas para producción. Genera de forma automática la **Remisión de Salida Oficial (PDF - FO-MET-36)**.
+     * **Reporte de Reclamación / Rechazo (REJ-OUT)**: Declaración de láminas que salieron con un defecto no detectado en el INCOMING para descontarlas de inventario. Requiere capturar la cantidad de hojas defectuosas, tipo de defecto (ej. Bordes Ondulados, Rayaduras, Oxidación), gravedad (Crítico, Mayor, Menor) y acción correctiva (ej. Scrap, Retorno a Proveedor). Genera el **Reporte de Rechazo (PDF - FO-MET-41)**.
+3. **📜 Historial de Salidas**:
+   * Listado con la bitácora completa de remisiones de salida (`REM-OUT`) y reportes de rechazo (`REJ-OUT`) emitidos, con opción de reimpresión de cualquier PDF histórico en caliente (llamando al formato respectivo FO-MET-36 o FO-MET-41 según el folio).
 
 ---
 
