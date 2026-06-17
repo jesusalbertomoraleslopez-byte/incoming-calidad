@@ -2090,6 +2090,9 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                             btn_submit_salida = st.form_submit_button("💾 Procesar y Registrar Salida")
                             
                             if btn_submit_salida:
+                                if "last_remision_creada" in st.session_state:
+                                    del st.session_state.last_remision_creada
+                                    
                                 if not destino.strip() or not responsable.strip():
                                     st.error("Por favor, complete los campos de Destino/Proyecto y Responsable.")
                                 else:
@@ -2134,22 +2137,31 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                                     with st.spinner("Sincronizando despacho con GitHub..."):
                                         auto_commit_and_push_to_github(f"SALIDA-{folio_salida}")
                                         
-                                    st.success(f"✅ Remisión '{folio_salida}' registrada con éxito. Se descontaron {hojas_despacho} hojas del atado {atado_selected['ID_Atado']}.")
-                                    
-                                    # Ofrecer descarga del PDF
-                                    if os.path.exists(pdf_path_remision):
-                                        with open(pdf_path_remision, "rb") as f:
-                                            pdf_bytes = f.read()
-                                        st.download_button(
-                                            label="📥 Descargar Remisión de Salida Oficial (PDF)",
-                                            data=pdf_bytes,
-                                            file_name=f"Remision_Salida_{folio_salida}.pdf",
-                                            mime="application/pdf",
-                                            use_container_width=True
-                                        )
+                                    st.session_state.last_remision_creada = {
+                                        "folio": folio_salida,
+                                        "pdf_path": pdf_path_remision,
+                                        "hojas": hojas_despacho,
+                                        "atado_id": atado_selected['ID_Atado']
+                                    }
                                     
                                     st.session_state.BD_Salidas = cargar_db(BD_SALIDAS, "Salidas_Detalle")
                                     st.rerun()
+                                    
+                        # Mostrar botón de descarga fuera del formulario
+                        if "last_remision_creada" in st.session_state:
+                            rem = st.session_state.last_remision_creada
+                            st.success(f"✅ Remisión '{rem['folio']}' registrada con éxito. Se descontaron {rem['hojas']} hojas del atado {rem['atado_id']}.")
+                            if os.path.exists(rem["pdf_path"]):
+                                with open(rem["pdf_path"], "rb") as f:
+                                    pdf_bytes = f.read()
+                                st.download_button(
+                                    label="📥 Descargar Remisión de Salida Oficial (PDF)",
+                                    data=pdf_bytes,
+                                    file_name=f"Remision_Salida_{rem['folio']}.pdf",
+                                    mime="application/pdf",
+                                    use_container_width=True,
+                                    key="btn_download_remision_salida"
+                                )
             
             with pest_inv3:
                 st.write("### 📜 Historial de Remisiones y Despachos")
