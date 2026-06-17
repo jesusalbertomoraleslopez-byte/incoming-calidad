@@ -575,17 +575,17 @@ def renderizar_analisis_gaussiano_consolidado(df_rows, sku_info, key=None):
 # Navegación lateral
 st.sidebar.title("🧭 Navegación")
 opcion_menu = st.sidebar.radio("Seleccione un Módulo:", [
-    "📊 Analíticas y Dashboard",
-    "📥 Registro de Recepción (Incoming)",
-    "🔍 Consulta de Historial",
-    "📦 Inventario y Remisiones de Salida",
-    "⚙️ Catálogo de Tolerancias de SKU",
-    "📚 Glosario de Documentos",
-    "📖 Manual de Operación",
-    "📋 Procedimiento de Recepción (PR-ALM-01)",
-    "📋 Procedimiento de Despacho (PR-ALM-02)",
-    "💡 Manufactura Inteligente y Tecnología",
-    "🗑️ Limpieza y Explorador Git (Admin)"
+    "1. 📊 Analíticas y Dashboard",
+    "2. 📥 Registro de Recepción (Incoming)",
+    "3. 🔍 Consulta de Historial",
+    "4. 📦 Inventario y Remisiones de Salida",
+    "5. ⚙️ Catálogo de Tolerancias de SKU",
+    "6. 📚 Glosario de Documentos",
+    "7. 📖 Manual de Operación",
+    "8. 📋 Procedimiento de Recepción (PR-ALM-01)",
+    "9. 📋 Procedimiento de Despacho (PR-ALM-02)",
+    "10. 💡 Manufactura Inteligente y Tecnología",
+    "11. 🗑️ Limpieza y Explorador Git (Admin)"
 ])
 
 
@@ -630,8 +630,8 @@ st.sidebar.markdown(
 # =============================================================================
 # MÓDULO 1: ANALÍTICAS Y DASHBOARD
 # =============================================================================
-if opcion_menu == "📊 Analíticas y Dashboard":
-    st.title("📊 Dashboard Planta Metales - Control de Calidad en Recepción")
+if opcion_menu == "1. 📊 Analíticas y Dashboard":
+    st.title("1. 📊 Dashboard Planta Metales - Control de Calidad en Recepción")
     
     df_rep = st.session_state.BD_Reportes
     df_atd = st.session_state.BD_Atados.copy()
@@ -703,7 +703,7 @@ if opcion_menu == "📊 Analíticas y Dashboard":
         peso_total_lb = df_atd_unicos["Peso_Total_Lb"].sum()
         
         # Mostrar Objetivos y Resultados Clave (OKRs)
-        st.markdown("<h3 style='color:#D32F2F;'>🎯 OKR 1: Conformidad y Calidad de Materia Prima</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color:#D32F2F;'>1.1. 🎯 OKR 1: Conformidad y Calidad de Materia Prima</h3>", unsafe_allow_html=True)
         st.markdown("**Objetivo:** Garantizar que el 100% de la materia prima liberada cumpla con las especificaciones técnicas y dimensionales del SGC.")
         
         o1_col1, o1_col2, o1_col3 = st.columns(3)
@@ -736,7 +736,7 @@ if opcion_menu == "📊 Analíticas y Dashboard":
             delta_color="normal"
         )
         
-        st.markdown("<h3 style='color:#D32F2F;'>🎯 OKR 2: Eficiencia de Abastecimiento y Control</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color:#D32F2F;'>1.2. 🎯 OKR 2: Eficiencia de Abastecimiento y Control</h3>", unsafe_allow_html=True)
         st.markdown("**Objetivo:** Registrar, medir e inspeccionar el volumen total de acero recibido para asegurar la continuidad de producción.")
         
         o2_col1, o2_col2, o2_col3 = st.columns(3)
@@ -761,7 +761,7 @@ if opcion_menu == "📊 Analíticas y Dashboard":
         # Distribución de Estatus
         col_g1, col_g2 = st.columns(2)
         with col_g1:
-            st.subheader("📋 Estado General de Lotes Recibidos")
+            st.subheader("1.3. 📋 Estado General de Lotes Recibidos")
             if not df_rep_filtered.empty:
                 fig_pie = px.pie(
                     df_rep_filtered, 
@@ -775,7 +775,7 @@ if opcion_menu == "📊 Analíticas y Dashboard":
                 st.info("Sin datos de lotes para mostrar en este rango.")
             
         with col_g2:
-            st.subheader("🏢 Distribución de Volumen por Proveedor (Kg)")
+            st.subheader("1.4. 🏢 Distribución de Volumen por Proveedor (Kg)")
             df_prov = df_atd_unicos.merge(df_rep_filtered[["Folio", "Proveedor"]], on="Folio", how="left")
             if not df_prov.empty and "Proveedor" in df_prov.columns:
                 df_prov_grouped = df_prov.groupby("Proveedor")["Peso_Total_Kg"].sum().reset_index()
@@ -793,7 +793,7 @@ if opcion_menu == "📊 Analíticas y Dashboard":
                 
         # --- NUEVA SECCIÓN DE ANÁLISIS DE CALIDAD EN ATADOS Y CAUSAS DE RECHAZO ---
         st.write("---")
-        st.write("### 🔍 Análisis de Calidad de Atados (Rollos)")
+        st.write("### 1.5. 🔍 Análisis de Calidad de Atados (Rollos)")
         col_ca1, col_ca2 = st.columns(2)
         
         # Calcular causas de rechazo de forma dinámica
@@ -856,7 +856,7 @@ if opcion_menu == "📊 Analíticas y Dashboard":
                     causas_list.append("Falla de Aceitado")
                     
         with col_ca1:
-            st.subheader("📋 Estado de Calidad en Atados Recibidos")
+            st.subheader("1.5.1. 📋 Estado de Calidad en Atados Recibidos")
             if not df_atd_unicos.empty:
                 fig_pie_atd = px.pie(
                     df_atd_unicos, 
@@ -870,7 +870,7 @@ if opcion_menu == "📊 Analíticas y Dashboard":
                 st.info("Sin datos de atados para mostrar.")
                 
         with col_ca2:
-            st.subheader("⚠️ Motivos de Rechazo y Defectos Visuales")
+            st.subheader("1.5.2. ⚠️ Motivos de Rechazo y Defectos Visuales")
             if causas_list:
                 df_causas = pd.DataFrame(causas_list, columns=["Causa"])
                 df_causas_grouped = df_causas.groupby("Causa").size().reset_index(name="Frecuencia")
@@ -891,7 +891,7 @@ if opcion_menu == "📊 Analíticas y Dashboard":
                 st.success("🎉 **100% de Conformidad:** No se registran atados rechazados ni desviaciones en los filtros seleccionados.")
                 
         st.write("---")
-        st.subheader("📋 Listado de Recepciones Recientes")
+        st.subheader("1.6. 📋 Listado de Recepciones Recientes")
         
         # Calcular tasa de aceptación de atados por folio (considerando atados únicos)
         dict_acep = {}
@@ -917,7 +917,7 @@ if opcion_menu == "📊 Analíticas y Dashboard":
         
         # --- SECCIÓN DE EXPORTACIÓN A PDF DEL DASHBOARD ---
         st.write("---")
-        st.subheader("📥 Exportar Reporte Ejecutivo")
+        st.subheader("1.7. 📥 Exportar Reporte Ejecutivo")
         st.markdown("Descargue el informe en PDF con los OKRs, resultados de cumplimiento y el listado de recepciones filtradas en este periodo.")
         
         # Recopilar datos de filtros para el PDF
@@ -984,8 +984,8 @@ if opcion_menu == "📊 Analíticas y Dashboard":
 # =============================================================================
 # MÓDULO 2: REGISTRO DE RECEPCIÓN (INCOMING)
 # =============================================================================
-elif opcion_menu == "📥 Registro de Recepción (Incoming)":
-    st.title("📥 Registro de Control de Calidad en Recepción")
+elif opcion_menu == "2. 📥 Registro de Recepción (Incoming)":
+    st.title("2. 📥 Registro de Control de Calidad en Recepción")
     if not is_inspector:
         st.error("🔒 Área Protegida. Ingrese la contraseña de Inspector o Administrador en la barra lateral para registrar recepciones.")
         st.stop()
@@ -1017,14 +1017,14 @@ elif opcion_menu == "📥 Registro de Recepción (Incoming)":
         hora_recepcion = datetime.datetime.now().strftime("%I:%M %p")
         st.text_input("⏰ Hora de Ingreso:", value=hora_recepcion, disabled=True)
         
-    st.write("### 📎 Carga de Documentación Física y Fotos")
+    st.write("### 2.1. 📎 Carga de Documentación Física y Fotos")
     col_u1, col_u2 = st.columns(2)
     with col_u1:
         cert_file = st.file_uploader("📑 Certificado de Calidad del Proveedor (PDF)", type=["pdf"], key="cert_file")
     with col_u2:
         oc_file = st.file_uploader("🛍️ Orden de Compra de Sigrama (PDF)", type=["pdf"], key="oc_file")
         
-    st.write("### 🧮 Mediciones Dimensionales de Campo")
+    st.write("### 2.2. 🧮 Mediciones Dimensionales de Campo")
     mediciones_file = st.file_uploader("📥 Suba la plantilla Excel con mediciones completadas:", type=["xlsx"])
     
     if mediciones_file:
@@ -1102,7 +1102,7 @@ elif opcion_menu == "📥 Registro de Recepción (Incoming)":
             
             # --- SECCIÓN DE INSPECCIÓN VISUAL Y DE APARIENCIA POR ROLLO ---
             st.write("---")
-            st.write("### 🔍 Inspección Visual y de Apariencia por Rollo")
+            st.write("### 2.3. 🔍 Inspección Visual y de Apariencia por Rollo")
             st.markdown("Confirme que cada rollo cumpla con los criterios visuales de apariencia del SGC. Las casillas están marcadas como **CUMPLE** por defecto.")
             
             # Asegurar columna Placa
@@ -1757,7 +1757,7 @@ elif opcion_menu == "📥 Registro de Recepción (Incoming)":
                                     )
                                 
                         # Dibujar las curvas de tolerancia usando Plotly
-                        st.write("### 📈 Curvas de Tolerancia del Lote Recién Registrado")
+                        st.write("### 2.4. 📈 Curvas de Tolerancia del Lote Recién Registrado")
                         fig_pl = go.Figure()
                         
                         # Líneas de límites
@@ -1774,7 +1774,7 @@ elif opcion_menu == "📥 Registro de Recepción (Incoming)":
                         st.plotly_chart(fig_pl, use_container_width=True)
                         
                         # Dibujar el análisis gaussiano consolidado por atado
-                        st.write("### 📊 Distribuciones Probabilísticas por Especificación Técnica (Consolidado por Atado)")
+                        st.write("### 2.5. 📊 Distribuciones Probabilísticas por Especificación Técnica (Consolidado por Atado)")
                         unique_atds = df_atados_temp["ID_Atado_Proveedor"].unique()
                         for id_atd_prov in unique_atds:
                             df_atd_rows = df_atados_temp[df_atados_temp["ID_Atado_Proveedor"] == id_atd_prov]
@@ -1788,8 +1788,8 @@ elif opcion_menu == "📥 Registro de Recepción (Incoming)":
 # =============================================================================
 # MÓDULO 3: CONSULTA DE HISTORIAL Y EXPEDIENTES
 # =============================================================================
-elif opcion_menu == "🔍 Consulta de Historial":
-    st.title("🔍 Consulta Histórica y Descarga de Dosiers de Calidad")
+elif opcion_menu == "3. 🔍 Consulta de Historial":
+    st.title("3. 🔍 Consulta Histórica y Descarga de Dosiers de Calidad")
     st.markdown("Busque recepciones pasadas por fecha, proveedor o folio para descargar sus documentos y expedientes.")
     
     df_rep = st.session_state.BD_Reportes
@@ -1887,7 +1887,7 @@ elif opcion_menu == "🔍 Consulta de Historial":
                 st.error(f"Error al generar el PDF de la consulta: {e}")
             
             # Selector para ver detalles y descargar expediente
-            st.write("### 📁 Selección de Expediente")
+            st.write("### 3.1. 📁 Selección de Expediente")
             folio_seleccionado = st.selectbox("Seleccione el Folio del reporte que desea descargar o revisar:", df_filtered["Folio"].tolist())
             
             if folio_seleccionado:
@@ -2040,11 +2040,11 @@ elif opcion_menu == "🔍 Consulta de Historial":
                         st.warning("⚠️ Carpeta del expediente digital no encontrada en el servidor.")
                 
                 # Mostrar tabla detallada de atados
-                st.write("#### 📐 Mediciones Dimensionales de los Atados:")
+                st.write("#### 3.2. 📐 Mediciones Dimensionales de los Atados:")
                 st.dataframe(df_atados_recepcion, use_container_width=True, hide_index=True)
                 
                 # Graficar curvas históricas de este lote
-                st.write("#### 📈 Gráfica Histórica de Tolerancia de Espesor")
+                st.write("#### 3.3. 📈 Gráfica Histórica de Tolerancia de Espesor")
                 sku_del_lote = df_atados_recepcion["SKU"].iloc[0] if not df_atados_recepcion.empty else ""
                 df_skus = st.session_state.BD_Parametros
                 sku_match = df_skus[df_skus["SKU"] == sku_del_lote]
@@ -2068,7 +2068,7 @@ elif opcion_menu == "🔍 Consulta de Historial":
                     st.plotly_chart(fig_pl, use_container_width=True)
                     
                     # Dibujar el análisis gaussiano consolidado por atado
-                    st.write("### 📊 Distribuciones Probabilísticas por Especificación Técnica (Consolidado por Atado)")
+                    st.write("### 2.5. 📊 Distribuciones Probabilísticas por Especificación Técnica (Consolidado por Atado)")
                     df_atados_recepcion_limit = df_atados_recepcion.copy()
                     df_atados_recepcion_limit['Espesor_Nominal'] = esp_nom
                     df_atados_recepcion_limit['Espesor_Tol_Min'] = sku_info.get("Espesor_Tolerancia_Min_in", -0.008)
@@ -2082,7 +2082,7 @@ elif opcion_menu == "🔍 Consulta de Historial":
                 # --- SECCIÓN ADMINISTRATIVA: ELIMINACIÓN DE REGISTROS ---
                 if is_admin:
                     st.write("---")
-                    st.subheader("🗑️ Zona de Control Administrativo")
+                    st.subheader("3.5. 🗑️ Zona de Control Administrativo")
                     st.markdown("Como administrador, puede eliminar definitivamente esta recepción y todo su expediente.")
                     confirm_delete = st.checkbox("Confirmo que deseo borrar de forma permanente este lote y todos sus registros y archivos asociados.", key=f"conf_del_{folio_seleccionado}")
                     if st.button("🔴 Eliminar Recepción y Expediente Completo", type="primary", disabled=not confirm_delete, key=f"btn_del_{folio_seleccionado}"):
@@ -2112,8 +2112,8 @@ elif opcion_menu == "🔍 Consulta de Historial":
 # =============================================================================
 # MÓDULO 4: INVENTARIO Y REMISIONES DE SALIDA
 # =============================================================================
-elif opcion_menu == "📦 Inventario y Remisiones de Salida":
-    st.title("📦 Control de Inventario y Remisiones de Salida")
+elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
+    st.title("4. 📦 Control de Inventario y Remisiones de Salida")
     st.markdown("Gestione las existencias físicas de materia prima liberada y registre despachos diarios mediante remisiones de salida oficiales.")
     
     df_atados = st.session_state.BD_Atados
@@ -2153,15 +2153,15 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
             
             # Pestañas: 1. Ver Inventario, 2. Registrar Salida Normal, 3. Reportar Rechazo en Proceso, 4. Historial de Salidas, 5. Dashboard de Inventario
             pest_inv1, pest_inv2, pest_inv_rechazo, pest_inv3, pest_inv4 = st.tabs([
-                "📊 Existencias en Inventario", 
-                "📝 Registrar Salida Normal (REM)", 
-                "⚠️ Reportar Rechazo en Proceso (REJ)", 
-                "📜 Historial de Despachos", 
-                "📈 Dashboard de Inventario"
+                "4.1. 📊 Existencias en Inventario", 
+                "4.2. 📝 Registrar Salida Normal (REM)", 
+                "4.3. ⚠️ Reportar Rechazo en Proceso (REJ)", 
+                "4.4. 📜 Historial de Despachos", 
+                "4.5. 📈 Dashboard de Inventario"
             ])
             
             with pest_inv1:
-                st.write("### 🏢 Inventario Físico Disponible (Acero Conforme)")
+                st.write("### 4.1.1. 🏢 Inventario Físico Disponible (Acero Conforme)")
                 st.markdown("Listado de rollos y atados aprobados por Calidad que cuentan con hojas disponibles para producción.")
                 
                 # Filtros interactivos de inventario
@@ -2283,7 +2283,7 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                             
                     # Gráfico de % de Consumo y Disponibilidad por Atado
                     st.write("---")
-                    st.write("#### 📊 Porcentaje de Disponibilidad y Consumo por Atado")
+                    st.write("#### 4.1.2. 📊 Porcentaje de Disponibilidad y Consumo por Atado")
                     
                     df_inv_pct = df_inv_display.copy()
                     if not df_inv_pct.empty:
@@ -2320,7 +2320,7 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                         st.plotly_chart(fig_pct, use_container_width=True, key="fig_pct_inventario_disponible")
             
             with pest_inv2:
-                st.write("### 📝 Registrar Salida Normal (REM-OUT)")
+                st.write("### 4.2.1. 📝 Registrar Salida Normal (REM-OUT)")
                 st.markdown("Registre el egreso de materia prima estándar para celdas de producción mediante la emisión de una remisión de salida (FO-MET-36).")
                 
                 if not is_inspector and not is_laser:
@@ -2447,7 +2447,7 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                                             st.warning(f"No se pudo generar la Hoja de Consumo: {ex_c}")
 
             with pest_inv_rechazo:
-                st.write("### ⚠️ Reportar Rechazo de Láminas por Defecto (REJ-OUT)")
+                st.write("### 4.3.1. ⚠️ Reportar Rechazo de Láminas por Defecto (REJ-OUT)")
                 st.markdown("Declare el desecho o rechazo de láminas que presentaron defectos no detectados durante la inspección en recepción (Incoming), para descontarlas de stock y generar el reporte FO-MET-41.")
                 
                 if not is_inspector and not is_laser:
@@ -2575,7 +2575,7 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                                     )
             
             with pest_inv3:
-                st.write("### 📜 Historial de Remisiones y Despachos")
+                st.write("### 4.4.1. 📜 Historial de Remisiones y Despachos")
                 st.markdown("Consulte el histórico de salidas de materia prima del almacén de metales.")
                 
                 if df_salidas.empty:
@@ -2587,7 +2587,7 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                     
                     # Selección para descargar PDF del historial
                     st.write("---")
-                    st.write("#### 📥 Reimpresión de Remisión / Reporte de Rechazo")
+                    st.write("#### 4.4.2. 📥 Reimpresión de Remisión / Reporte de Rechazo")
                     folio_salida_reprint = st.selectbox("Seleccione el Folio a descargar:", df_salidas_sorted["Folio_Salida"].tolist(), key="reprint_folio_salida")
                     
                     if folio_salida_reprint:
@@ -2682,7 +2682,7 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                                 )
 
             with pest_inv4:
-                st.write("### 📈 Tablero y Análisis de Inventario")
+                st.write("### 4.5.1. 📈 Tablero y Análisis de Inventario")
                 st.markdown("Visualice indicadores clave de rendimiento (KPIs), tendencias de consumo y consulte reportes históricos de inventario y remisiones.")
                 
                 # --- PROCESAMIENTO SEGURO DE FECHAS EN SALIDAS ---
@@ -2696,7 +2696,7 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                     df_salidas_dt = df_salidas_dt.dropna(subset=["Fecha_dt"])
                 
                 # --- CONFIGURACIÓN DE FILTROS ---
-                st.write("#### 🔍 Filtros de Búsqueda Avanzada")
+                st.write("#### 4.5.2. 🔍 Filtros de Búsqueda Avanzada")
                 col_filt1, col_filt2, col_filt3 = st.columns(3)
                 
                 # 1. Rango de Fechas
@@ -2768,10 +2768,10 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                 
                 # --- SUB-PESTAÑAS DEL DASHBOARD ---
                 pest_dash1, pest_dash2, pest_dash3, pest_dash4 = st.tabs([
-                    "📊 Gráficos y KPIs", 
-                    "📦 Inventario Físico Activo", 
-                    "📜 Remisiones y Despachos",
-                    "🔍 Auditoría de Atados (Histórico)"
+                    "4.5.3. 📊 Gráficos y KPIs", 
+                    "4.5.4. 📦 Inventario Físico Activo", 
+                    "4.5.5. 📜 Remisiones y Despachos",
+                    "4.5.6. 🔍 Auditoría de Atados (Histórico)"
                 ])
                 
                 with pest_dash1:
@@ -3012,7 +3012,7 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                         st.plotly_chart(fig4, use_container_width=True)
                 
                 with pest_dash2:
-                    st.write("#### 📦 Inventario Físico Activo (En Existencia)")
+                    st.write("#### 4.5.4.1. 📦 Inventario Físico Activo (En Existencia)")
                     st.markdown("Detalle de rollos y atados aceptados que aún cuentan con hojas disponibles para despacho.")
                     
                     if df_inv_filtered.empty:
@@ -3051,7 +3051,7 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                                     f"* **Peso Disponible:** {total_peso_disponible:,.2f} Kg")
                         
                         st.write("---")
-                        st.write("#### 📥 Exportar Reporte Ejecutivo de Inventario")
+                        st.write("#### 4.5.4.2. 📥 Exportar Reporte Ejecutivo de Inventario")
                         st.markdown("Descargue el listado de existencias mostrado arriba en formato Excel o PDF ejecutivo membretado oficial del SGC.")
                         
                         col_inv_dwn1, col_inv_dwn2 = st.columns(2)
@@ -3098,7 +3098,7 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                                 st.error(f"Error al generar el PDF del reporte ejecutivo: {ex_pi}")
                 
                 with pest_dash3:
-                    st.write("#### 📜 Historial de Remisiones y Despachos Registrados")
+                    st.write("#### 4.5.5.1. 📜 Historial de Remisiones y Despachos Registrados")
                     st.markdown("Consulte el histórico detallado de salidas y remisiones registradas bajo los filtros activos.")
                     
                     if df_salidas_filtered.empty:
@@ -3118,7 +3118,7 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                         st.dataframe(df_sal_tbl, use_container_width=True, hide_index=True)
                         
                         st.write("---")
-                        st.write("#### 📥 Exportar Reporte de Despachos (Filtrado)")
+                        st.write("#### 4.5.5.2. 📥 Exportar Reporte de Despachos (Filtrado)")
                         st.markdown("Descargue la información de despachos mostrada arriba en formato Excel o PDF membretado oficial del SGC.")
                         
                         col_dwn1, col_dwn2 = st.columns(2)
@@ -3169,7 +3169,7 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                                 st.error(f"Error al generar el PDF del reporte: {ex_p}")
                 
                 with pest_dash4:
-                    st.write("#### 🔍 Auditoría de Atados (Histórico Completo)")
+                    st.write("#### 4.5.6.1. 🔍 Auditoría de Atados (Histórico Completo)")
                     st.markdown("Consulte la trazabilidad completa de cualquier atado físico en planta, incluyendo su cantidad inicial, despachos y existencias actuales.")
                     
                     df_liberados_total = df_inv.copy()
@@ -3200,12 +3200,12 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                                 "Peso_Disponible_Kg": "Peso Disponible (Kg)"
                             })
                             
-                            st.write("##### 📊 Resumen de Trazabilidad e Inventario")
+                            st.write("##### 4.5.6.2. 📊 Resumen de Trazabilidad e Inventario")
                             st.dataframe(df_audit_resumen_tbl, use_container_width=True, hide_index=True)
                             
                             df_salidas_asoc = df_salidas[df_salidas["ID_Atado"].isin(atados_audit_sel)].copy()
                             
-                            st.write("##### 📜 Despachos/Remisiones Vinculados")
+                            st.write("##### 4.5.6.3. 📜 Despachos/Remisiones Vinculados")
                             if df_salidas_asoc.empty:
                                 st.warning("No se han registrado despachos para los atados seleccionados.")
                             else:
@@ -3233,7 +3233,7 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                                 "Hojas_Despachadas": "Cantidad Piezas Consumidas"
                             })
                             
-                            st.write("##### 📈 Porcentaje Disponible por Rollo / Atado")
+                            st.write("##### 4.5.6.4. 📈 Porcentaje Disponible por Rollo / Atado")
                             st.dataframe(
                                 df_prog_tbl_display,
                                 column_config={
@@ -3250,7 +3250,7 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
                             )
                             
                             st.write("---")
-                            st.write("#### 📥 Exportar Reporte de Auditoría (Atados Seleccionados)")
+                            st.write("#### 4.5.6.5. 📥 Exportar Reporte de Auditoría (Atados Seleccionados)")
                             st.markdown("Descargue el informe detallado de auditoría para estos atados en formato Excel o PDF oficial.")
                             
                             col_aud1, col_aud2 = st.columns(2)
@@ -3295,13 +3295,13 @@ elif opcion_menu == "📦 Inventario y Remisiones de Salida":
 # =============================================================================
 # MÓDULO 5: CATÁLOGO DE TOLERANCIAS DE SKU
 # =============================================================================
-elif opcion_menu == "⚙️ Catálogo de Tolerancias de SKU":
-    st.title("⚙️ Configuración y Catálogo de Parámetros de Materia Prima")
+elif opcion_menu == "5. ⚙️ Catálogo de Tolerancias de SKU":
+    st.title("5. ⚙️ Configuración y Catálogo de Parámetros de Materia Prima")
     st.markdown("Defina y modifique los valores nominales y límites de tolerancia aceptados para cada SKU en planta.")
     
     df_skus = st.session_state.BD_Parametros
     
-    st.write("### 📦 SKUs Registrados en el Sistema")
+    st.write("### 5.1. 📦 SKUs Registrados en el Sistema")
     st.dataframe(df_skus, use_container_width=True, hide_index=True)
     
     # Botón para descargar el catálogo de SKUs en PDF
@@ -3338,7 +3338,7 @@ elif opcion_menu == "⚙️ Catálogo de Tolerancias de SKU":
         opt_edicion = st.selectbox("Seleccione Acción:", ["Agregar Nuevo Producto (SKU)", "Modificar Producto Existente"])
         
         if opt_edicion == "Agregar Nuevo Producto (SKU)":
-            st.subheader("➕ Agregar Nuevo Producto de Materia Prima")
+            st.subheader("5.2. ➕ Agregar Nuevo Producto de Materia Prima")
             with st.form("form_add_sku"):
                 col_a1, col_a2 = st.columns(2)
                 with col_a1:
@@ -3399,7 +3399,7 @@ elif opcion_menu == "⚙️ Catálogo de Tolerancias de SKU":
                         st.rerun()
                         
         elif opt_edicion == "Modificar Producto Existente":
-            st.subheader("📝 Modificar Parámetros de SKU Existente")
+            st.subheader("5.3. 📝 Modificar Parámetros de SKU Existente")
             sku_seleccionado = st.selectbox("Seleccione el SKU a modificar:", df_skus["SKU"].tolist())
             
             if sku_seleccionado:
@@ -3461,8 +3461,8 @@ elif opcion_menu == "⚙️ Catálogo de Tolerancias de SKU":
 # =============================================================================
 # MÓDULO: GLOSARIO DE DOCUMENTOS
 # =============================================================================
-elif opcion_menu == "📚 Glosario de Documentos":
-    st.title("📚 Glosario de Documentos del SGC")
+elif opcion_menu == "6. 📚 Glosario de Documentos":
+    st.title("6. 📚 Glosario de Documentos del SGC")
     st.markdown("A continuación se presenta el glosario oficial de todos los documentos y formatos generados por la aplicación y el Sistema de Gestión de Calidad (SGC) de Planta Metales. Puede descargar una muestra en formato PDF/Excel haciendo clic en el enlace correspondiente.")
     
     glosario = [
@@ -3546,8 +3546,8 @@ elif opcion_menu == "📚 Glosario de Documentos":
 # =============================================================================
 # MÓDULO 5: MANUAL DE OPERACIÓN
 # =============================================================================
-elif opcion_menu == "📖 Manual de Operación":
-    st.title("📖 Manual de Operación del Sistema")
+elif opcion_menu == "7. 📖 Manual de Operación":
+    st.title("7. 📖 Manual de Operación del Sistema")
     st.markdown("Consulte las pautas de uso, niveles de acceso y flujos del sistema en pantalla o descargue el manual en formato PDF.")
     
     # Botón para descargar el manual en PDF
@@ -3586,8 +3586,8 @@ elif opcion_menu == "📖 Manual de Operación":
 # =============================================================================
 # MÓDULO 6: PROCEDIMIENTO DE RECEPCIÓN (PR-ALM-01)
 # =============================================================================
-elif opcion_menu == "📋 Procedimiento de Recepción (PR-ALM-01)":
-    st.title("📋 Procedimiento de Recepción de Materia Prima")
+elif opcion_menu == "8. 📋 Procedimiento de Recepción (PR-ALM-01)":
+    st.title("8. 📋 Procedimiento de Recepción de Materia Prima")
     st.markdown("Consulte el procedimiento oficial SGC **PR-ALM-01** digitalizado y adaptado a nuestro sistema de control estadístico.")
     
     # Botón para descargar el procedimiento en PDF
@@ -3695,8 +3695,8 @@ elif opcion_menu == "📋 Procedimiento de Recepción (PR-ALM-01)":
 # =============================================================================
 # MÓDULO 10: PROCEDIMIENTO DE DESPACHO (PR-ALM-02)
 # =============================================================================
-elif opcion_menu == "📋 Procedimiento de Despacho (PR-ALM-02)":
-    st.title("📋 Procedimiento para Control de Inventario y Despacho")
+elif opcion_menu == "9. 📋 Procedimiento de Despacho (PR-ALM-02)":
+    st.title("9. 📋 Procedimiento para Control de Inventario y Despacho")
     st.markdown("Consulte el procedimiento oficial SGC **PR-ALM-02** digitalizado y regulado para el control de inventario y salida de material.")
     
     # Botón para descargar el procedimiento en PDF
@@ -3802,14 +3802,14 @@ elif opcion_menu == "📋 Procedimiento de Despacho (PR-ALM-02)":
 # =============================================================================
 # MÓDULO 7: MANUFACTURA INTELIGENTE Y TECNOLOGÍA
 # =============================================================================
-elif opcion_menu == "💡 Manufactura Inteligente y Tecnología":
-    st.title("💡 Manufactura Inteligente e Industria 4.0")
+elif opcion_menu == "10. 💡 Manufactura Inteligente y Tecnología":
+    st.title("10. 💡 Manufactura Inteligente e Industria 4.0")
     st.markdown("Justificación técnica y desglose tecnológico de la transformación digital en el control de calidad de **SIGRAMA**.")
     
     st.write("---")
     
     # 1. Justificación de Manufactura Inteligente
-    st.subheader("🚀 Justificación de Manufactura Inteligente (Industria 4.0)")
+    st.subheader("10.1. 🚀 Justificación de Manufactura Inteligente (Industria 4.0)")
     
     col_inf1, col_inf2 = st.columns(2)
     with col_inf1:
@@ -3832,7 +3832,7 @@ elif opcion_menu == "💡 Manufactura Inteligente y Tecnología":
     st.write("---")
     
     # 2. Resumen de Tecnología Empleada
-    st.subheader("💻 Resumen del Stack Tecnológico")
+    st.subheader("10.2. 💻 Resumen del Stack Tecnológico")
     st.markdown("El desarrollo de esta solución se estructuró empleando tecnologías de software modernas, ligeras y altamente eficientes:")
     
     col_t1, col_t2 = st.columns(2)
@@ -3862,8 +3862,8 @@ elif opcion_menu == "💡 Manufactura Inteligente y Tecnología":
 # =============================================================================
 # MÓDULO 9: LIMPIEZA Y EXPLORADOR GIT (ADMIN)
 # =============================================================================
-elif opcion_menu == "🗑️ Limpieza y Explorador Git (Admin)":
-    st.title("🗑️ Explorador y Limpieza de Almacenamiento en GitHub")
+elif opcion_menu == "11. 🗑️ Limpieza y Explorador Git (Admin)":
+    st.title("11. 🗑️ Explorador y Limpieza de Almacenamiento en GitHub")
     st.markdown("Gestione y elimine las carpetas físicas de registros y expedientes en el servidor local y en GitHub para mantener limpio el almacenamiento.")
     
     if not is_admin:
@@ -3884,7 +3884,7 @@ elif opcion_menu == "🗑️ Limpieza y Explorador Git (Admin)":
         col_exp1, col_exp2 = st.columns([1, 2])
         
         with col_exp1:
-            st.subheader("📁 Carpetas en Disco")
+            st.subheader("11.1. 📁 Carpetas en Disco")
             if not subfolders:
                 st.info("No hay carpetas de expedientes en el directorio de almacenamiento.")
                 selected_folder = None
@@ -3913,7 +3913,7 @@ elif opcion_menu == "🗑️ Limpieza y Explorador Git (Admin)":
                                 st.error(f"Error al eliminar la carpeta: {ex}")
                                 
         with col_exp2:
-            st.subheader("📄 Contenido de la Carpeta")
+            st.subheader("11.2. 📄 Contenido de la Carpeta")
             if not selected_folder:
                 st.write("Seleccione una carpeta a la izquierda para ver su contenido.")
             else:
@@ -3960,7 +3960,7 @@ elif opcion_menu == "🗑️ Limpieza y Explorador Git (Admin)":
                         
         # Limpieza de base de datos
         st.write("---")
-        st.subheader("🧹 Limpieza y Depuración de Datos (Excel)")
+        st.subheader("11.3. 🧹 Limpieza y Depuración de Datos (Excel)")
         st.markdown("Busque y resuelva inconsistencias entre el almacenamiento en disco y los registros de la base de datos Excel.")
         
         col_clean1, col_clean2 = st.columns(2)
