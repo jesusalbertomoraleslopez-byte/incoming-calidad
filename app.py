@@ -32,6 +32,7 @@ importlib.reload(utils_pdf)
 BD_PARAMETROS = os.path.join(BASE_DIR, "BD_Parametros_Materia_Prima.xlsx")
 BD_REPORTES = os.path.join(BASE_DIR, "BD_Reportes_Incoming.xlsx")
 BD_ATADOS = os.path.join(BASE_DIR, "BD_Atados_Incoming.xlsx")
+BD_SALIDAS = os.path.join(BASE_DIR, "BD_Salidas_Incoming.xlsx")
 PLANTILLA_PATH = os.path.join(BASE_DIR, "plantilla_incoming_calidad.xlsx")
 CARPETAS_DIR = os.path.join(BASE_DIR, "carpetas_electronicas")
 
@@ -92,7 +93,7 @@ def auto_commit_and_push_to_github(nuevo_folio):
         subprocess.run(["git", "pull", remote_url, "main", "--rebase"], capture_output=True)
 
         # Añadir bases de datos Excel
-        subprocess.run(["git", "add", "BD_Atados_Incoming.xlsx", "BD_Reportes_Incoming.xlsx", "BD_Parametros_Materia_Prima.xlsx"], capture_output=True)
+        subprocess.run(["git", "add", "BD_Atados_Incoming.xlsx", "BD_Reportes_Incoming.xlsx", "BD_Parametros_Materia_Prima.xlsx", "BD_Salidas_Incoming.xlsx"], capture_output=True)
 
         # Añadir la carpeta específica del folio
         folio_folder_rel = f"carpetas_electronicas/{nuevo_folio}"
@@ -130,6 +131,16 @@ if "BD_Reportes" not in st.session_state:
     st.session_state.BD_Reportes = cargar_db(BD_REPORTES, "Recepciones")
 if "BD_Atados" not in st.session_state:
     st.session_state.BD_Atados = cargar_db(BD_ATADOS, "Atados_Detalle")
+if "BD_Salidas" not in st.session_state:
+    if os.path.exists(BD_SALIDAS):
+        st.session_state.BD_Salidas = cargar_db(BD_SALIDAS, "Salidas_Detalle")
+    else:
+        st.session_state.BD_Salidas = pd.DataFrame(columns=[
+            "Folio_Salida", "Fecha", "Hora", "ID_Atado", "SKU", 
+            "Cantidad_Hojas_Despachadas", "Peso_Despachado_Kg", 
+            "Destino_Proyecto", "Responsable", "Observaciones"
+        ])
+        guardar_db(st.session_state.BD_Salidas, BD_SALIDAS, "Salidas_Detalle")
 
 # Asegurar compatibilidad de esquemas
 if "Cantidad_Hojas" not in st.session_state.BD_Atados.columns:
@@ -398,6 +409,7 @@ opcion_menu = st.sidebar.radio("Seleccione un Módulo:", [
     "📊 Analíticas y Dashboard",
     "📥 Registro de Recepción (Incoming)",
     "🔍 Consulta de Historial",
+    "📦 Inventario y Remisiones de Salida",
     "⚙️ Catálogo de Tolerancias de SKU",
     "📖 Manual de Operación",
     "📋 Procedimiento de Recepción (PR-ALM-01)",
@@ -1896,8 +1908,7 @@ elif opcion_menu == "🔍 Consulta de Historial":
                         # 2. Borrar del archivo local de atados
                         st.session_state.BD_Atados = st.session_state.BD_Atados[st.session_state.BD_Atados["Folio"] != folio_seleccionado]
                         guardar_db(st.session_state.BD_Atados, BD_ATADOS, "Atados_Detalle")
-                        
-                        # 3. Borrar la carpeta física en disco
+                    # 3. Borrar la carpeta física en disco
                         import shutil
                         folder_to_delete = os.path.join(CARPETAS_DIR, folio_seleccionado)
                         if os.path.exists(folder_to_delete):
@@ -1914,7 +1925,249 @@ elif opcion_menu == "🔍 Consulta de Historial":
                         st.rerun()
 
 # =============================================================================
-# MÓDULO 4: CATÁLOGO DE TOLERANCIAS DE SKU
+# MÓDULO 4: INVENTARIO Y REMISIONES DE SALIDA
+# =============================================================================
+elif opcion_menu == "📦 Inventario y Remisiones de Salida":
+    st.title("📦 Control de Inventario y Remisiones de Salida")
+    st.markdown("Gestione las existencias físicas de materia prima liberada y registre despachos diarios mediante remisiones de salida oficiales.")
+    
+    df_atados = st.session_state.BD_Atados
+    df_salidas = st.session_state.BD_Salidas
+    
+    if df_atados.empty:
+        st.info("No hay material registrado en el inventario.")
+    else:
+        # Calcular el stock disponible para cada atado
+        # Solo consideramos los atados que fueron ACEPTADOS (materia prima liberada)
+        df_liberados = df_atados[df_atados["Estatus_Calidad"] == "Aceptado"].copy()
+        
+        if df_liberados.empty:
+            st.warning("⚠️ No hay atados de materia prima aceptados/liberados en el inventario.")
+        else:
+            # Calcular la cantidad total de hojas y peso despachado por cada ID_Atado
+            if not df_salidas.empty:
+                df_despachado = df_salidas.groupby("ID_Atado").agg(
+                    Hojas_Despachadas=("Cantidad_Hojas_Despachadas", "sum"),
+                    Peso_Despachado=("Peso_Despachado_Kg", "sum")
+                ).reset_index()
+                df_inv = pd.merge(df_liberados, df_despachado, on="ID_Atado", how="left")
+                df_inv["Hojas_Despachadas"] = df_inv["Hojas_Despachadas"].fillna(0).astype(int)
+                df_inv["Peso_Despachado"] = df_inv["Peso_Despachado"].fillna(0.0)
+            else:
+                df_inv = df_liberados.copy()
+                df_inv["Hojas_Despachadas"] = 0
+                df_inv["Peso_Despachado"] = 0.0
+                
+            df_inv["Hojas_Disponibles"] = df_inv["Cantidad_Hojas"] - df_inv["Hojas_Despachadas"]
+            df_inv["Peso_Disponible_Kg"] = df_inv["Peso_Total_Kg"] - df_inv["Peso_Despachado"]
+            
+            # Filtramos atados que aún tienen material disponible
+            df_inv_activo = df_inv[df_inv["Hojas_Disponibles"] > 0].copy()
+            
+            # Pestañas: 1. Ver Inventario, 2. Generar Remisión, 3. Historial de Salidas
+            pest_inv1, pest_inv2, pest_inv3 = st.tabs(["📊 Existencias en Inventario", "📝 Registrar Remisión de Salida", "📜 Historial de Despachos"])
+            
+            with pest_inv1:
+                st.write("### 🏢 Inventario Físico Disponible (Acero Conforme)")
+                st.markdown("Listado de rollos y atados aprobados por Calidad que cuentan con hojas disponibles para producción.")
+                
+                # Filtros interactivos de inventario
+                col_f1, col_f2 = st.columns(2)
+                with col_f1:
+                    skus_disponibles = ["Todos"] + df_inv_activo["SKU"].dropna().unique().tolist()
+                    filtro_sku = st.selectbox("Filtrar por SKU:", skus_disponibles, key="filtro_sku_inventario")
+                with col_f2:
+                    ubics_disponibles = ["Todas"] + df_inv_activo["Ubicacion_Almacen"].dropna().unique().tolist()
+                    filtro_ubic = st.selectbox("Filtrar por Ubicación:", ubics_disponibles, key="filtro_ubic_inventario")
+                    
+                df_inv_display = df_inv_activo.copy()
+                if filtro_sku != "Todos":
+                    df_inv_display = df_inv_display[df_inv_display["SKU"] == filtro_sku]
+                if filtro_ubic != "Todas":
+                    df_inv_display = df_inv_display[df_inv_display["Ubicacion_Almacen"] == filtro_ubic]
+                    
+                if df_inv_display.empty:
+                    st.info("No hay material disponible con los filtros seleccionados.")
+                else:
+                    # Mostrar tabla
+                    df_inv_clean = df_inv_display[[
+                        "ID_Atado", "Folio", "ID_Atado_Proveedor", "SKU", "Grado_Acero", 
+                        "Num_Colada", "Ubicacion_Almacen", "Cantidad_Hojas", 
+                        "Hojas_Despachadas", "Hojas_Disponibles", "Peso_Total_Kg", "Peso_Disponible_Kg"
+                    ]].rename(columns={
+                        "Cantidad_Hojas": "Hojas Iniciales",
+                        "Hojas_Despachadas": "Hojas Despachadas",
+                        "Hojas_Disponibles": "Hojas Disponibles",
+                        "Peso_Total_Kg": "Peso Inicial (Kg)",
+                        "Peso_Disponible_Kg": "Peso Disponible (Kg)",
+                        "Ubicacion_Almacen": "Ubicación"
+                    })
+                    st.dataframe(df_inv_clean, use_container_width=True, hide_index=True)
+                    
+                    # Totales
+                    tot_hojas = df_inv_display["Hojas_Disponibles"].sum()
+                    tot_peso = df_inv_display["Peso_Disponible_Kg"].sum()
+                    st.markdown(f"**Resumen de Inventario Filtrado:**  \n* **Total Hojas Disponibles:** {tot_hojas} hojas  \n* **Total Peso Disponible:** {tot_peso:,.2f} Kg")
+            
+            with pest_inv2:
+                st.write("### ➕ Registrar Nueva Remisión de Salida")
+                st.markdown("Genere una remisión de salida formal para descontar láminas del inventario para un proyecto.")
+                
+                # Solo Inspectores/Administradores pueden despachar
+                if not is_inspector:
+                    st.error("🔒 Área Protegida. Ingrese la contraseña de Inspector o Administrador en la barra lateral para registrar salidas.")
+                else:
+                    if df_inv_activo.empty:
+                        st.warning("No hay atados con hojas disponibles para despachar.")
+                    else:
+                        # Selección de Atado
+                        atado_options = {}
+                        for _, r in df_inv_activo.iterrows():
+                            desc = f"{r['ID_Atado']} ({r['SKU']} - {r['Hojas_Disponibles']} hojas disponibles en {r['Ubicacion_Almacen']})"
+                            atado_options[desc] = r
+                            
+                        seleccion_desc = st.selectbox("Seleccione el Atado de Origen:", list(atado_options.keys()))
+                        atado_selected = atado_options[seleccion_desc]
+                        
+                        # Formulario de despacho
+                        with st.form("form_remision_salida"):
+                            col_s1, col_s2 = st.columns(2)
+                            with col_s1:
+                                hojas_disp = int(atado_selected["Hojas_Disponibles"])
+                                hojas_despacho = st.number_input("Cantidad de Hojas a Despachar:", min_value=1, max_value=hojas_disp, value=min(5, hojas_disp))
+                                destino = st.text_input("Destino / Proyecto de Producción:", placeholder="Ej. Lote Láser Tolva Proyecto 240", max_chars=100)
+                            with col_s2:
+                                responsable = st.text_input("Responsable Autoriza / Solicita:", placeholder="Ej. Ing. Carlos Pérez", max_chars=100)
+                                observaciones = st.text_area("Observaciones de Despacho:", placeholder="Ej. Láminas retiradas para corte de soportes.")
+                                
+                            btn_submit_salida = st.form_submit_button("💾 Procesar y Registrar Salida")
+                            
+                            if btn_submit_salida:
+                                if not destino.strip() or not responsable.strip():
+                                    st.error("Por favor, complete los campos de Destino/Proyecto y Responsable.")
+                                else:
+                                    # Generar Folio de Salida
+                                    next_num = len(df_salidas) + 1
+                                    folio_salida = f"REM-OUT-{datetime.date.today().year}-{next_num:04d}"
+                                    
+                                    # Calcular peso proporcional despachado
+                                    peso_inicial_atado = float(atado_selected["Peso_Total_Kg"])
+                                    hojas_iniciales_atado = int(atado_selected["Cantidad_Hojas"])
+                                    peso_despacho = (hojas_despacho / hojas_iniciales_atado) * peso_inicial_atado
+                                    
+                                    # Registrar en la base de datos
+                                    nueva_salida = {
+                                        "Folio_Salida": folio_salida,
+                                        "Fecha": datetime.date.today().strftime("%d/%m/%Y"),
+                                        "Hora": datetime.datetime.now().strftime("%H:%M"),
+                                        "ID_Atado": atado_selected["ID_Atado"],
+                                        "SKU": atado_selected["SKU"],
+                                        "Cantidad_Hojas_Despachadas": hojas_despacho,
+                                        "Peso_Despachado_Kg": peso_despacho,
+                                        "Destino_Proyecto": destino.strip(),
+                                        "Responsable": responsable.strip(),
+                                        "Observaciones": observaciones.strip()
+                                    }
+                                    
+                                    st.session_state.BD_Salidas = pd.concat([st.session_state.BD_Salidas, pd.DataFrame([nueva_salida])], ignore_index=True)
+                                    guardar_db(st.session_state.BD_Salidas, BD_SALIDAS, "Salidas_Detalle")
+                                    
+                                    # Generar PDF de la remisión
+                                    pdf_remision_dir = os.path.join(CARPETAS_DIR, "remisiones_salida")
+                                    os.makedirs(pdf_remision_dir, exist_ok=True)
+                                    pdf_path_remision = os.path.join(pdf_remision_dir, f"Remision_Salida_{folio_salida}.pdf")
+                                    
+                                    datos_pdf = nueva_salida.copy()
+                                    datos_pdf["Grado_Acero"] = atado_selected["Grado_Acero"]
+                                    datos_pdf["Ubicacion_Almacen"] = atado_selected["Ubicacion_Almacen"]
+                                    
+                                    utils_pdf.generar_pdf_remision_salida(datos_pdf, pdf_path_remision)
+                                    
+                                    # Sincronización en la nube si hay token
+                                    with st.spinner("Sincronizando despacho con GitHub..."):
+                                        auto_commit_and_push_to_github(f"SALIDA-{folio_salida}")
+                                        
+                                    st.success(f"✅ Remisión '{folio_salida}' registrada con éxito. Se descontaron {hojas_despacho} hojas del atado {atado_selected['ID_Atado']}.")
+                                    
+                                    # Ofrecer descarga del PDF
+                                    if os.path.exists(pdf_path_remision):
+                                        with open(pdf_path_remision, "rb") as f:
+                                            pdf_bytes = f.read()
+                                        st.download_button(
+                                            label="📥 Descargar Remisión de Salida Oficial (PDF)",
+                                            data=pdf_bytes,
+                                            file_name=f"Remision_Salida_{folio_salida}.pdf",
+                                            mime="application/pdf",
+                                            use_container_width=True
+                                        )
+                                    
+                                    st.session_state.BD_Salidas = cargar_db(BD_SALIDAS, "Salidas_Detalle")
+                                    st.rerun()
+            
+            with pest_inv3:
+                st.write("### 📜 Historial de Remisiones y Despachos")
+                st.markdown("Consulte el histórico de salidas de materia prima del almacén de metales.")
+                
+                if df_salidas.empty:
+                    st.info("No se han registrado remisiones de salida aún.")
+                else:
+                    # Mostrar tabla
+                    df_salidas_sorted = df_salidas.sort_values("Folio_Salida", ascending=False)
+                    st.dataframe(df_salidas_sorted, use_container_width=True, hide_index=True)
+                    
+                    # Selección para descargar PDF del historial
+                    st.write("---")
+                    st.write("#### 📥 Reimpresión de Remisión de Salida")
+                    folio_salida_reprint = st.selectbox("Seleccione el Folio de la remisión a descargar:", df_salidas_sorted["Folio_Salida"].tolist(), key="reprint_folio_salida")
+                    
+                    if folio_salida_reprint:
+                        info_salida = df_salidas[df_salidas["Folio_Salida"] == folio_salida_reprint].iloc[0]
+                        
+                        # Buscar información del atado asociado
+                        atado_asoc = df_atados[df_atados["ID_Atado"] == info_salida["ID_Atado"]]
+                        if not atado_asoc.empty:
+                            grado = atado_asoc.iloc[0]["Grado_Acero"]
+                            ubic = atado_asoc.iloc[0]["Ubicacion_Almacen"]
+                        else:
+                            grado = "N/D"
+                            ubic = "N/D"
+                            
+                        pdf_remision_dir = os.path.join(CARPETAS_DIR, "remisiones_salida")
+                        pdf_path_reprint = os.path.join(pdf_remision_dir, f"Remision_Salida_{folio_salida_reprint}.pdf")
+                        
+                        # Regenerar si no existe
+                        if not os.path.exists(pdf_path_reprint):
+                            os.makedirs(pdf_remision_dir, exist_ok=True)
+                            datos_pdf_reprint = {
+                                "Folio_Salida": info_salida["Folio_Salida"],
+                                "Fecha": info_salida["Fecha"],
+                                "Hora": info_salida["Hora"],
+                                "ID_Atado": info_salida["ID_Atado"],
+                                "SKU": info_salida["SKU"],
+                                "Cantidad_Hojas_Despachadas": info_salida["Cantidad_Hojas_Despachadas"],
+                                "Peso_Despachado_Kg": info_salida["Peso_Despachado_Kg"],
+                                "Destino_Proyecto": info_salida["Destino_Proyecto"],
+                                "Responsable": info_salida["Responsable"],
+                                "Observaciones": info_salida["Observaciones"],
+                                "Grado_Acero": grado,
+                                "Ubicacion_Almacen": ubic
+                            }
+                            utils_pdf.generar_pdf_remision_salida(datos_pdf_reprint, pdf_path_reprint)
+                            
+                        if os.path.exists(pdf_path_reprint):
+                            with open(pdf_path_reprint, "rb") as f:
+                                pdf_bytes_reprint = f.read()
+                            st.download_button(
+                                label=f"📥 Descargar PDF de Remisión {folio_salida_reprint}",
+                                data=pdf_bytes_reprint,
+                                file_name=f"Remision_Salida_{folio_salida_reprint}.pdf",
+                                mime="application/pdf",
+                                use_container_width=True,
+                                key=f"btn_reprint_{folio_salida_reprint}"
+                            )
+
+# =============================================================================
+# MÓDULO 5: CATÁLOGO DE TOLERANCIAS DE SKU
 # =============================================================================
 elif opcion_menu == "⚙️ Catálogo de Tolerancias de SKU":
     st.title("⚙️ Configuración y Catálogo de Parámetros de Materia Prima")

@@ -2188,5 +2188,111 @@ def generar_pdf_procedimiento_pralm01(output_pdf_path):
     doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
     print("PDF del Procedimiento PR-ALM-01 creado.")
 
+def generar_pdf_remision_salida(datos_remision, output_pdf_path):
+    """
+    Genera una remisión de salida formal en PDF (FO-MET-36)
+    para el despacho diario de láminas de acero.
+    """
+    doc = SimpleDocTemplate(output_pdf_path, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=90, bottomMargin=60)
+    story = []
+    styles = getSampleStyleSheet()
+    
+    style_title = ParagraphStyle('T_Rem', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=14, textColor=colors.HexColor("#D32F2F"), spaceAfter=5)
+    style_subtitle = ParagraphStyle('S_Rem', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=10, textColor=colors.HexColor("#757575"), spaceAfter=15)
+    style_normal_bold = ParagraphStyle('NB_Rem', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8.5)
+    style_normal_text = ParagraphStyle('NT_Rem', parent=styles['Normal'], fontName="Helvetica", fontSize=8.5, leading=12)
+    style_blanco_bold = ParagraphStyle('WB_Rem', parent=styles['Normal'], textColor=colors.white, fontName="Helvetica-Bold", alignment=1, fontSize=8.5)
+    
+    story.append(Spacer(1, 5))
+    story.append(Paragraph("REMISIÓN DE SALIDA DE MATERIA PRIMA", style_title))
+    story.append(Paragraph("Documento de registro interno para el despacho de materiales del almacén de metales.", style_subtitle))
+    
+    # Tabla de Datos Generales de la Remisión
+    datos_meta = [
+        [Paragraph("FOLIO REMISIÓN:", style_normal_bold), Paragraph(str(datos_remision.get("Folio_Salida", "REM-OUT-XXXX")), style_normal_text),
+         Paragraph("FECHA DESPACHO:", style_normal_bold), Paragraph(f"{datos_remision.get('Fecha', '')} {datos_remision.get('Hora', '')}", style_normal_text)],
+        [Paragraph("RESPONSABLE AUTORIZA:", style_normal_bold), Paragraph(str(datos_remision.get("Responsable", "N/D")), style_normal_text),
+         Paragraph("PROYECTO / DESTINO:", style_normal_bold), Paragraph(str(datos_remision.get("Destino_Proyecto", "N/D")), style_normal_text)]
+    ]
+    t_meta = Table(datos_meta, colWidths=[130, 140, 130, 140])
+    t_meta.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
+        ('BACKGROUND', (0,0), (0,-1), colors.HexColor("#F5F5F5")),
+        ('BACKGROUND', (2,0), (2,-1), colors.HexColor("#F5F5F5")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
+    ]))
+    story.append(t_meta)
+    story.append(Spacer(1, 15))
+    
+    # Tabla de Detalle del Material Despachado
+    story.append(Paragraph("📦 DETALLE DE MATERIAL DESPACHADO", ParagraphStyle('SH_Rem', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=10, textColor=colors.HexColor("#0D47A1"), spaceAfter=5)))
+    
+    headers_detalle = [
+        Paragraph("ID ATADO", style_blanco_bold),
+        Paragraph("SKU", style_blanco_bold),
+        Paragraph("GRADO ACERO", style_blanco_bold),
+        Paragraph("UBICACIÓN", style_blanco_bold),
+        Paragraph("HOJAS RETIRADAS", style_blanco_bold),
+        Paragraph("PESO APROX. (KG)", style_blanco_bold)
+    ]
+    
+    tabla_detalle_data = [
+        headers_detalle,
+        [
+            Paragraph(str(datos_remision.get("ID_Atado", "")), style_normal_text),
+            Paragraph(str(datos_remision.get("SKU", "")), style_normal_text),
+            Paragraph(str(datos_remision.get("Grado_Acero", "")), style_normal_text),
+            Paragraph(str(datos_remision.get("Ubicacion_Almacen", "")), style_normal_text),
+            Paragraph(str(datos_remision.get("Cantidad_Hojas_Despachadas", "")), style_normal_text),
+            Paragraph(f"{float(datos_remision.get('Peso_Despachado_Kg', 0)):.2f}", style_normal_text)
+        ]
+    ]
+    t_detalle = Table(tabla_detalle_data, colWidths=[110, 95, 95, 80, 80, 80])
+    t_detalle.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#757575")),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+        ('TOPPADDING', (0,0), (-1,-1), 8)
+    ]))
+    story.append(t_detalle)
+    story.append(Spacer(1, 15))
+    
+    # Campo de Observaciones
+    story.append(Paragraph("📝 OBSERVACIONES", ParagraphStyle('SH_Obs', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=9, textColor=colors.HexColor("#0D47A1"), spaceAfter=3)))
+    obs_text = str(datos_remision.get("Observaciones", "Ninguna."))
+    if not obs_text.strip():
+        obs_text = "Sin observaciones registradas."
+    story.append(Paragraph(obs_text, style_normal_text))
+    story.append(Spacer(1, 30))
+    
+    # Panel de Firmas
+    datos_firmas = [
+        [
+            Paragraph("_____________________________<br/>ENTREGA (ALMACÉN DE METALES)", style_normal_bold),
+            Paragraph("_____________________________<br/>RECIBE (OPERADOR/ÁREA DESTINO)", style_normal_bold)
+        ],
+        [Spacer(1, 15), Spacer(1, 15)],
+        [
+            Paragraph("_____________________________<br/>INSPECTOR DE CALIDAD (SGC)", style_normal_bold),
+            Paragraph("_____________________________<br/>AUTORIZADO POR", style_normal_bold)
+        ]
+    ]
+    t_firmas = Table(datos_firmas, colWidths=[270, 270])
+    t_firmas.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'TOP')
+    ]))
+    story.append(t_firmas)
+    
+    # Decoracion canvas
+    def decorate(canvas, doc):
+        draw_sigrama_sgc_decorations(canvas, doc, "FO-MET-36", "REMISIÓN DE SALIDA DE MATERIAL")
+        
+    doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
+    print(f"PDF de Remisión de Salida {datos_remision.get('Folio_Salida')} creado.")
+
+
 
 

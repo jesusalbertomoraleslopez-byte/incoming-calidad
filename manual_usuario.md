@@ -52,7 +52,7 @@ Este módulo permite dar de alta un lote de materia prima:
 ### Paso 1: Descargar y Llenar la Plantilla Excel
 1. Haga clic en **`Descargar Formato de Plantilla Corporativa (.xlsx)`** para obtener el formato oficial `FO-MET-30`. El archivo se descargará con la fecha del día actual en su nombre.
 2. Complete la información de las **20 columnas** en Excel. El archivo contiene un único renglón por cada atado/rollo físico. En este único renglón se capturan las 12 mediciones de espesor micrométrico de las 4 placas (Placa 1: Espesores 1 a 3; Placa 2: Espesores 4 a 6; Placa 3: Espesores 7 a 9; Placa 4: Espesores 10 a 12), además del peso total del atado, cantidad total de hojas, número de colada, lote y observaciones. No es necesario duplicar filas ni capturar códigos de SKU o columnas de Placa.
-3. *Asegúrese de usar los dropdowns provistos en las celdas de las columnas de Calibre (ej. `CAL 14`) y de material (ej. `Galvanizado`, `Decapado`, `Aluminio`).*
+3. *Asegúrese de usar los dropdowns provisten en las celdas de las columnas de Calibre (ej. `CAL 14`) y de material (ej. `Galvanizado`, `Decapado`, `Aluminio`).*
 
 ### Paso 2: Completar Datos Generales y Documentación
 1. Ingrese los datos de cabecera: Proveedor, Orden de Compra (PO), Factura/Remisión y Nombre del Inspector.
@@ -98,7 +98,24 @@ Este módulo permite consultar recepciones pasadas:
 
 ---
 
-## ⚙️ 5. Módulo 4: Catálogo de Tolerancias de SKU
+## 📦 5. Módulo 4: Inventario y Remisiones de Salida
+
+Este módulo permite llevar un control cuantitativo y trazable de las existencias físicas de materia prima liberada y registrar los consumos diarios para producción:
+
+1. **📊 Existencias en Inventario (Stock Disponible)**:
+   * Muestra únicamente los atados que fueron **Aceptados** por el departamento de Calidad.
+   * Calcula de forma dinámica las **Hojas Disponibles** y el **Peso Disponible (Kg)** restando los consumos acumulados.
+   * Incluye filtros por SKU y Ubicación de Almacén para localizar lotes conformes rápidamente.
+2. **📝 Registrar Remisión de Salida (Despacho Diario)**:
+   * *Requiere contraseña de **Inspector** o **Administrador**.*
+   * Formulario para descontar láminas de un atado específico seleccionado. Al despachar hojas, el sistema calcula proporcionalmente el peso retirado.
+   * Genera de forma automática la **Remisión de Salida Oficial (PDF - FO-MET-36)** con firmas de entrega/recepción para control físico del almacén.
+3. **📜 Historial de Despachos**:
+   * Listado con la bitácora completa de remisiones de salida emitidas, con opción de reimpresión de cualquier PDF de remisión histórico en caliente.
+
+---
+
+## ⚙️ 6. Módulo 5: Catálogo de Tolerancias de SKU
 
 *La consulta es pública. La edición y adición requieren clave de **Administrador**.*
 
@@ -112,7 +129,7 @@ Este módulo permite configurar los parámetros técnicos aceptables para cada c
 
 ---
 
-## 📋 6. Módulo 5: Procedimiento de Recepción (PR-ALM-01)
+## 📋 7. Módulo 6: Procedimiento de Recepción (PR-ALM-01)
 
 Este módulo es una guía de consulta directa y digitalizada para todo el personal involucrado en la recepción:
 
@@ -121,9 +138,9 @@ Este módulo es una guía de consulta directa y digitalizada para todo el person
 
 ---
 
-## 💡 7. Módulo 6: Manufactura Inteligente y Tecnología
+## 💡 8. Módulo 7: Manufactura Inteligente y Tecnología
 
-Este módulo detalla la justificación técnica detrás de la transición tecnológica y el stack informático del sistema:
+Este módulo detalla la justificación técnica detrás de la transformación digital de calidad e Industria 4.0:
 
 1. **Pilares de Industria 4.0**:
    * *Edge to Cloud*: Captura directa de datos en piso sin papeles intermedios.
@@ -133,7 +150,7 @@ Este módulo detalla la justificación técnica detrás de la transición tecnol
 
 ---
 
-## 📖 8. Módulo 7: Manual de Operación (Este Módulo)
+## 📖 9. Módulo 8: Manual de Operación (Este Módulo)
 
 Permite consultar la presente documentación interactiva en pantalla y descargarla en formato PDF.
 
