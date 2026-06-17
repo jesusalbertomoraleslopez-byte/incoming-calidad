@@ -2921,33 +2921,51 @@ def generar_pdf_reporte_ejecutivo_inventario(filtros, df_inv_filtered, output_pd
         Paragraph("UBICACIÓN", style_blanco_bold),
         Paragraph("INICIAL (HOJAS)", style_blanco_bold),
         Paragraph("DISP. (HOJAS)", style_blanco_bold),
+        Paragraph("% DISP.", style_blanco_bold),
+        Paragraph("% DISP. (GRÁFICO)", style_blanco_bold),
         Paragraph("PESO DISP. (KG)", style_blanco_bold)
     ]
     
     filas_tabla = [headers_tabla]
     
     if df_inv_filtered.empty:
-        filas_tabla.append([Paragraph("No se encontraron existencias físicas en el inventario disponible.", style_normal_text)] + [Paragraph("", style_normal_text)] * 6)
+        filas_tabla.append([Paragraph("No se encontraron existencias físicas en el inventario disponible.", style_normal_text)] + [Paragraph("", style_normal_text)] * 8)
     else:
         df_sort = df_inv_filtered.sort_values("ID_Atado")
         for _, r in df_sort.iterrows():
+            h_ini = float(r["Cantidad_Hojas"])
+            h_disp = float(r["Hojas_Disponibles"])
+            pct_disp = h_disp / h_ini if h_ini > 0 else 0.0
+            pct_disp_str = f"{(pct_disp * 100):.1f}%"
+            
+            # Barra gráfica en ReportLab usando un inline Drawing
+            d_bar = Drawing(55, 10)
+            # Rectángulo de fondo gris
+            d_bar.add(Rect(0, 1, 55, 8, fillColor=colors.HexColor("#E0E0E0"), strokeColor=None))
+            # Rectángulo verde de progreso
+            if pct_disp > 0:
+                d_bar.add(Rect(0, 1, 55 * min(pct_disp, 1.0), 8, fillColor=colors.HexColor("#2E7D32"), strokeColor=None))
+                
             filas_tabla.append([
                 Paragraph(str(r["ID_Atado"]), style_normal_bold),
                 Paragraph(str(r["SKU"]), style_normal_text),
                 Paragraph(str(r["Folio"]), style_normal_text),
                 Paragraph(str(r["Ubicacion_Almacen"]), style_normal_text),
-                Paragraph(f"{int(r['Cantidad_Hojas']):,}", style_normal_text_center),
-                Paragraph(f"{int(r['Hojas_Disponibles']):,}", style_normal_text_center),
+                Paragraph(f"{int(h_ini):,}", style_normal_text_center),
+                Paragraph(f"{int(h_disp):,}", style_normal_text_center),
+                Paragraph(pct_disp_str, style_normal_text_center),
+                d_bar,
                 Paragraph(f"{float(r['Peso_Disponible_Kg']):,.2f}", style_normal_text_center)
             ])
             
-    t_detalle = Table(filas_tabla, colWidths=[90, 80, 70, 85, 75, 70, 70])
+    t_detalle = Table(filas_tabla, colWidths=[80, 65, 60, 70, 50, 45, 40, 65, 65])
     t_style = [
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#E0E0E0")),
         ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-        ('TOPPADDING', (0,0), (-1,-1), 4)
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('ALIGN', (7,1), (7,-1), 'CENTER')
     ]
     
     if not df_inv_filtered.empty:
