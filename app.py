@@ -3481,70 +3481,63 @@ elif opcion_menu == "📚 Glosario de Documentos":
     ]
     
     # Renderizar tabla HTML premium con CSS adaptado a Sigrama
-    html_table = """
-    <style>
-    .glossary-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 20px 0;
-        font-size: 1rem;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
-    }
-    .glossary-table thead tr {
-        background-color: #D32F2F;
-        color: white;
-        text-align: left;
-        font-weight: bold;
-    }
-    .glossary-table th, .glossary-table td {
-        padding: 12px 15px;
-    }
-    .glossary-table tbody tr {
-        border-bottom: 1px solid #dddddd;
-        background-color: #ffffff;
-    }
-    .glossary-table tbody tr:nth-of-type(even) {
-        background-color: #f8f9fa;
-    }
-    .glossary-table tbody tr:last-of-type {
-        border-bottom: 3px solid #D32F2F;
-    }
-    .glossary-table a {
-        color: #D32F2F !important;
-        font-weight: bold;
-        text-decoration: none;
-    }
-    .glossary-table a:hover {
-        text-decoration: underline;
-    }
-    </style>
-    <table class="glossary-table">
-      <thead>
-        <tr>
-          <th>Código de Documento</th>
-          <th>Descripción / Nombre Oficial</th>
-          <th>Descarga de Muestra</th>
-        </tr>
-      </thead>
-      <tbody>
-    """
+    html_table = """<style>
+.glossary-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 1rem;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+}
+.glossary-table thead tr {
+    background-color: #D32F2F;
+    color: white;
+    text-align: left;
+    font-weight: bold;
+}
+.glossary-table th, .glossary-table td {
+    padding: 12px 15px;
+}
+.glossary-table tbody tr {
+    border-bottom: 1px solid #dddddd;
+    background-color: #ffffff;
+}
+.glossary-table tbody tr:nth-of-type(even) {
+    background-color: #f8f9fa;
+}
+.glossary-table tbody tr:last-of-type {
+    border-bottom: 3px solid #D32F2F;
+}
+.glossary-table a {
+    color: #D32F2F !important;
+    font-weight: bold;
+    text-decoration: none;
+}
+.glossary-table a:hover {
+    text-decoration: underline;
+}
+</style>
+<table class="glossary-table">
+  <thead>
+    <tr>
+      <th>Código de Documento</th>
+      <th>Descripción / Nombre Oficial</th>
+      <th>Descarga de Muestra</th>
+    </tr>
+  </thead>
+  <tbody>"""
     
     for doc in glosario:
         link = obtener_link_descarga_muestra(doc["id"], f"📥 Descargar {doc['id']}")
-        html_table += f"""
-        <tr>
-          <td><strong>{doc["id"]}</strong></td>
-          <td>{doc["descripcion"]}</td>
-          <td>{link}</td>
-        </tr>
-        """
+        html_table += f"""<tr>
+  <td><strong>{doc["id"]}</strong></td>
+  <td>{doc["descripcion"]}</td>
+  <td>{link}</td>
+</tr>"""
         
-    html_table += """
-      </tbody>
-    </table>
-    """
+    html_table += """</tbody></table>"""
     
     st.markdown(html_table, unsafe_allow_html=True)
 
