@@ -51,30 +51,44 @@ else:
     with col_banner_txt:
         st.markdown("<h2 style='color:#D32F2F; margin-top:10px;'>SISTEMA DE CONTROL DE CALIDAD EN RECEPCIÓN (INCOMING)</h2>", unsafe_allow_html=True)
 st.write("---")
-# Inyectar estilos CSS para botones PDF: azul + negritas
-# En Streamlit, st.markdown() y st.button() son divs HERMANOS en el DOM (no padre-hijo).
-# Usamos selector :has() con hermano adyacente (+) para que funcione correctamente.
+# Inyectar estilos CSS para botones PDF: azul corporativo + negritas
+# Enfoque directo: apuntar al data-testid de Streamlit para download buttons.
+# st.download_button => div[data-testid="stDownloadButton"]
+# st.button con marcador => se usa clase .pdf-gen-btn via key prefix
 st.markdown("""
 <style>
-/* Span marcador que precede al boton PDF en el DOM de Streamlit */
-div[data-testid="stMarkdown"]:has(.pdf-btn-marker) + div[data-testid="stDownloadButton"] button,
-div[data-testid="stMarkdown"]:has(.pdf-btn-marker) + div[data-testid="stButton"] button,
-div[data-testid="stMarkdown"]:has(.pdf-btn-marker) + div[data-testid="stBaseButton-secondary"] button {
+/* ===== TODOS los botones de descarga (st.download_button) en azul ===== */
+div[data-testid="stDownloadButton"] button {
     background-color: #0D47A1 !important;
     color: white !important;
     font-weight: bold !important;
     border: 2px solid #1E88E5 !important;
     border-radius: 6px !important;
-    transition: background-color 0.3s ease !important;
+    transition: background-color 0.25s ease !important;
+    width: 100% !important;
 }
-div[data-testid="stMarkdown"]:has(.pdf-btn-marker) + div[data-testid="stDownloadButton"] button:hover,
-div[data-testid="stMarkdown"]:has(.pdf-btn-marker) + div[data-testid="stButton"] button:hover {
+div[data-testid="stDownloadButton"] button:hover {
     background-color: #1565C0 !important;
     color: white !important;
+    border-color: #42A5F5 !important;
 }
-/* Streamlit envuelve el label del boton en un <p> */
-div[data-testid="stMarkdown"]:has(.pdf-btn-marker) + div[data-testid="stDownloadButton"] button p,
-div[data-testid="stMarkdown"]:has(.pdf-btn-marker) + div[data-testid="stButton"] button p {
+/* Streamlit envuelve el label en <p> dentro del button */
+div[data-testid="stDownloadButton"] button p {
+    color: white !important;
+    font-weight: bold !important;
+}
+
+/* ===== Botones GENERADORES de PDF (st.button) marcados con key "pdf_" ===== */
+/* Streamlit agrega data-testid al boton mismo; usamos el contenedor stButton */
+div[data-testid="stButton"]:has(button[kind="secondary"]) button[data-testid*="pdf_"],
+div[data-testid="stButton"] button[data-testid*="pdf_"] {
+    background-color: #0D47A1 !important;
+    color: white !important;
+    font-weight: bold !important;
+    border: 2px solid #1E88E5 !important;
+    border-radius: 6px !important;
+}
+div[data-testid="stButton"] button[data-testid*="pdf_"] p {
     color: white !important;
     font-weight: bold !important;
 }
