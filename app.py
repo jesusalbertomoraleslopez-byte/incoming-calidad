@@ -2645,92 +2645,122 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                     
                     # ── 4.4.2. Eliminar Registro REM / REJ (solo Administrador) ─────────────
                     st.write("---")
-                    st.write("#### 4.4.2. 🗑️ Eliminar Registro de Salida (REM / REJ)")
+                    st.write("#### 4.4.2. 🗑️ Eliminar Registros de Salida (REM / REJ)")
                     
                     if not is_admin:
                         st.info("🔒 La eliminación de registros requiere contraseña de Administrador en la barra lateral.")
                     else:
-                        st.warning("⚠️ **Atención:** Al eliminar, las hojas y el peso se devolverán automáticamente al atado en inventario. Esta acción **no se puede deshacer**.")
+                        st.warning("⚠️ **Atención:** Al eliminar, las hojas y el peso se devolverán automáticamente a cada atado en inventario. Esta acción **no se puede deshacer**.")
                         
                         folios_rem_rej = sorted(
                             df_salidas["Folio_Salida"].dropna().unique().tolist(),
                             reverse=True
                         )
                         
-                        col_del1, col_del2 = st.columns([3, 1])
-                        with col_del1:
-                            folio_a_eliminar = st.selectbox(
-                                "Seleccione el Folio a eliminar:",
-                                options=folios_rem_rej,
-                                key="sel_folio_eliminar_44"
+                        folios_a_eliminar = st.multiselect(
+                            "Seleccione uno o varios Folios a eliminar (REM-OUT / REJ-OUT):",
+                            options=folios_rem_rej,
+                            placeholder="Seleccione folios...",
+                            key="msel_folios_eliminar_44"
+                        )
+                        
+                        if folios_a_eliminar:
+                            # Tabla de previsualización de lo que se va a eliminar
+                            regs_sel = df_salidas[df_salidas["Folio_Salida"].isin(folios_a_eliminar)].copy()
+                            
+                            resumen_cols = ["Folio_Salida", "Fecha", "ID_Atado", "SKU",
+                                            "Cantidad_Hojas_Despachadas", "Peso_Despachado_Kg",
+                                            "Destino_Proyecto", "Responsable"]
+                            resumen_cols_exist = [c for c in resumen_cols if c in regs_sel.columns]
+                            
+                            st.markdown("**📋 Registros seleccionados para eliminar:**")
+                            st.dataframe(
+                                regs_sel[resumen_cols_exist].rename(columns={
+                                    "Folio_Salida": "Folio",
+                                    "ID_Atado": "Atado",
+                                    "Cantidad_Hojas_Despachadas": "Hojas",
+                                    "Peso_Despachado_Kg": "Peso (Kg)",
+                                    "Destino_Proyecto": "Destino",
+                                }),
+                                use_container_width=True,
+                                hide_index=True
                             )
-                        
-                        reg_sel = df_salidas[df_salidas["Folio_Salida"] == folio_a_eliminar]
-                        
-                        if not reg_sel.empty:
-                            r = reg_sel.iloc[0]
-                            hojas_dev  = int(r.get("Cantidad_Hojas_Despachadas", 0) or 0)
-                            peso_dev   = float(r.get("Peso_Despachado_Kg", 0.0) or 0.0)
-                            atado_afec = str(r.get("ID_Atado", "N/D"))
-                            tipo_fol   = "🚚 REMISIÓN ESTÁNDAR" if str(folio_a_eliminar).startswith("REM") else "⚠️ RECHAZO / DEFECTO"
+                            
+                            # Resumen consolidado por atado
+                            total_hojas = int(regs_sel["Cantidad_Hojas_Despachadas"].fillna(0).sum())
+                            total_peso  = float(regs_sel["Peso_Despachado_Kg"].fillna(0.0).sum())
+                            n_folios    = len(folios_a_eliminar)
                             
                             st.markdown(f"""
                             <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px 18px;margin:8px 0;">
-                            <b>Folio:</b> {folio_a_eliminar} &nbsp;|&nbsp; <b>Tipo:</b> {tipo_fol}<br>
-                            <b>Atado:</b> {atado_afec} &nbsp;|&nbsp;
-                            <b>Hojas a devolver:</b> {hojas_dev:,} &nbsp;|&nbsp;
-                            <b>Peso a devolver:</b> {peso_dev:,.2f} Kg<br>
-                            <b>Fecha:</b> {r.get("Fecha","N/D")} &nbsp;|&nbsp;
-                            <b>Destino:</b> {r.get("Destino_Proyecto","N/D")} &nbsp;|&nbsp;
-                            <b>Responsable:</b> {r.get("Responsable","N/D")}
+                            <b>📊 Resumen del impacto:</b><br>
+                            • <b>{n_folios}</b> registro(s) a eliminar &nbsp;|&nbsp;
+                            <b>{total_hojas:,}</b> hojas totales a devolver a inventario &nbsp;|&nbsp;
+                            <b>{total_peso:,.2f} Kg</b> totales a devolver
                             </div>
                             """, unsafe_allow_html=True)
                             
-                            confirm_del_44 = st.checkbox(
-                                f"✅ Confirmo eliminar {folio_a_eliminar} y devolver {hojas_dev} hojas / {peso_dev:.2f} Kg al atado {atado_afec}",
-                                key="confirm_del_44"
+                            confirm_del_multi = st.checkbox(
+                                f"✅ Confirmo eliminar {n_folios} registro(s) y revertir {total_hojas:,} hojas / {total_peso:.2f} Kg al inventario",
+                                key="confirm_del_multi_44"
                             )
                             
-                            if confirm_del_44:
+                            if confirm_del_multi:
                                 if st.button(
-                                    f"🗑️ Eliminar Registro {folio_a_eliminar}",
+                                    f"🗑️ Eliminar {n_folios} Registro(s) Seleccionado(s)",
                                     type="primary",
-                                    key="btn_del_salida_44"
+                                    key="btn_del_multi_44"
                                 ):
                                     try:
-                                        # 1. Revertir en BD_Atados
                                         df_atados_mod = st.session_state.BD_Atados.copy()
-                                        mask_at = df_atados_mod["ID_Atado"] == atado_afec
+                                        errores = []
                                         
-                                        if mask_at.any():
-                                            if "Hojas_Disponibles" in df_atados_mod.columns:
-                                                df_atados_mod.loc[mask_at, "Hojas_Disponibles"] = (
-                                                    df_atados_mod.loc[mask_at, "Hojas_Disponibles"].fillna(0) + hojas_dev
-                                                )
-                                            if "Peso_Disponible_Kg" in df_atados_mod.columns:
-                                                df_atados_mod.loc[mask_at, "Peso_Disponible_Kg"] = (
-                                                    df_atados_mod.loc[mask_at, "Peso_Disponible_Kg"].fillna(0.0) + peso_dev
-                                                )
-                                            if "Hojas_Despachadas" in df_atados_mod.columns:
-                                                nuevo_val = df_atados_mod.loc[mask_at, "Hojas_Despachadas"].fillna(0) - hojas_dev
-                                                df_atados_mod.loc[mask_at, "Hojas_Despachadas"] = nuevo_val.clip(lower=0)
+                                        # Agrupar por atado para revertir de forma consolidada
+                                        reversa_por_atado = regs_sel.groupby("ID_Atado").agg(
+                                            hojas_sum=("Cantidad_Hojas_Despachadas", "sum"),
+                                            peso_sum=("Peso_Despachado_Kg", "sum")
+                                        ).reset_index()
+                                        
+                                        for _, fila in reversa_por_atado.iterrows():
+                                            atado_id   = str(fila["ID_Atado"])
+                                            hojas_rev  = int(fila["hojas_sum"] or 0)
+                                            peso_rev   = float(fila["peso_sum"] or 0.0)
+                                            mask_at    = df_atados_mod["ID_Atado"] == atado_id
                                             
-                                            st.session_state.BD_Atados = df_atados_mod
-                                            guardar_db(st.session_state.BD_Atados, BD_ATADOS, "Atados_Incoming")
-                                        else:
-                                            st.warning(f"⚠️ Atado {atado_afec} no encontrado. Las hojas NO fueron revertidas.")
+                                            if mask_at.any():
+                                                if "Hojas_Disponibles" in df_atados_mod.columns:
+                                                    df_atados_mod.loc[mask_at, "Hojas_Disponibles"] = (
+                                                        df_atados_mod.loc[mask_at, "Hojas_Disponibles"].fillna(0) + hojas_rev
+                                                    )
+                                                if "Peso_Disponible_Kg" in df_atados_mod.columns:
+                                                    df_atados_mod.loc[mask_at, "Peso_Disponible_Kg"] = (
+                                                        df_atados_mod.loc[mask_at, "Peso_Disponible_Kg"].fillna(0.0) + peso_rev
+                                                    )
+                                                if "Hojas_Despachadas" in df_atados_mod.columns:
+                                                    nuevo_val = df_atados_mod.loc[mask_at, "Hojas_Despachadas"].fillna(0) - hojas_rev
+                                                    df_atados_mod.loc[mask_at, "Hojas_Despachadas"] = nuevo_val.clip(lower=0)
+                                            else:
+                                                errores.append(f"Atado {atado_id} no encontrado en BD_Atados.")
                                         
-                                        # 2. Eliminar de BD_Salidas
+                                        # Guardar BD_Atados con reversiones
+                                        st.session_state.BD_Atados = df_atados_mod
+                                        guardar_db(st.session_state.BD_Atados, BD_ATADOS, "Atados_Incoming")
+                                        
+                                        # Eliminar los folios de BD_Salidas
                                         df_sal_mod = st.session_state.BD_Salidas.copy()
-                                        df_sal_mod = df_sal_mod[df_sal_mod["Folio_Salida"] != folio_a_eliminar]
+                                        df_sal_mod = df_sal_mod[~df_sal_mod["Folio_Salida"].isin(folios_a_eliminar)]
                                         st.session_state.BD_Salidas = df_sal_mod
                                         guardar_db(st.session_state.BD_Salidas, BD_SALIDAS, "Salidas_Detalle")
                                         
-                                        st.success(f"✅ **{folio_a_eliminar}** eliminado. Se devolvieron **{hojas_dev} hojas** y **{peso_dev:.2f} Kg** al atado **{atado_afec}**.")
+                                        st.success(f"✅ Se eliminaron **{n_folios} registro(s)** correctamente. Se devolvieron **{total_hojas:,} hojas** y **{total_peso:.2f} Kg** al inventario.")
+                                        if errores:
+                                            for err in errores:
+                                                st.warning(f"⚠️ {err}")
                                         st.rerun()
                                         
-                                    except Exception as ex_del44:
-                                        st.error(f"❌ Error al eliminar: {ex_del44}")
+                                    except Exception as ex_del_multi:
+                                        st.error(f"❌ Error al eliminar registros: {ex_del_multi}")
+
                     
                     # ── 4.4.3. Reimpresión de Remisión / Reporte ────────────────────────────
                     st.write("---")
