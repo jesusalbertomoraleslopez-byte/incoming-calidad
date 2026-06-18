@@ -1053,7 +1053,10 @@ if opcion_menu == "1. 📊 Analíticas y Dashboard":
             pdf_path_temp = os.path.join(temp_pdf_dir, f"Reporte_Dashboard_{datetime.date.today().strftime('%Y%m%d')}.pdf")
             
             # Generar el PDF
-            utils_pdf.generar_pdf_reporte_dashboard(filtros_pdf, okr_data_pdf, df_rep_filtered, dict_acep, pdf_path_temp)
+            utils_pdf.generar_pdf_reporte_dashboard(
+                filtros_pdf, okr_data_pdf, df_rep_filtered, dict_acep,
+                pdf_path_temp, df_atd_filtered=df_atd_filtered
+            )
             
             if os.path.exists(pdf_path_temp):
                 with open(pdf_path_temp, "rb") as f:

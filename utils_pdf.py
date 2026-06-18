@@ -1651,10 +1651,11 @@ def generar_pdf_solo_etiquetas(folio, df_atados, output_pdf_path):
     print("PDF de Solo Etiquetas creado en:", output_pdf_path)
 
 
-def generar_pdf_reporte_dashboard(filtros, okr_data, df_rep_filtered, dict_acep, output_pdf_path):
+def generar_pdf_reporte_dashboard(filtros, okr_data, df_rep_filtered, dict_acep, output_pdf_path, df_atd_filtered=None):
     """
     Genera un archivo PDF con el reporte del Dashboard, incluyendo
-    los filtros activos, el resumen de OKRs y la tabla de recepciones recientes.
+    los filtros activos, el resumen de OKRs, la tabla de Atados/Piezas
+    por estatus y el listado detallado de recepciones con atados y piezas por folio.
     """
     doc = SimpleDocTemplate(output_pdf_path, pagesize=letter, leftMargin=36, rightMargin=36, topMargin=90, bottomMargin=60)
     story = []
@@ -1813,43 +1814,78 @@ def generar_pdf_reporte_dashboard(filtros, okr_data, df_rep_filtered, dict_acep,
     
     # --- TABLA DE RECEPCIONES RECIENTES ---
     story.append(Paragraph("📋 LISTADO DE RECEPCIONES INCLUIDAS EN EL PERIODO", style_section))
-    
+    story.append(Paragraph(
+        "Detalle por folio de la cantidad de atados y piezas (hojas) aceptadas y rechazadas en el periodo seleccionado.",
+        style_normal_text))
+    story.append(Spacer(1, 5))
+
+    # Pre-calcular stats por folio desde df_atd_filtered (si disponible)
+    stats_folio = {}  # folio -> {atd_acep, pzs_acep, atd_rech, pzs_rech}
+    if df_atd_filtered is not None and not df_atd_filtered.empty:
+        df_uniq = df_atd_filtered.drop_duplicates(subset=["ID_Atado"])
+        for folio_g, grp in df_uniq.groupby("Folio"):
+            acep = grp[grp["Estatus_Calidad"] == "Aceptado"]
+            rech = grp[grp["Estatus_Calidad"] == "Rechazado"]
+            hojas_col = "Cantidad_Hojas" if "Cantidad_Hojas" in grp.columns else None
+            stats_folio[folio_g] = {
+                "atd_acep":  len(acep),
+                "pzs_acep":  int(acep[hojas_col].sum()) if hojas_col else 0,
+                "atd_rech":  len(rech),
+                "pzs_rech":  int(rech[hojas_col].sum()) if hojas_col else 0,
+            }
+
+    # Encabezados de la tabla
     tabla_recepciones = [[
-        Paragraph("FOLIO", style_blanco_bold),
-        Paragraph("FECHA", style_blanco_bold),
-        Paragraph("PROVEEDOR", style_blanco_bold),
-        Paragraph("PO / FACTURA", style_blanco_bold),
-        Paragraph("ACEPTACIÓN", style_blanco_bold),
-        Paragraph("ESTATUS", style_blanco_bold)
+        Paragraph("FOLIO",              style_blanco_bold),
+        Paragraph("FECHA",              style_blanco_bold),
+        Paragraph("PROVEEDOR",          style_blanco_bold),
+        Paragraph("ESTATUS",            style_blanco_bold),
+        Paragraph("ATD. ACEP.",         style_blanco_bold),
+        Paragraph("PZS. ACEP.",         style_blanco_bold),
+        Paragraph("ATD. RECH.",         style_blanco_bold),
+        Paragraph("PZS. RECH.",         style_blanco_bold),
     ]]
-    
+
     for _, row in df_rep_filtered.iterrows():
-        folio_val = row["Folio"]
-        fecha_val = row["Fecha"]
-        prov_val = row["Proveedor"]
-        po_fact = f"{row['Orden_Compra']} / {row['Factura_Remision']}"
-        acep_val = dict_acep.get(folio_val, "0/0 (0.0%)")
+        folio_val   = row["Folio"]
+        fecha_val   = row["Fecha"]
+        prov_val    = row["Proveedor"]
         estatus_val = row["Estatus_General"]
-        
-        status_color = "#2E7D32" if estatus_val == "Aceptado" else ("#FBC02D" if estatus_val == "Condicionado" else "#C62828")
-        status_html = f"<b><font color='{status_color}'>{estatus_val}</font></b>"
-        
+
+        st_color  = "#2E7D32" if estatus_val == "Aceptado" else ("#FBC02D" if estatus_val == "Condicionado" else "#C62828")
+        st_html   = f"<b><font color='{st_color}'>{estatus_val}</font></b>"
+
+        sf        = stats_folio.get(folio_val, {})
+        atd_acep  = sf.get("atd_acep", "-")
+        pzs_acep  = sf.get("pzs_acep", "-")
+        atd_rech  = sf.get("atd_rech", "-")
+        pzs_rech  = sf.get("pzs_rech", "-")
+
+        col_acep = "#2E7D32"
+        col_rech = "#C62828" if (isinstance(atd_rech, int) and atd_rech > 0) else "#424242"
+
         tabla_recepciones.append([
-            Paragraph(folio_val, style_normal_text),
-            Paragraph(fecha_val, style_normal_text),
-            Paragraph(prov_val, style_normal_text),
-            Paragraph(po_fact, style_normal_text),
-            Paragraph(acep_val, style_normal_text),
-            Paragraph(status_html, style_normal_text)
+            Paragraph(folio_val,  style_normal_text),
+            Paragraph(fecha_val,  style_normal_text),
+            Paragraph(prov_val,   style_normal_text),
+            Paragraph(st_html,    style_normal_text),
+            Paragraph(f"<font color='{col_acep}'><b>{atd_acep}</b></font>", style_normal_text),
+            Paragraph(f"<font color='{col_acep}'>{pzs_acep}</font>",        style_normal_text),
+            Paragraph(f"<font color='{col_rech}'><b>{atd_rech}</b></font>", style_normal_text),
+            Paragraph(f"<font color='{col_rech}'>{pzs_rech}</font>",        style_normal_text),
         ])
-        
-    t_recepciones = Table(tabla_recepciones, colWidths=[90, 70, 130, 110, 80, 60])
+
+    t_recepciones = Table(tabla_recepciones, colWidths=[88, 55, 105, 68, 48, 48, 48, 48])
     t_recepciones.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#757575")),
-        ('ALIGN', (0,0), (1,-1), 'CENTER'),
-        ('ALIGN', (4,0), (-1,-1), 'CENTER'),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
+        ('BACKGROUND',    (0,0), (-1,0), colors.HexColor("#D32F2F")),
+        ('GRID',          (0,0), (-1,-1), 0.5, colors.HexColor("#757575")),
+        ('ALIGN',         (0,0), (-1,-1), 'CENTER'),
+        ('ALIGN',         (0,1), (2,-1),  'LEFT'),
+        ('VALIGN',        (0,0), (-1,-1), 'MIDDLE'),
+        ('FONTSIZE',      (0,0), (-1,-1), 7),
+        ('TOPPADDING',    (0,0), (-1,-1), 3),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+        ('ROWBACKGROUNDS',(0,1), (-1,-1), [colors.white, colors.HexColor("#F5F5F5")]),
     ]))
     story.append(t_recepciones)
     
