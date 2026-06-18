@@ -2357,38 +2357,61 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                     st.write("📋 **Generar Hoja de Control de Consumo de Láminas (FO-MET-37) por Atado**")
                     st.markdown("Imprima un formato físico para reportar secuencialmente el consumo de láminas por atado y asociarlo a Órdenes de Trabajo (OT) de corte a mano.")
                     
-                    col_pdf1, col_pdf2 = st.columns([2, 1])
-                    with col_pdf1:
-                        atado_sel_pdf = st.selectbox("Seleccione el Atado físico:", df_inv_display["ID_Atado"].unique(), key="sb_atado_fomet37")
-                    with col_pdf2:
-                        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-                        if st.button("📄 Generar Formato FO-MET-37", key="btn_gen_fomet37", type="primary", use_container_width=True):
-                            # Obtener los datos originales del atado
-                            atd_orig_data = df_atados[df_atados["ID_Atado"] == atado_sel_pdf].iloc[0].to_dict()
-                            try:
-                                temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
-                                os.makedirs(temp_pdf_dir, exist_ok=True)
-                                pdf_path_consumo = os.path.join(temp_pdf_dir, f"Control_Consumo_{atado_sel_pdf}.pdf")
-                                utils_pdf.generar_pdf_hoja_consumo_fomet37(atd_orig_data, pdf_path_consumo)
-                                if os.path.exists(pdf_path_consumo):
-                                    with open(pdf_path_consumo, "rb") as f:
-                                        st.session_state["fomet37_pdf_bytes"] = f.read()
-                                        st.session_state["fomet37_atado_id"] = atado_sel_pdf
-                                    st.success(f"✅ Formato FO-MET-37 generado para el atado {atado_sel_pdf}. Descargue abajo.")
-                            except Exception as ex_pdf:
-                                st.error(f"Error al generar el formato FO-MET-37: {ex_pdf}")
-                                st.session_state.pop("fomet37_pdf_bytes", None)
+                    atados_disponibles = sorted(df_inv_display["ID_Atado"].unique().tolist())
+                    
+                    atados_sel_pdf = st.multiselect(
+                        "Seleccione uno o varios Atados físicos:",
+                        options=atados_disponibles,
+                        default=[atados_disponibles[0]] if atados_disponibles else [],
+                        key="ms_atados_fomet37",
+                        help="Puede seleccionar varios atados. Se generará un PDF con una sección por cada atado."
+                    )
+                    
+                    col_gen1, col_gen2 = st.columns([1, 2])
+                    with col_gen1:
+                        n_sel = len(atados_sel_pdf)
+                        lbl_btn = f"📄 Generar FO-MET-37 ({n_sel} atado{'s' if n_sel != 1 else ''})" if n_sel > 0 else "📄 Generar FO-MET-37"
+                        if st.button(lbl_btn, key="btn_gen_fomet37", type="primary",
+                                     use_container_width=True, disabled=(n_sel == 0)):
+                            lista_datos = []
+                            for atd_id in atados_sel_pdf:
+                                fila = df_atados[df_atados["ID_Atado"] == atd_id]
+                                if not fila.empty:
+                                    lista_datos.append(fila.iloc[0].to_dict())
+                            if lista_datos:
+                                try:
+                                    temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
+                                    os.makedirs(temp_pdf_dir, exist_ok=True)
+                                    ids_str  = "_".join(atados_sel_pdf) if n_sel <= 3 else f"{n_sel}atados"
+                                    pdf_path_consumo = os.path.join(temp_pdf_dir, f"Control_Consumo_{ids_str}.pdf")
+                                    if n_sel == 1:
+                                        utils_pdf.generar_pdf_hoja_consumo_fomet37(lista_datos[0], pdf_path_consumo)
+                                    else:
+                                        utils_pdf.generar_pdf_hoja_consumo_fomet37_multi(lista_datos, pdf_path_consumo)
+                                    if os.path.exists(pdf_path_consumo):
+                                        with open(pdf_path_consumo, "rb") as f:
+                                            st.session_state["fomet37_pdf_bytes"]   = f.read()
+                                            st.session_state["fomet37_atados_ids"]  = list(atados_sel_pdf)
+                                        st.success(f"✅ FO-MET-37 generado para {n_sel} atado(s). Descargue abajo.")
+                                except Exception as ex_pdf:
+                                    st.error(f"Error al generar el formato FO-MET-37: {ex_pdf}")
+                                    st.session_state.pop("fomet37_pdf_bytes", None)
 
-                    # Botón de descarga persistente (aparece cuando hay PDF generado)
-                    if st.session_state.get("fomet37_pdf_bytes") and st.session_state.get("fomet37_atado_id") == atado_sel_pdf:
-                        st.download_button(
-                            label=f"📥 Descargar Hoja de Consumo - Atado {atado_sel_pdf} (PDF)",
-                            data=st.session_state["fomet37_pdf_bytes"],
-                            file_name=f"Control_Consumo_{atado_sel_pdf}.pdf",
-                            mime="application/pdf",
-                            use_container_width=True,
-                            key="btn_download_fomet37"
-                        )
+                    with col_gen2:
+                        # Botón de descarga persistente
+                        ids_guardados = st.session_state.get("fomet37_atados_ids", [])
+                        if (st.session_state.get("fomet37_pdf_bytes")
+                                and set(ids_guardados) == set(atados_sel_pdf) and atados_sel_pdf):
+                            n_g   = len(ids_guardados)
+                            fname = f"Control_Consumo_{'_'.join(ids_guardados) if n_g <= 3 else f'{n_g}atados'}.pdf"
+                            st.download_button(
+                                label=f"📥 Descargar FO-MET-37 — {n_g} Atado(s) (PDF)",
+                                data=st.session_state["fomet37_pdf_bytes"],
+                                file_name=fname,
+                                mime="application/pdf",
+                                use_container_width=True,
+                                key="btn_download_fomet37"
+                            )
                             
                     # Gráfico de % de Consumo y Disponibilidad por Atado
                     st.write("---")
