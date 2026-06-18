@@ -679,17 +679,20 @@ if opcion_menu == "1. 📊 Analíticas y Dashboard":
     
     df_rep = st.session_state.BD_Reportes
     df_atd = st.session_state.BD_Atados.copy()
-    if not df_atd.empty and "Tipo_Lamina" not in df_atd.columns:
-        def get_tipo_lamina(sku):
-            sku_str = str(sku).upper()
-            if "GALV" in sku_str:
-                return "Galvanizada"
-            elif "DECP" in sku_str:
-                return "Decapada"
-            elif "ALUM" in sku_str:
-                return "Aluminio"
+    def get_tipo_lamina(sku):
+        sku_str = str(sku).upper()
+        if "GALV" in sku_str:
+            return "Galvanizada"
+        elif "DECP" in sku_str:
             return "Decapada"
-        df_atd["Tipo_Lamina"] = df_atd["SKU"].apply(get_tipo_lamina)
+        elif "ALUM" in sku_str:
+            return "Aluminio"
+        return "Decapada"
+    if "Tipo_Lamina" not in df_atd.columns:
+        if not df_atd.empty:
+            df_atd["Tipo_Lamina"] = df_atd["SKU"].apply(get_tipo_lamina)
+        else:
+            df_atd["Tipo_Lamina"] = pd.Series(dtype=str)
     
     if df_rep.empty:
         st.info("No hay reportes de recepción registrados actualmente. Vaya al módulo de 'Registro de Recepción' para comenzar.")
@@ -704,10 +707,16 @@ if opcion_menu == "1. 📊 Analíticas y Dashboard":
                 proveedores = ["Todos"] + sorted(list(df_rep["Proveedor"].dropna().unique().tolist()))
                 prov_sel = st.selectbox("Proveedor:", proveedores, key="dash_prov")
             with col_f3:
-                materiales = ["Todos"] + sorted(list(df_atd["Tipo_Lamina"].dropna().unique().tolist()))
+                if not df_atd.empty and "Tipo_Lamina" in df_atd.columns:
+                    materiales = ["Todos"] + sorted(list(df_atd["Tipo_Lamina"].dropna().unique().tolist()))
+                else:
+                    materiales = ["Todos"]
                 mat_sel = st.selectbox("Material:", materiales, key="dash_mat")
             with col_f4:
-                calibres = ["Todos"] + sorted(list(df_atd["SKU"].apply(lambda x: obtener_calibre(x)).unique().tolist()))
+                if not df_atd.empty and "SKU" in df_atd.columns:
+                    calibres = ["Todos"] + sorted(list(df_atd["SKU"].apply(lambda x: obtener_calibre(x)).unique().tolist()))
+                else:
+                    calibres = ["Todos"]
                 cal_sel = st.selectbox("Calibre:", calibres, key="dash_cal")
                 
         # Filtrado de datos
@@ -742,6 +751,11 @@ if opcion_menu == "1. 📊 Analíticas y Dashboard":
         
         atados_aceptados = len(df_atd_unicos[df_atd_unicos["Estatus_Calidad"] == "Aceptado"])
         atados_rechazados = len(df_atd_unicos[df_atd_unicos["Estatus_Calidad"] == "Rechazado"])
+        
+        # Piezas (Hojas) por estatus
+        hojas_aceptadas = int(df_atd_unicos[df_atd_unicos["Estatus_Calidad"] == "Aceptado"]["Cantidad_Hojas"].sum()) if "Cantidad_Hojas" in df_atd_unicos.columns else 0
+        hojas_rechazadas = int(df_atd_unicos[df_atd_unicos["Estatus_Calidad"] == "Rechazado"]["Cantidad_Hojas"].sum()) if "Cantidad_Hojas" in df_atd_unicos.columns else 0
+        hojas_total = int(df_atd_unicos["Cantidad_Hojas"].sum()) if "Cantidad_Hojas" in df_atd_unicos.columns else 0
         
         peso_total_kg = df_atd_unicos["Peso_Total_Kg"].sum()
         peso_total_lb = df_atd_unicos["Peso_Total_Lb"].sum()
@@ -780,7 +794,37 @@ if opcion_menu == "1. 📊 Analíticas y Dashboard":
             delta_color="normal"
         )
         
-        st.markdown("<h3 style='color:#D32F2F;'>1.2. 🎯 OKR 2: Eficiencia de Abastecimiento y Control</h3>", unsafe_allow_html=True)
+        # ── KPI: Atados Aceptados / Rechazados por Atados y Piezas ────────────────
+        st.markdown("<h3 style='color:#D32F2F;'>1.2. 📦 Resumen de Atados: Aceptados vs Rechazados</h3>", unsafe_allow_html=True)
+        st.markdown("**Detalle de atados (rollos) y piezas (hojas) inspeccionadas, clasificadas por estatus de calidad.**")
+        
+        kpi_row1 = st.columns(4)
+        kpi_row1[0].metric(
+            label="✅ Atados Aceptados",
+            value=f"{atados_aceptados:,} Atados",
+            delta=f"{hojas_aceptadas:,} Piezas",
+            delta_color="normal"
+        )
+        kpi_row1[1].metric(
+            label="❌ Atados Rechazados",
+            value=f"{atados_rechazados:,} Atados",
+            delta=f"{hojas_rechazadas:,} Piezas",
+            delta_color="inverse"
+        )
+        kpi_row1[2].metric(
+            label="📊 Total Atados Inspeccionados",
+            value=f"{total_atados:,} Atados",
+            delta=f"{hojas_total:,} Piezas Totales"
+        )
+        pct_atados_acep = (atados_aceptados / total_atados * 100) if total_atados > 0 else 0.0
+        kpi_row1[3].metric(
+            label="📈 Tasa de Aceptación (Atados)",
+            value=f"{pct_atados_acep:.1f}%",
+            delta=f"{(pct_atados_acep - 95):+.1f}% vs Meta (95%)",
+            delta_color="normal"
+        )
+        
+        st.markdown("<h3 style='color:#D32F2F;'>1.3. 🎯 OKR 2: Eficiencia de Abastecimiento y Control</h3>", unsafe_allow_html=True)
         st.markdown("**Objetivo:** Registrar, medir e inspeccionar el volumen total de acero recibido para asegurar la continuidad de producción.")
         
         o2_col1, o2_col2, o2_col3 = st.columns(3)
@@ -3191,7 +3235,59 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                         )
                         st.plotly_chart(fig4, use_container_width=True)
                 
+                    # ── Descargar PDF del Dashboard (FO-MET-42) ───────────────────────────
+                    st.write("---")
+                    st.write("#### 4.5.3.1. 📥 Exportar Reporte de Tablero (FO-MET-42)")
+                    st.markdown("Descargue el Tablero completo en PDF oficial SGC con KPIs, gráficas e inventario.")
+                    
+                    try:
+                        temp_pdf_dir_dash = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
+                        os.makedirs(temp_pdf_dir_dash, exist_ok=True)
+                        pdf_path_dashboard = os.path.join(
+                            temp_pdf_dir_dash,
+                            f"FO-MET-42_Tablero_Inventario_{datetime.date.today().strftime('%Y%m%d')}.pdf"
+                        )
+                        
+                        kpis_pdf = {
+                            "total_hojas_disponibles": total_hojas_disponibles,
+                            "total_peso_disponible": total_peso_disponible,
+                            "total_hojas_rem": total_hojas_standard,
+                            "total_peso_rem": total_peso_standard,
+                            "total_hojas_rej": total_hojas_rejected,
+                            "total_peso_rej": total_peso_rejected,
+                            "tasa_rechazo": tasa_rechazo_proceso,
+                            "total_atados_activos": total_atados_activos
+                        }
+                        filtros_pdf_dash = {
+                            "fecha_inicio": start_date.strftime("%d/%m/%Y") if start_date else "N/D",
+                            "fecha_fin": end_date.strftime("%d/%m/%Y") if end_date else "N/D",
+                            "skus": ", ".join(skus_seleccionados) if skus_seleccionados else "Todos",
+                            "proyecto": proyecto_filtro.strip() if proyecto_filtro.strip() else "Todos"
+                        }
+                        
+                        df_inv_pdf = df_inv_filtered.copy() if not df_inv_filtered.empty else pd.DataFrame()
+                        df_sal_pdf = df_salidas_filtered.drop(columns=["Fecha_dt"], errors="ignore") if not df_salidas_filtered.empty else pd.DataFrame()
+                        
+                        utils_pdf.generar_pdf_dashboard_inventario(
+                            kpis_pdf, filtros_pdf_dash, df_inv_pdf, df_sal_pdf, pdf_path_dashboard
+                        )
+                        
+                        if os.path.exists(pdf_path_dashboard):
+                            with open(pdf_path_dashboard, "rb") as f_dash:
+                                pdf_bytes_dashboard = f_dash.read()
+                            st.download_button(
+                                label="📥 Descargar Reporte de Tablero — Inventario y Despachos (FO-MET-42)",
+                                data=pdf_bytes_dashboard,
+                                file_name=f"FO-MET-42_Tablero_Inventario_{datetime.date.today().strftime('%Y%m%d')}.pdf",
+                                mime="application/pdf",
+                                use_container_width=True,
+                                key="btn_download_pdf_dashboard_inv"
+                            )
+                    except Exception as ex_dash_pdf:
+                        st.error(f"❌ Error al generar el PDF del Tablero: {ex_dash_pdf}")
+                
                 with pest_dash2:
+
                     st.write("#### 4.5.4.1. 📦 Inventario Físico Activo (En Existencia)")
                     st.markdown("Detalle de rollos y atados aceptados que aún cuentan con hojas disponibles para despacho.")
                     

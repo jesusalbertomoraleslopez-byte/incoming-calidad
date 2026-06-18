@@ -3351,6 +3351,327 @@ def crear_pdf_generico_muestra(doc_id, titulo, columnas, filas, output_path):
     doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
 
 
+# =============================================================================
+# FO-MET-42: REPORTE DE TABLERO DE INVENTARIO Y DESPACHOS (DASHBOARD PDF)
+# =============================================================================
+def generar_pdf_dashboard_inventario(kpis: dict, filtros: dict,
+                                     df_inventario, df_salidas,
+                                     output_path: str):
+    """
+    Genera el Reporte Ejecutivo de Tablero de Inventario y Despachos (FO-MET-42).
 
+    Parámetros:
+        kpis      – dict con: total_hojas_disponibles, total_peso_disponible,
+                              total_hojas_rem, total_peso_rem,
+                              total_hojas_rej, total_peso_rej,
+                              tasa_rechazo, total_atados_activos
+        filtros   – dict con: fecha_inicio, fecha_fin, skus, proyecto
+        df_inventario – DataFrame con atados disponibles
+        df_salidas    – DataFrame con el historial de despachos filtrado
+        output_path   – ruta de salida del PDF
+    """
+    doc_id = "FO-MET-42"
+    titulo = "REPORTE DE TABLERO — INVENTARIO Y DESPACHOS"
+    fecha_generacion = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
 
+    doc = SimpleDocTemplate(
+        output_path,
+        pagesize=letter,
+        leftMargin=0.6 * inch,
+        rightMargin=0.6 * inch,
+        topMargin=1.1 * inch,
+        bottomMargin=0.7 * inch,
+    )
+
+    styles = getSampleStyleSheet()
+    azul_sg   = colors.HexColor("#1e3c72")
+    gris_hdr  = colors.HexColor("#37474F")
+    blanco    = colors.white
+    gris_alt  = colors.HexColor("#F5F5F5")
+    verde_rem = colors.HexColor("#1B5E20")
+    rojo_rej  = colors.HexColor("#B71C1C")
+    morado    = colors.HexColor("#4A148C")
+
+    st_titulo = ParagraphStyle("titulo", parent=styles["Heading1"],
+                               fontSize=13, textColor=azul_sg,
+                               spaceAfter=4, spaceBefore=0,
+                               fontName="Helvetica-Bold")
+    st_seccion = ParagraphStyle("seccion", parent=styles["Heading2"],
+                                fontSize=10, textColor=blanco,
+                                spaceAfter=0, spaceBefore=8,
+                                fontName="Helvetica-Bold")
+    st_normal = ParagraphStyle("normal", parent=styles["Normal"],
+                               fontSize=8, fontName="Helvetica")
+    st_bold   = ParagraphStyle("bold", parent=styles["Normal"],
+                               fontSize=8, fontName="Helvetica-Bold")
+    st_small  = ParagraphStyle("small", parent=styles["Normal"],
+                               fontSize=7, fontName="Helvetica",
+                               textColor=colors.HexColor("#616161"))
+    st_blanco = ParagraphStyle("blanco", parent=styles["Normal"],
+                               fontSize=8, fontName="Helvetica-Bold",
+                               textColor=blanco)
+
+    story = []
+
+    # ── Título y metadatos ────────────────────────────────────────────────────
+    story.append(Paragraph(f"{doc_id} — {titulo}", st_titulo))
+    story.append(Spacer(1, 4))
+
+    meta_rows = [[
+        Paragraph("Período analizado:", st_bold),
+        Paragraph(f"{filtros.get('fecha_inicio','N/D')} al {filtros.get('fecha_fin','N/D')}", st_normal),
+        Paragraph("SKUs filtrados:", st_bold),
+        Paragraph(filtros.get('skus', 'Todos'), st_normal),
+    ],[
+        Paragraph("Proyecto / Destino:", st_bold),
+        Paragraph(filtros.get('proyecto', 'Todos'), st_normal),
+        Paragraph("Generado:", st_bold),
+        Paragraph(fecha_generacion, st_normal),
+    ]]
+    tm = Table(meta_rows, colWidths=[110, 175, 90, 155])
+    tm.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#EEF2F7")),
+        ('GRID', (0,0), (-1,-1), 0.3, colors.HexColor("#B0BEC5")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+    ]))
+    story.append(tm)
+    story.append(Spacer(1, 10))
+
+    # ── Panel KPIs ────────────────────────────────────────────────────────────
+    def kpi_cell(label, valor, sub, color_bg):
+        return Table([[
+            Paragraph(f"<b>{label}</b>", ParagraphStyle("kl", fontSize=7,
+                      textColor=blanco, fontName="Helvetica-Bold")),
+            ],[
+            Paragraph(f"<b>{valor}</b>", ParagraphStyle("kv", fontSize=14,
+                      textColor=blanco, fontName="Helvetica-Bold")),
+            ],[
+            Paragraph(sub, ParagraphStyle("ks", fontSize=6.5,
+                      textColor=colors.HexColor("#BDBDBD"), fontName="Helvetica")),
+        ]], colWidths=[130], rowHeights=[14, 22, 12],
+        style=TableStyle([
+            ('BACKGROUND', (0,0), (-1,-1), color_bg),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('ROUNDEDCORNERS', [6]),
+            ('TOPPADDING', (0,0), (-1,-1), 3),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+        ]))
+
+    kpi_table = Table([[
+        kpi_cell("INVENTARIO DISPONIBLE",
+                 f"{int(kpis.get('total_hojas_disponibles',0)):,} Hojas",
+                 f"{float(kpis.get('total_peso_disponible',0)):,.2f} Kg en stock",
+                 azul_sg),
+        kpi_cell("DESPACHOS ESTÁNDAR (REM)",
+                 f"{int(kpis.get('total_hojas_rem',0)):,} Hojas",
+                 f"{float(kpis.get('total_peso_rem',0)):,.2f} Kg remisionados",
+                 verde_rem),
+        kpi_cell("RECHAZOS POR DEFECTO (REJ)",
+                 f"{int(kpis.get('total_hojas_rej',0)):,} Hojas",
+                 f"{float(kpis.get('total_peso_rej',0)):,.2f} Kg rechazados",
+                 rojo_rej),
+        kpi_cell("TASA DE RECHAZO",
+                 f"{float(kpis.get('tasa_rechazo',0.0)):.2f}%",
+                 "Sobre egresos totales",
+                 morado),
+    ]], colWidths=[130, 130, 130, 130], spaceAfter=8)
+    kpi_table.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('LEFTPADDING', (0,0), (-1,-1), 4),
+        ('RIGHTPADDING', (0,0), (-1,-1), 4),
+    ]))
+    story.append(kpi_table)
+    story.append(Spacer(1, 8))
+
+    # ── Gráfica de barras: Inventario por SKU ─────────────────────────────────
+    if df_inventario is not None and not df_inventario.empty and "SKU" in df_inventario.columns:
+        try:
+            df_sku = df_inventario.groupby("SKU").agg(
+                Disponibles=("Hojas_Disponibles", "sum"),
+                Despachadas=("Hojas_Despachadas", "sum")
+            ).reset_index().sort_values("Disponibles", ascending=False).head(12)
+
+            fig_bar, ax = plt.subplots(figsize=(7.5, 2.8))
+            x = range(len(df_sku))
+            w = 0.38
+            ax.bar([i - w/2 for i in x], df_sku["Disponibles"], width=w,
+                   color="#1e3c72", label="Disponibles", zorder=3)
+            ax.bar([i + w/2 for i in x], df_sku["Despachadas"], width=w,
+                   color="#e53935", label="Despachadas", zorder=3)
+            ax.set_xticks(list(x))
+            ax.set_xticklabels(df_sku["SKU"].tolist(), rotation=30, ha="right", fontsize=7)
+            ax.set_ylabel("Hojas", fontsize=8)
+            ax.set_title("Existencias vs. Despachos por SKU", fontsize=9, fontweight="bold")
+            ax.legend(fontsize=7, loc="upper right")
+            ax.grid(axis="y", alpha=0.3, zorder=0)
+            ax.set_facecolor("#FAFAFA")
+            fig_bar.patch.set_facecolor("white")
+            fig_bar.tight_layout()
+
+            buf_bar = io.BytesIO()
+            fig_bar.savefig(buf_bar, format="png", dpi=130, bbox_inches="tight")
+            plt.close(fig_bar)
+            buf_bar.seek(0)
+
+            img_bar = Image(buf_bar, width=5.2 * inch, height=2.0 * inch)
+            story.append(img_bar)
+            story.append(Spacer(1, 6))
+        except Exception:
+            pass
+
+    # ── Tabla: Inventario Activo ──────────────────────────────────────────────
+    hdr_inv = Table([[Paragraph("INVENTARIO FÍSICO ACTIVO", st_blanco)]],
+                    colWidths=[doc.width])
+    hdr_inv.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,-1), gris_hdr),
+                                  ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                                  ('TOPPADDING', (0,0), (-1,-1), 4),
+                                  ('BOTTOMPADDING', (0,0), (-1,-1), 4)]))
+    story.append(hdr_inv)
+
+    if df_inventario is not None and not df_inventario.empty:
+        inv_cols = ["ID_Atado", "SKU", "Grado_Acero", "Ubicacion_Almacen",
+                    "Cantidad_Hojas", "Hojas_Despachadas", "Hojas_Disponibles",
+                    "Peso_Disponible_Kg"]
+        inv_cols_exist = [c for c in inv_cols if c in df_inventario.columns]
+        df_inv_show = df_inventario[inv_cols_exist].copy().head(30)
+
+        inv_headers = ["Atado", "SKU", "Grado", "Ubicación",
+                       "H. Iniciales", "H. Despachadas", "H. Disponibles", "Peso Disp. (Kg)"]
+        inv_hdr_map = dict(zip(inv_cols, inv_headers))
+
+        col_heads = [Paragraph(inv_hdr_map.get(c, c), st_blanco) for c in inv_cols_exist]
+        inv_data = [col_heads]
+        for _, row in df_inv_show.iterrows():
+            r_data = []
+            for c in inv_cols_exist:
+                val = row[c]
+                if isinstance(val, float):
+                    val = f"{val:,.2f}"
+                elif isinstance(val, int):
+                    val = f"{val:,}"
+                else:
+                    val = str(val) if pd.notna(val) else "-"
+                r_data.append(Paragraph(val, st_normal))
+            inv_data.append(r_data)
+
+        n_cols = len(inv_cols_exist)
+        col_w = doc.width / n_cols
+        t_inv = Table(inv_data, colWidths=[col_w] * n_cols, repeatRows=1)
+        t_inv.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), azul_sg),
+            ('GRID', (0,0), (-1,-1), 0.3, colors.HexColor("#B0BEC5")),
+            ('ROWBACKGROUNDS', (0,1), (-1,-1), [blanco, gris_alt]),
+            ('ALIGN', (4,0), (-1,-1), 'RIGHT'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 3),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+            ('FONTSIZE', (0,0), (-1,-1), 7),
+        ]))
+        story.append(t_inv)
+
+        if len(df_inventario) > 30:
+            story.append(Paragraph(
+                f"* Se muestran los primeros 30 de {len(df_inventario)} atados.",
+                st_small))
+    else:
+        story.append(Paragraph("Sin inventario disponible con los filtros aplicados.", st_normal))
+
+    story.append(Spacer(1, 10))
+
+    # ── Tabla: Historial de Despachos ─────────────────────────────────────────
+    hdr_sal = Table([[Paragraph("HISTORIAL DE DESPACHOS (REM / REJ)", st_blanco)]],
+                    colWidths=[doc.width])
+    hdr_sal.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,-1), gris_hdr),
+                                  ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                                  ('TOPPADDING', (0,0), (-1,-1), 4),
+                                  ('BOTTOMPADDING', (0,0), (-1,-1), 4)]))
+    story.append(hdr_sal)
+
+    if df_salidas is not None and not df_salidas.empty:
+        sal_cols = ["Folio_Salida", "Fecha", "Hora", "ID_Atado", "SKU",
+                    "Cantidad_Hojas_Despachadas", "Peso_Despachado_Kg",
+                    "Destino_Proyecto", "Responsable"]
+        sal_cols_exist = [c for c in sal_cols if c in df_salidas.columns]
+        sal_headers_map = {
+            "Folio_Salida": "Folio", "Fecha": "Fecha", "Hora": "Hora",
+            "ID_Atado": "Atado", "SKU": "SKU",
+            "Cantidad_Hojas_Despachadas": "Hojas",
+            "Peso_Despachado_Kg": "Peso (Kg)",
+            "Destino_Proyecto": "Destino",
+            "Responsable": "Responsable"
+        }
+
+        df_sal_show = df_salidas[sal_cols_exist].sort_values(
+            "Folio_Salida", ascending=False
+        ).head(50) if "Folio_Salida" in df_salidas.columns else df_salidas[sal_cols_exist].head(50)
+
+        sal_col_heads = [Paragraph(sal_headers_map.get(c, c), st_blanco) for c in sal_cols_exist]
+        sal_data = [sal_col_heads]
+        for _, row in df_sal_show.iterrows():
+            folio_str = str(row.get("Folio_Salida", ""))
+            is_rej = folio_str.startswith("REJ")
+            r_data = []
+            for c in sal_cols_exist:
+                val = row[c]
+                if isinstance(val, float):
+                    val = f"{val:,.2f}"
+                elif isinstance(val, int):
+                    val = f"{val:,}"
+                else:
+                    val = str(val) if pd.notna(val) else "-"
+                color_txt = rojo_rej if (is_rej and c == "Folio_Salida") else colors.black
+                r_data.append(Paragraph(
+                    f"<font color='#{color_txt.hexval()[2:] if hasattr(color_txt,'hexval') else '000000'}'><b>{val}</b></font>"
+                    if c == "Folio_Salida" else val,
+                    st_normal
+                ))
+            sal_data.append(r_data)
+
+        n_sal_cols = len(sal_cols_exist)
+        # Anchos proporcionales
+        sal_widths_map = {
+            "Folio_Salida": 75, "Fecha": 50, "Hora": 35, "ID_Atado": 75,
+            "SKU": 65, "Cantidad_Hojas_Despachadas": 35, "Peso_Despachado_Kg": 45,
+            "Destino_Proyecto": 80, "Responsable": 70
+        }
+        sal_col_ws = [sal_widths_map.get(c, 60) for c in sal_cols_exist]
+        # Normalizar a ancho de documento
+        total_w = sum(sal_col_ws)
+        sal_col_ws = [w / total_w * float(doc.width) for w in sal_col_ws]
+
+        t_sal = Table(sal_data, colWidths=sal_col_ws, repeatRows=1)
+        t_sal.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), azul_sg),
+            ('GRID', (0,0), (-1,-1), 0.3, colors.HexColor("#B0BEC5")),
+            ('ROWBACKGROUNDS', (0,1), (-1,-1), [blanco, gris_alt]),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 2),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+            ('FONTSIZE', (0,0), (-1,-1), 7),
+        ]))
+        story.append(t_sal)
+
+        if len(df_salidas) > 50:
+            story.append(Paragraph(
+                f"* Se muestran los últimos 50 de {len(df_salidas)} registros.",
+                st_small))
+    else:
+        story.append(Paragraph("Sin despachos registrados en el período filtrado.", st_normal))
+
+    story.append(Spacer(1, 12))
+    story.append(Paragraph(
+        f"Este documento fue generado automáticamente por el Sistema de Control de Calidad "
+        f"Incoming — SIGRAMA en la fecha {fecha_generacion}. "
+        f"Documento de referencia SGC: {doc_id}.",
+        st_small
+    ))
+
+    def _decorate(canvas, doc_obj):
+        draw_sigrama_sgc_decorations(canvas, doc_obj, doc_id, titulo)
+
+    doc.build(story, onFirstPage=_decorate, onLaterPages=_decorate)
 
