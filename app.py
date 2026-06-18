@@ -78,17 +78,21 @@ div[data-testid="stDownloadButton"] button p {
     font-weight: bold !important;
 }
 
-/* ===== Botones GENERADORES de PDF (st.button) marcados con key "pdf_" ===== */
-/* Streamlit agrega data-testid al boton mismo; usamos el contenedor stButton */
-div[data-testid="stButton"]:has(button[kind="secondary"]) button[data-testid*="pdf_"],
-div[data-testid="stButton"] button[data-testid*="pdf_"] {
+/* ===== Botones de acción primaria (st.button type=primary) en azul ===== */
+div[data-testid="stButton"] button[kind="primary"] {
     background-color: #0D47A1 !important;
     color: white !important;
     font-weight: bold !important;
     border: 2px solid #1E88E5 !important;
     border-radius: 6px !important;
+    transition: background-color 0.25s ease !important;
+    width: 100% !important;
 }
-div[data-testid="stButton"] button[data-testid*="pdf_"] p {
+div[data-testid="stButton"] button[kind="primary"]:hover {
+    background-color: #1565C0 !important;
+    border-color: #42A5F5 !important;
+}
+div[data-testid="stButton"] button[kind="primary"] p {
     color: white !important;
     font-weight: bold !important;
 }
@@ -1424,7 +1428,7 @@ elif opcion_menu == "2. 📥 Registro de Recepción (Incoming)":
             st.write("---")
             
             # Botón para procesar
-            if st.button("💾 Salvar Todo: Procesar e Integrar Recepción a Base de Datos"):
+            if st.button("💾 Salvar Todo: Procesar e Integrar Recepción a Base de Datos", type="primary", use_container_width=True):
                 # Leer valores de st.session_state para evitar pérdidas en reruns
                 proveedor_val = st.session_state.get("reg_proveedor", "").strip()
                 orden_compra_val = st.session_state.get("reg_orden_compra", "").strip()
@@ -2006,7 +2010,7 @@ elif opcion_menu == "3. 🔍 Consulta de Historial":
                     
                     # Botón para regenerar el expediente
                     st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
-                    btn_pdf_clicked_0 = st.button("🔄 Regenerar y Actualizar Todos los PDFs de este Folio", key=f"btn_regen_{folio_seleccionado}", use_container_width=True)
+                    btn_pdf_clicked_0 = st.button("🔄 Regenerar y Actualizar Todos los PDFs de este Folio", key=f"btn_regen_{folio_seleccionado}", use_container_width=True, type="primary")
                     if btn_pdf_clicked_0:
                         import shutil
                         with st.spinner("Regenerando y actualizando todos los PDFs..."):
@@ -2358,33 +2362,33 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                         atado_sel_pdf = st.selectbox("Seleccione el Atado físico:", df_inv_display["ID_Atado"].unique(), key="sb_atado_fomet37")
                     with col_pdf2:
                         st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-                        st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
-                        btn_gen_fomet37 = st.button("📄 Generar Formato FO-MET-37", key="btn_gen_fomet37")
-                        
-                    if btn_gen_fomet37:
-                        # Obtener los datos originales del atado
-                        atd_orig_data = df_atados[df_atados["ID_Atado"] == atado_sel_pdf].iloc[0].to_dict()
-                        try:
-                            temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
-                            os.makedirs(temp_pdf_dir, exist_ok=True)
-                            pdf_path_consumo = os.path.join(temp_pdf_dir, f"Control_Consumo_{atado_sel_pdf}.pdf")
-                            
-                            utils_pdf.generar_pdf_hoja_consumo_fomet37(atd_orig_data, pdf_path_consumo)
-                            
-                            if os.path.exists(pdf_path_consumo):
-                                with open(pdf_path_consumo, "rb") as f:
-                                    pdf_bytes = f.read()
-                                st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
-                                st.download_button(
-                                    label=f"📥 Descargar Hoja de Consumo - Atado {atado_sel_pdf} (PDF)",
-                                    data=pdf_bytes,
-                                    file_name=f"Control_Consumo_{atado_sel_pdf}.pdf",
-                                    mime="application/pdf",
-                                    use_container_width=True,
-                                    key="btn_download_fomet37"
-                                )
-                        except Exception as ex_pdf:
-                            st.error(f"Error al generar el formato FO-MET-37: {ex_pdf}")
+                        if st.button("📄 Generar Formato FO-MET-37", key="btn_gen_fomet37", type="primary", use_container_width=True):
+                            # Obtener los datos originales del atado
+                            atd_orig_data = df_atados[df_atados["ID_Atado"] == atado_sel_pdf].iloc[0].to_dict()
+                            try:
+                                temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
+                                os.makedirs(temp_pdf_dir, exist_ok=True)
+                                pdf_path_consumo = os.path.join(temp_pdf_dir, f"Control_Consumo_{atado_sel_pdf}.pdf")
+                                utils_pdf.generar_pdf_hoja_consumo_fomet37(atd_orig_data, pdf_path_consumo)
+                                if os.path.exists(pdf_path_consumo):
+                                    with open(pdf_path_consumo, "rb") as f:
+                                        st.session_state["fomet37_pdf_bytes"] = f.read()
+                                        st.session_state["fomet37_atado_id"] = atado_sel_pdf
+                                    st.success(f"✅ Formato FO-MET-37 generado para el atado {atado_sel_pdf}. Descargue abajo.")
+                            except Exception as ex_pdf:
+                                st.error(f"Error al generar el formato FO-MET-37: {ex_pdf}")
+                                st.session_state.pop("fomet37_pdf_bytes", None)
+
+                    # Botón de descarga persistente (aparece cuando hay PDF generado)
+                    if st.session_state.get("fomet37_pdf_bytes") and st.session_state.get("fomet37_atado_id") == atado_sel_pdf:
+                        st.download_button(
+                            label=f"📥 Descargar Hoja de Consumo - Atado {atado_sel_pdf} (PDF)",
+                            data=st.session_state["fomet37_pdf_bytes"],
+                            file_name=f"Control_Consumo_{atado_sel_pdf}.pdf",
+                            mime="application/pdf",
+                            use_container_width=True,
+                            key="btn_download_fomet37"
+                        )
                             
                     # Gráfico de % de Consumo y Disponibilidad por Atado
                     st.write("---")
