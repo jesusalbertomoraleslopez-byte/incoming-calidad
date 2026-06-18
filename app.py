@@ -3178,8 +3178,102 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                         
                         st.dataframe(df_sal_tbl, use_container_width=True, hide_index=True)
                         
+                        # ── Eliminación de Registros REM / REJ (solo Administrador) ──────────────
                         st.write("---")
-                        st.write("#### 4.5.5.2. 📥 Exportar Reporte de Despachos (Filtrado)")
+                        st.write("#### 4.5.5.2. 🗑️ Eliminar Registro de Salida (REM / REJ) — Solo Administrador")
+                        
+                        if not is_admin:
+                            st.info("🔒 La eliminación de registros de salida requiere contraseña de Administrador.")
+                        else:
+                            st.warning("⚠️ **Atención:** Al eliminar un registro, las hojas y el peso se devolverán automáticamente al atado en inventario. Esta acción no se puede deshacer.")
+                            
+                            # Selector de folio a eliminar
+                            folios_disponibles = sorted(
+                                df_salidas_filtered["Folio_Salida"].dropna().unique().tolist(),
+                                reverse=True
+                            )
+                            
+                            if not folios_disponibles:
+                                st.info("No hay registros de salida en el rango filtrado para eliminar.")
+                            else:
+                                col_del1, col_del2 = st.columns([3, 1])
+                                with col_del1:
+                                    folio_a_eliminar = st.selectbox(
+                                        "Seleccione el Folio a eliminar (REM-OUT-* ó REJ-OUT-*):",
+                                        options=folios_disponibles,
+                                        key="sel_folio_eliminar_salida"
+                                    )
+                                
+                                # Mostrar detalles del registro seleccionado
+                                reg_sel = df_salidas_filtered[df_salidas_filtered["Folio_Salida"] == folio_a_eliminar]
+                                
+                                if not reg_sel.empty:
+                                    r = reg_sel.iloc[0]
+                                    hojas_a_devolver = int(r.get("Cantidad_Hojas_Despachadas", 0) or 0)
+                                    peso_a_devolver  = float(r.get("Peso_Despachado_Kg", 0.0) or 0.0)
+                                    atado_afectado   = str(r.get("ID_Atado", "N/D"))
+                                    tipo_folio       = "REMISIÓN ESTÁNDAR" if str(folio_a_eliminar).startswith("REM") else "RECHAZO / DEFECTO"
+                                    
+                                    st.markdown(f"""
+                                    <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px 18px;margin:8px 0;">
+                                    <b>Folio:</b> {folio_a_eliminar} &nbsp;|&nbsp; <b>Tipo:</b> {tipo_folio}<br>
+                                    <b>Atado:</b> {atado_afectado} &nbsp;|&nbsp; 
+                                    <b>Hojas a devolver:</b> {hojas_a_devolver:,} &nbsp;|&nbsp; 
+                                    <b>Peso a devolver:</b> {peso_a_devolver:,.2f} Kg<br>
+                                    <b>Fecha:</b> {r.get("Fecha","N/D")} &nbsp;|&nbsp; <b>Responsable:</b> {r.get("Responsable","N/D")}
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                                    
+                                    confirm_del_sal = st.checkbox(
+                                        f"✅ Confirmo que deseo eliminar el folio {folio_a_eliminar} y revertir {hojas_a_devolver} hojas / {peso_a_devolver:.2f} Kg al atado {atado_afectado}",
+                                        key="confirm_del_salida"
+                                    )
+                                    
+                                    if confirm_del_sal:
+                                        if st.button(
+                                            f"🗑️ Eliminar Registro {folio_a_eliminar}",
+                                            type="primary",
+                                            key="btn_eliminar_salida_confirm"
+                                        ):
+                                            try:
+                                                # 1. Revertir hojas y peso en BD_Atados
+                                                df_atados_mod = st.session_state.BD_Atados.copy()
+                                                mask_atado = df_atados_mod["ID_Atado"] == atado_afectado
+                                                
+                                                if mask_atado.any():
+                                                    # Sumar de vuelta las hojas y el peso
+                                                    if "Hojas_Disponibles" in df_atados_mod.columns:
+                                                        df_atados_mod.loc[mask_atado, "Hojas_Disponibles"] = (
+                                                            df_atados_mod.loc[mask_atado, "Hojas_Disponibles"].fillna(0) + hojas_a_devolver
+                                                        )
+                                                    if "Peso_Disponible_Kg" in df_atados_mod.columns:
+                                                        df_atados_mod.loc[mask_atado, "Peso_Disponible_Kg"] = (
+                                                            df_atados_mod.loc[mask_atado, "Peso_Disponible_Kg"].fillna(0.0) + peso_a_devolver
+                                                        )
+                                                    if "Hojas_Despachadas" in df_atados_mod.columns:
+                                                        nuevo_val = df_atados_mod.loc[mask_atado, "Hojas_Despachadas"].fillna(0) - hojas_a_devolver
+                                                        df_atados_mod.loc[mask_atado, "Hojas_Despachadas"] = nuevo_val.clip(lower=0)
+                                                    
+                                                    st.session_state.BD_Atados = df_atados_mod
+                                                    guardar_db(st.session_state.BD_Atados, BD_ATADOS, "Atados_Incoming")
+                                                else:
+                                                    st.warning(f"⚠️ No se encontró el atado {atado_afectado} en BD_Atados. Las hojas NO fueron revertidas.")
+                                                
+                                                # 2. Eliminar el registro de BD_Salidas
+                                                df_salidas_mod = st.session_state.BD_Salidas.copy()
+                                                df_salidas_mod = df_salidas_mod[df_salidas_mod["Folio_Salida"] != folio_a_eliminar]
+                                                st.session_state.BD_Salidas = df_salidas_mod
+                                                guardar_db(st.session_state.BD_Salidas, BD_SALIDAS, "Salidas_Detalle")
+                                                
+                                                st.success(f"✅ Registro **{folio_a_eliminar}** eliminado correctamente. Se devolvieron **{hojas_a_devolver} hojas** y **{peso_a_devolver:.2f} Kg** al atado **{atado_afectado}**.")
+                                                st.rerun()
+                                                
+                                            except Exception as ex_del:
+                                                st.error(f"❌ Error al eliminar el registro: {ex_del}")
+                        
+
+                        st.write("---")
+                        st.write("#### 4.5.5.3. 📥 Exportar Reporte de Despachos (Filtrado)")
                         st.markdown("Descargue la información de despachos mostrada arriba en formato Excel o PDF membretado oficial del SGC.")
                         
                         col_dwn1, col_dwn2 = st.columns(2)
