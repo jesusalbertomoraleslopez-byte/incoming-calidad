@@ -1033,7 +1033,13 @@ if opcion_menu == "1. 📊 Analíticas y Dashboard":
             "peso_total_lb": peso_total_lb,
             "total_lotes": total_lotes,
             "lotes_aceptados": lotes_aceptados,
-            "lotes_rechazados": lotes_rechazados
+            "lotes_rechazados": lotes_rechazados,
+            # KPIs de Atados/Piezas por estatus
+            "atados_aceptados": atados_aceptados,
+            "atados_rechazados": atados_rechazados,
+            "hojas_aceptadas": hojas_aceptadas,
+            "hojas_rechazadas": hojas_rechazadas,
+            "hojas_total": hojas_total,
         }
         
         try:

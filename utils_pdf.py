@@ -1736,6 +1736,60 @@ def generar_pdf_reporte_dashboard(filtros, okr_data, df_rep_filtered, dict_acep,
     story.append(t_okr1)
     story.append(Spacer(1, 8))
     
+    # --- RESUMEN DE ATADOS Y PIEZAS ACEPTADOS / RECHAZADOS ---
+    t_atados_header = Table([[Paragraph("RESUMEN DE ATADOS (ROLLOS) Y PIEZAS INSPECCIONADAS", style_blanco_bold)]], colWidths=[540])
+    t_atados_header.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#37474F")), ('ALIGN', (0,0), (-1,-1), 'LEFT')]))
+    story.append(t_atados_header)
+    
+    atados_acep   = okr_data.get("atados_aceptados", 0)
+    atados_rech   = okr_data.get("atados_rechazados", 0)
+    hojas_acep    = okr_data.get("hojas_aceptadas", 0)
+    hojas_rech    = okr_data.get("hojas_rechazadas", 0)
+    hojas_tot     = okr_data.get("hojas_total", 0)
+    total_atd     = okr_data.get("total_atados", 0)
+    pct_acep      = (atados_acep / total_atd * 100) if total_atd > 0 else 0.0
+    
+    color_acep = "#2E7D32"
+    color_rech = "#C62828" if atados_rech > 0 else "#424242"
+    
+    datos_atados = [
+        [
+            Paragraph("CONCEPTO", style_normal_bold),
+            Paragraph("CANTIDAD ATADOS", style_normal_bold),
+            Paragraph("CANTIDAD PIEZAS (HOJAS)", style_normal_bold),
+            Paragraph("% DEL TOTAL", style_normal_bold),
+        ],
+        [
+            Paragraph(f"<b><font color='{color_acep}'>✔ ACEPTADOS</font></b>", style_normal_text),
+            Paragraph(f"<b><font color='{color_acep}'>{atados_acep:,} Atados</font></b>", style_normal_text),
+            Paragraph(f"<font color='{color_acep}'>{hojas_acep:,} Piezas</font>", style_normal_text),
+            Paragraph(f"<font color='{color_acep}'>{pct_acep:.1f}%</font>", style_normal_text),
+        ],
+        [
+            Paragraph(f"<b><font color='{color_rech}'>✘ RECHAZADOS</font></b>", style_normal_text),
+            Paragraph(f"<b><font color='{color_rech}'>{atados_rech:,} Atados</font></b>", style_normal_text),
+            Paragraph(f"<font color='{color_rech}'>{hojas_rech:,} Piezas</font>", style_normal_text),
+            Paragraph(f"<font color='{color_rech}'>{(100 - pct_acep):.1f}%</font>", style_normal_text),
+        ],
+        [
+            Paragraph("<b>TOTAL INSPECCIONADO</b>", style_normal_bold),
+            Paragraph(f"<b>{total_atd:,} Atados</b>", style_normal_text),
+            Paragraph(f"<b>{hojas_tot:,} Piezas</b>", style_normal_text),
+            Paragraph("<b>100.0%</b>", style_normal_text),
+        ],
+    ]
+    t_atados = Table(datos_atados, colWidths=[160, 130, 130, 120])
+    t_atados.setStyle(TableStyle([
+        ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
+        ('BACKGROUND', (0,0), (-1, 0), colors.HexColor("#E0E0E0")),
+        ('BACKGROUND', (0,3), (-1, 3), colors.HexColor("#F5F5F5")),
+        ('ALIGN',      (1,0), (-1,-1), 'CENTER'),
+        ('VALIGN',     (0,0), (-1,-1), 'MIDDLE'),
+        ('FONTNAME',   (0,3), (-1, 3), 'Helvetica-Bold'),
+    ]))
+    story.append(t_atados)
+    story.append(Spacer(1, 8))
+    
     # OKR 2
     t_okr2_header = Table([[Paragraph("OKR 2: EFICIENCIA DE ABASTECIMIENTO Y CONTROL", style_blanco_bold)]], colWidths=[540])
     t_okr2_header.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#0D47A1")), ('ALIGN', (0,0), (-1,-1), 'LEFT')]))
