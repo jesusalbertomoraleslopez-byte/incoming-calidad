@@ -1851,14 +1851,41 @@ elif opcion_menu == "2. 📥 Registro de Recepción (Incoming)":
                         with col_dl2:
                             if os.path.exists(pdf_solo_etiquetas):
                                 with open(pdf_solo_etiquetas, "rb") as f:
-                                    st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                     st.download_button(
-                                        label="🏷️ Descargar Solo Etiquetas FO-MET-32 (PDF)",
+                                        label="🏷️ Descargar Etiquetas FO-MET-32 (PDF)",
                                         data=f.read(),
                                         file_name=f"Etiquetas_Solo_{nuevo_folio}.pdf",
                                         mime="application/pdf",
                                         use_container_width=True
                                     )
+                            # FO-MET-37: Hoja de Consumo de Láminas
+                            try:
+                                temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
+                                os.makedirs(temp_pdf_dir, exist_ok=True)
+                                pdf_consumo_path = os.path.join(temp_pdf_dir, f"Control_Consumo_Lote_{nuevo_folio}.pdf")
+                                if not df_atados_temp.empty:
+                                    lista_atd_folio = [
+                                        df_atados_temp[df_atados_temp["ID_Atado"] == atd_id].iloc[0].to_dict()
+                                        for atd_id in df_atados_temp["ID_Atado"].unique()
+                                        if not df_atados_temp[df_atados_temp["ID_Atado"] == atd_id].empty
+                                    ]
+                                    if lista_atd_folio:
+                                        if len(lista_atd_folio) == 1:
+                                            utils_pdf.generar_pdf_hoja_consumo_fomet37(lista_atd_folio[0], pdf_consumo_path)
+                                        else:
+                                            utils_pdf.generar_pdf_hoja_consumo_fomet37_multi(lista_atd_folio, pdf_consumo_path)
+                                        if os.path.exists(pdf_consumo_path):
+                                            with open(pdf_consumo_path, "rb") as fc:
+                                                st.download_button(
+                                                    label=f"📄 Hoja de Consumo FO-MET-37 ({len(lista_atd_folio)} atados)",
+                                                    data=fc.read(),
+                                                    file_name=f"Control_Consumo_Lote_{nuevo_folio}.pdf",
+                                                    mime="application/pdf",
+                                                    use_container_width=True,
+                                                    key=f"btn_fomet37_reg_{nuevo_folio}"
+                                                )
+                            except Exception as e_37:
+                                st.warning(f"No se pudo generar FO-MET-37: {e_37}")
                                 
                         # Dibujar las curvas de tolerancia usando Plotly
                         st.write("### 2.4. 📈 Curvas de Tolerancia del Lote Recién Registrado")
@@ -2105,25 +2132,53 @@ elif opcion_menu == "3. 🔍 Consulta de Historial":
                     else:
                         st.warning("⚠️ Archivo de Dosier PDF no encontrado en el servidor local.")
                         
-                    # Botón 1.5: Descargar Solo Etiquetas (generar si no existe)
-                    solo_etiquetas_path = os.path.join(CARPETAS_DIR, folio_seleccionado, f"Etiquetas_Solo_FO-MET-32_{folio_seleccionado}.pdf")
-                    if not os.path.exists(solo_etiquetas_path) and not df_atados_recepcion.empty:
+                    # Botones: FO-MET-32 y FO-MET-37 lado a lado
+                    col_e32, col_e37 = st.columns(2)
+                    with col_e32:
+                        solo_etiquetas_path = os.path.join(CARPETAS_DIR, folio_seleccionado, f"Etiquetas_Solo_FO-MET-32_{folio_seleccionado}.pdf")
+                        if not os.path.exists(solo_etiquetas_path) and not df_atados_recepcion.empty:
+                            try:
+                                os.makedirs(os.path.dirname(solo_etiquetas_path), exist_ok=True)
+                                utils_pdf.generar_pdf_solo_etiquetas(folio_seleccionado, df_atados_recepcion, solo_etiquetas_path)
+                            except Exception:
+                                pass
+                        if os.path.exists(solo_etiquetas_path):
+                            with open(solo_etiquetas_path, "rb") as f:
+                                st.download_button(
+                                    label="🏷️ Descargar Etiquetas FO-MET-32 (PDF)",
+                                    data=f.read(),
+                                    file_name=f"Etiquetas_Solo_{folio_seleccionado}.pdf",
+                                    mime="application/pdf",
+                                    use_container_width=True,
+                                    key=f"btn_solo_etiquetas_{folio_seleccionado}"
+                                )
+                    with col_e37:
                         try:
-                            os.makedirs(os.path.dirname(solo_etiquetas_path), exist_ok=True)
-                            utils_pdf.generar_pdf_solo_etiquetas(folio_seleccionado, df_atados_recepcion, solo_etiquetas_path)
-                        except Exception as e:
-                            pass
-                            
-                    if os.path.exists(solo_etiquetas_path):
-                        with open(solo_etiquetas_path, "rb") as f:
-                            st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
-                            st.download_button(
-                                label="🏷️ Descargar Solo Etiquetas FO-MET-32 (PDF)",
-                                data=f.read(),
-                                file_name=f"Etiquetas_Solo_{folio_seleccionado}.pdf",
-                                mime="application/pdf",
-                                key=f"btn_solo_etiquetas_{folio_seleccionado}"
-                            )
+                            temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
+                            os.makedirs(temp_pdf_dir, exist_ok=True)
+                            pdf_fomet37_hist = os.path.join(temp_pdf_dir, f"Control_Consumo_Lote_{folio_seleccionado}.pdf")
+                            df_atd_hist = df_atados_recepcion.drop_duplicates(subset=["ID_Atado"])
+                            if not df_atd_hist.empty:
+                                lista_atd_hist = [
+                                    df_atd_hist[df_atd_hist["ID_Atado"] == atd_id].iloc[0].to_dict()
+                                    for atd_id in df_atd_hist["ID_Atado"].unique()
+                                ]
+                                if len(lista_atd_hist) == 1:
+                                    utils_pdf.generar_pdf_hoja_consumo_fomet37(lista_atd_hist[0], pdf_fomet37_hist)
+                                else:
+                                    utils_pdf.generar_pdf_hoja_consumo_fomet37_multi(lista_atd_hist, pdf_fomet37_hist)
+                                if os.path.exists(pdf_fomet37_hist):
+                                    with open(pdf_fomet37_hist, "rb") as fc:
+                                        st.download_button(
+                                            label=f"📄 Hoja de Consumo FO-MET-37 ({len(lista_atd_hist)} atados)",
+                                            data=fc.read(),
+                                            file_name=f"Control_Consumo_Lote_{folio_seleccionado}.pdf",
+                                            mime="application/pdf",
+                                            use_container_width=True,
+                                            key=f"btn_fomet37_hist_{folio_seleccionado}"
+                                        )
+                        except Exception as e_37h:
+                            st.warning(f"No se pudo generar FO-MET-37: {e_37h}")
                         
                     # Botón 2: Descargar todo el expediente como un archivo ZIP
                     folder_path = os.path.join(CARPETAS_DIR, folio_seleccionado)
