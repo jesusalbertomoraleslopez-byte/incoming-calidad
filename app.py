@@ -3846,18 +3846,25 @@ elif opcion_menu == "6. 📚 Glosario de Documentos":
     st.markdown("A continuación se presenta el glosario oficial de todos los documentos y formatos generados por la aplicación y el Sistema de Gestión de Calidad (SGC) de Planta Metales. Puede descargar una muestra en formato PDF/Excel haciendo clic en el enlace correspondiente.")
     
     glosario = [
-        {"id": "PR-ALM-01", "descripcion": "Procedimiento de Recepción de Materia Prima", "asociado": "Control de Calidad / Manual de Operación"},
-        {"id": "PR-ALM-02", "descripcion": "Procedimiento de Despacho de Materia Prima", "asociado": "Control de Almacén / Manual de Operación"},
-        {"id": "FO-MET-31", "descripcion": "Reporte Consolidado de Inspección Dimensional de Materia Prima (Dossier)", "asociado": "PR-ALM-01 (Sección 5.2)"},
-        {"id": "FO-MET-32", "descripcion": "Tarjeta de Identificación de Atado (Etiqueta Física)", "asociado": "PR-ALM-01 (Sección 5.3) y PR-SGC-04"},
-        {"id": "FO-MET-33", "descripcion": "Portada y Resumen de Contenido del Dossier de Calidad", "asociado": "PR-ALM-01 (Sección 5.4)"},
-        {"id": "FO-MET-36", "descripcion": "Remisión de Salida de Lámina (Salida Normal/Rechazo)", "asociado": "PR-ALM-02 (Sección 5.1)"},
-        {"id": "FO-MET-37", "descripcion": "Hoja de Control de Consumo de Láminas por Atado (Control Físico)", "asociado": "PR-ALM-02 (Sección 5.3) / Operación Láser"},
-        {"id": "FO-MET-40", "descripcion": "Reporte Ejecutivo de Inventario Disponible (Existencias de Acero)", "asociado": "PR-ALM-01 / PR-ALM-02 / Control Mensual"},
-        {"id": "FO-MET-41", "descripcion": "Reporte de Rechazo por Defecto en Proceso (Registro de Scrap)", "asociado": "PR-ALM-02 (Sección 5.2) y PR-SGC-04"},
-        {"id": "PR-SGC-02", "descripcion": "Procedimiento General para el Control de Registros del SGC", "asociado": "SGC General (Control de Calidad)"},
-        {"id": "PR-SGC-04", "descripcion": "Procedimiento General para Control de Producto o Servicio No Conforme", "asociado": "PR-ALM-01 / PR-ALM-02 / Desviaciones"},
-        {"id": "BD_Salidas_Incoming.xlsx", "descripcion": "Bitácora Digital de Despachos y Registro Histórico de Salidas", "asociado": "PR-ALM-02 (Registro Digital)"}
+        {"id": "PR-ALM-01",              "descripcion": "Procedimiento de Recepción de Materia Prima",                                                          "asociado": "Control de Calidad / Manual de Operación"},
+        {"id": "PR-ALM-02",              "descripcion": "Procedimiento de Despacho de Materia Prima",                                                           "asociado": "Control de Almacén / Manual de Operación"},
+        {"id": "FO-MET-30",              "descripcion": "Plantilla de Captura de Mediciones por Atado (Excel de Carga Masiva)",                                  "asociado": "PR-ALM-01 (Sección 5.1) / Registro de Recepción"},
+        {"id": "FO-MET-31",              "descripcion": "Reporte Consolidado de Inspección Dimensional de Materia Prima (Dossier)",                              "asociado": "PR-ALM-01 (Sección 5.2)"},
+        {"id": "FO-MET-32",              "descripcion": "Tarjeta de Identificación de Atado (Etiqueta Física)",                                                  "asociado": "PR-ALM-01 (Sección 5.3) y PR-SGC-04"},
+        {"id": "FO-MET-33",              "descripcion": "Portada y Resumen de Contenido del Dossier de Calidad",                                                 "asociado": "PR-ALM-01 (Sección 5.4)"},
+        {"id": "FO-MET-34",              "descripcion": "Catálogo de Parámetros y Tolerancias de Materia Prima (SKUs)",                                          "asociado": "PR-ALM-01 / Catálogo de Tolerancias de SKU"},
+        {"id": "FO-MET-35",              "descripcion": "Reporte de Consulta de Historial de Recepciones",                                                       "asociado": "PR-ALM-01 / Consulta de Historial"},
+        {"id": "FO-MET-36",              "descripcion": "Remisión de Salida de Lámina (Salida Normal/Rechazo)",                                                  "asociado": "PR-ALM-02 (Sección 5.1)"},
+        {"id": "FO-MET-37",              "descripcion": "Hoja de Control de Consumo de Láminas por Atado (Control Físico)",                                      "asociado": "PR-ALM-02 (Sección 5.3) / Operación Láser"},
+        {"id": "FO-MET-38",              "descripcion": "Reporte Histórico de Despachos y Salidas de Material",                                                  "asociado": "PR-ALM-02 / Control de Inventario y Remisiones"},
+        {"id": "FO-MET-39",              "descripcion": "Reporte de Auditoría y Control de Atados (Trazabilidad y Consumo)",                                     "asociado": "PR-ALM-02 / Control de Inventario y Remisiones"},
+        {"id": "FO-MET-40",              "descripcion": "Reporte Ejecutivo de Inventario Disponible (Existencias de Acero)",                                     "asociado": "PR-ALM-01 / PR-ALM-02 / Control Mensual"},
+        {"id": "FO-MET-41",              "descripcion": "Reporte de Rechazo por Defecto en Proceso (Registro de Scrap)",                                         "asociado": "PR-ALM-02 (Sección 5.2) y PR-SGC-04"},
+        {"id": "FO-MET-42",              "descripcion": "Reporte de Tablero de Inventario y Despachos (Dashboard Analítico)",                                    "asociado": "PR-ALM-02 / Analíticas y Dashboard de Inventario"},
+        {"id": "FO-SGC-03",              "descripcion": "Reporte Ejecutivo de Analíticas y OKRs de Calidad en Recepción (Dashboard)",                           "asociado": "PR-ALM-01 / Analíticas y Dashboard / OKRs SGC"},
+        {"id": "PR-SGC-02",              "descripcion": "Procedimiento General para el Control de Registros del SGC",                                            "asociado": "SGC General (Control de Calidad)"},
+        {"id": "PR-SGC-04",              "descripcion": "Procedimiento General para Control de Producto o Servicio No Conforme",                                 "asociado": "PR-ALM-01 / PR-ALM-02 / Desviaciones"},
+        {"id": "BD_Salidas_Incoming.xlsx","descripcion": "Bitácora Digital de Despachos y Registro Histórico de Salidas",                                        "asociado": "PR-ALM-02 (Registro Digital)"},
     ]
     
     # Renderizar tabla HTML premium con CSS adaptado a Sigrama
