@@ -2643,9 +2643,99 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                     df_salidas_sorted = df_salidas.sort_values("Folio_Salida", ascending=False)
                     st.dataframe(df_salidas_sorted, use_container_width=True, hide_index=True)
                     
-                    # Selección para descargar PDF del historial
+                    # ── 4.4.2. Eliminar Registro REM / REJ (solo Administrador) ─────────────
                     st.write("---")
-                    st.write("#### 4.4.2. 📥 Reimpresión de Remisión / Reporte de Rechazo")
+                    st.write("#### 4.4.2. 🗑️ Eliminar Registro de Salida (REM / REJ)")
+                    
+                    if not is_admin:
+                        st.info("🔒 La eliminación de registros requiere contraseña de Administrador en la barra lateral.")
+                    else:
+                        st.warning("⚠️ **Atención:** Al eliminar, las hojas y el peso se devolverán automáticamente al atado en inventario. Esta acción **no se puede deshacer**.")
+                        
+                        folios_rem_rej = sorted(
+                            df_salidas["Folio_Salida"].dropna().unique().tolist(),
+                            reverse=True
+                        )
+                        
+                        col_del1, col_del2 = st.columns([3, 1])
+                        with col_del1:
+                            folio_a_eliminar = st.selectbox(
+                                "Seleccione el Folio a eliminar:",
+                                options=folios_rem_rej,
+                                key="sel_folio_eliminar_44"
+                            )
+                        
+                        reg_sel = df_salidas[df_salidas["Folio_Salida"] == folio_a_eliminar]
+                        
+                        if not reg_sel.empty:
+                            r = reg_sel.iloc[0]
+                            hojas_dev  = int(r.get("Cantidad_Hojas_Despachadas", 0) or 0)
+                            peso_dev   = float(r.get("Peso_Despachado_Kg", 0.0) or 0.0)
+                            atado_afec = str(r.get("ID_Atado", "N/D"))
+                            tipo_fol   = "🚚 REMISIÓN ESTÁNDAR" if str(folio_a_eliminar).startswith("REM") else "⚠️ RECHAZO / DEFECTO"
+                            
+                            st.markdown(f"""
+                            <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px 18px;margin:8px 0;">
+                            <b>Folio:</b> {folio_a_eliminar} &nbsp;|&nbsp; <b>Tipo:</b> {tipo_fol}<br>
+                            <b>Atado:</b> {atado_afec} &nbsp;|&nbsp;
+                            <b>Hojas a devolver:</b> {hojas_dev:,} &nbsp;|&nbsp;
+                            <b>Peso a devolver:</b> {peso_dev:,.2f} Kg<br>
+                            <b>Fecha:</b> {r.get("Fecha","N/D")} &nbsp;|&nbsp;
+                            <b>Destino:</b> {r.get("Destino_Proyecto","N/D")} &nbsp;|&nbsp;
+                            <b>Responsable:</b> {r.get("Responsable","N/D")}
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            confirm_del_44 = st.checkbox(
+                                f"✅ Confirmo eliminar {folio_a_eliminar} y devolver {hojas_dev} hojas / {peso_dev:.2f} Kg al atado {atado_afec}",
+                                key="confirm_del_44"
+                            )
+                            
+                            if confirm_del_44:
+                                if st.button(
+                                    f"🗑️ Eliminar Registro {folio_a_eliminar}",
+                                    type="primary",
+                                    key="btn_del_salida_44"
+                                ):
+                                    try:
+                                        # 1. Revertir en BD_Atados
+                                        df_atados_mod = st.session_state.BD_Atados.copy()
+                                        mask_at = df_atados_mod["ID_Atado"] == atado_afec
+                                        
+                                        if mask_at.any():
+                                            if "Hojas_Disponibles" in df_atados_mod.columns:
+                                                df_atados_mod.loc[mask_at, "Hojas_Disponibles"] = (
+                                                    df_atados_mod.loc[mask_at, "Hojas_Disponibles"].fillna(0) + hojas_dev
+                                                )
+                                            if "Peso_Disponible_Kg" in df_atados_mod.columns:
+                                                df_atados_mod.loc[mask_at, "Peso_Disponible_Kg"] = (
+                                                    df_atados_mod.loc[mask_at, "Peso_Disponible_Kg"].fillna(0.0) + peso_dev
+                                                )
+                                            if "Hojas_Despachadas" in df_atados_mod.columns:
+                                                nuevo_val = df_atados_mod.loc[mask_at, "Hojas_Despachadas"].fillna(0) - hojas_dev
+                                                df_atados_mod.loc[mask_at, "Hojas_Despachadas"] = nuevo_val.clip(lower=0)
+                                            
+                                            st.session_state.BD_Atados = df_atados_mod
+                                            guardar_db(st.session_state.BD_Atados, BD_ATADOS, "Atados_Incoming")
+                                        else:
+                                            st.warning(f"⚠️ Atado {atado_afec} no encontrado. Las hojas NO fueron revertidas.")
+                                        
+                                        # 2. Eliminar de BD_Salidas
+                                        df_sal_mod = st.session_state.BD_Salidas.copy()
+                                        df_sal_mod = df_sal_mod[df_sal_mod["Folio_Salida"] != folio_a_eliminar]
+                                        st.session_state.BD_Salidas = df_sal_mod
+                                        guardar_db(st.session_state.BD_Salidas, BD_SALIDAS, "Salidas_Detalle")
+                                        
+                                        st.success(f"✅ **{folio_a_eliminar}** eliminado. Se devolvieron **{hojas_dev} hojas** y **{peso_dev:.2f} Kg** al atado **{atado_afec}**.")
+                                        st.rerun()
+                                        
+                                    except Exception as ex_del44:
+                                        st.error(f"❌ Error al eliminar: {ex_del44}")
+                    
+                    # ── 4.4.3. Reimpresión de Remisión / Reporte ────────────────────────────
+                    st.write("---")
+                    st.write("#### 4.4.3. 📥 Reimpresión de Remisión / Reporte de Rechazo")
+
                     folio_salida_reprint = st.selectbox("Seleccione el Folio a descargar:", df_salidas_sorted["Folio_Salida"].tolist(), key="reprint_folio_salida")
                     
                     if folio_salida_reprint:
