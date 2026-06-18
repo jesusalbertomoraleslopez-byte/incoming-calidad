@@ -51,6 +51,29 @@ else:
     with col_banner_txt:
         st.markdown("<h2 style='color:#D32F2F; margin-top:10px;'>SISTEMA DE CONTROL DE CALIDAD EN RECEPCIÓN (INCOMING)</h2>", unsafe_allow_html=True)
 st.write("---")
+# Inyectar estilos CSS para personalizar botones que generan/descargan PDFs
+st.markdown("""
+<style>
+.pdf-btn-container button {
+    background-color: #0D47A1 !important; /* Azul oscuro corporativo */
+    color: white !important;
+    font-weight: bold !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 8px 16px !important;
+    transition: background-color 0.3s ease !important;
+}
+.pdf-btn-container button:hover {
+    background-color: #1565C0 !important; /* Azul más vibrante al pasar el mouse */
+    color: white !important;
+}
+.pdf-btn-container button p {
+    font-weight: bold !important; /* Asegurar texto en negrita en Streamlit */
+    color: white !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 
 # Carga de base de datos segura de forma local
 def cargar_db(path, sheet=0):
@@ -961,6 +984,7 @@ if opcion_menu == "1. 📊 Analíticas y Dashboard":
                 with open(pdf_path_temp, "rb") as f:
                     pdf_bytes = f.read()
                     
+                st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
                 st.download_button(
                     label="📥 Descargar Reporte Ejecutivo del Dashboard (PDF)",
                     data=pdf_bytes,
@@ -969,6 +993,7 @@ if opcion_menu == "1. 📊 Analíticas y Dashboard":
                     use_container_width=True,
                     key="btn_descarga_dashboard_pdf"
                 )
+                st.markdown('</div>', unsafe_allow_html=True)
                 
                 # Limpiar archivo temporal
                 try:
@@ -1738,6 +1763,7 @@ elif opcion_menu == "2. 📥 Registro de Recepción (Incoming)":
                         with col_dl1:
                             if os.path.exists(pdf_dosier):
                                 with open(pdf_dosier, "rb") as f:
+                                    st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
                                     st.download_button(
                                         label="📄 Descargar Dosier de Calidad Consolidado (PDF)",
                                         data=f.read(),
@@ -1745,9 +1771,11 @@ elif opcion_menu == "2. 📥 Registro de Recepción (Incoming)":
                                         mime="application/pdf",
                                         use_container_width=True
                                     )
+                                    st.markdown('</div>', unsafe_allow_html=True)
                         with col_dl2:
                             if os.path.exists(pdf_solo_etiquetas):
                                 with open(pdf_solo_etiquetas, "rb") as f:
+                                    st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
                                     st.download_button(
                                         label="🏷️ Descargar Solo Etiquetas FO-MET-32 (PDF)",
                                         data=f.read(),
@@ -1755,6 +1783,7 @@ elif opcion_menu == "2. 📥 Registro de Recepción (Incoming)":
                                         mime="application/pdf",
                                         use_container_width=True
                                     )
+                                    st.markdown('</div>', unsafe_allow_html=True)
                                 
                         # Dibujar las curvas de tolerancia usando Plotly
                         st.write("### 2.4. 📈 Curvas de Tolerancia del Lote Recién Registrado")
@@ -1875,6 +1904,7 @@ elif opcion_menu == "3. 🔍 Consulta de Historial":
                 if os.path.exists(pdf_path_historial):
                     with open(pdf_path_historial, "rb") as f:
                         pdf_bytes = f.read()
+                    st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
                     st.download_button(
                         label="📥 Descargar Reporte de Consulta Filtrada (PDF)",
                         data=pdf_bytes,
@@ -1883,6 +1913,7 @@ elif opcion_menu == "3. 🔍 Consulta de Historial":
                         use_container_width=True,
                         key="btn_descarga_consulta_historial_pdf"
                     )
+                    st.markdown('</div>', unsafe_allow_html=True)
             except Exception as e:
                 st.error(f"Error al generar el PDF de la consulta: {e}")
             
@@ -1907,7 +1938,10 @@ elif opcion_menu == "3. 🔍 Consulta de Historial":
                     st.write("**Descargas Disponibles:**")
                     
                     # Botón para regenerar el expediente
-                    if st.button("🔄 Regenerar y Actualizar Todos los PDFs de este Folio", key=f"btn_regen_{folio_seleccionado}", use_container_width=True):
+                    st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
+                    btn_pdf_clicked_0 = st.button("🔄 Regenerar y Actualizar Todos los PDFs de este Folio", key=f"btn_regen_{folio_seleccionado}", use_container_width=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    if btn_pdf_clicked_0:
                         import shutil
                         with st.spinner("Regenerando y actualizando todos los PDFs..."):
                             try:
@@ -1987,6 +2021,7 @@ elif opcion_menu == "3. 🔍 Consulta de Historial":
                     dossier_path = os.path.join(CARPETAS_DIR, folio_seleccionado, f"Dosier_Calidad_{folio_seleccionado}.pdf")
                     if os.path.exists(dossier_path):
                         with open(dossier_path, "rb") as f:
+                            st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
                             st.download_button(
                                 label="📄 Descargar Dosier de Calidad (PDF)",
                                 data=f.read(),
@@ -1994,6 +2029,7 @@ elif opcion_menu == "3. 🔍 Consulta de Historial":
                                 mime="application/pdf",
                                 key=f"btn_dossier_{folio_seleccionado}"
                             )
+                            st.markdown('</div>', unsafe_allow_html=True)
                     else:
                         st.warning("⚠️ Archivo de Dosier PDF no encontrado en el servidor local.")
                         
@@ -2008,6 +2044,7 @@ elif opcion_menu == "3. 🔍 Consulta de Historial":
                             
                     if os.path.exists(solo_etiquetas_path):
                         with open(solo_etiquetas_path, "rb") as f:
+                            st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
                             st.download_button(
                                 label="🏷️ Descargar Solo Etiquetas FO-MET-32 (PDF)",
                                 data=f.read(),
@@ -2015,6 +2052,7 @@ elif opcion_menu == "3. 🔍 Consulta de Historial":
                                 mime="application/pdf",
                                 key=f"btn_solo_etiquetas_{folio_seleccionado}"
                             )
+                            st.markdown('</div>', unsafe_allow_html=True)
                         
                     # Botón 2: Descargar todo el expediente como un archivo ZIP
                     folder_path = os.path.join(CARPETAS_DIR, folio_seleccionado)
@@ -2235,6 +2273,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                             if os.path.exists(pdf_path_inventario):
                                 with open(pdf_path_inventario, "rb") as f_pdf_inv:
                                     pdf_bytes_inv = f_pdf_inv.read()
+                                st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
                                 st.download_button(
                                     label="📥 Reporte Ejecutivo PDF (FO-MET-40)",
                                     data=pdf_bytes_inv,
@@ -2243,6 +2282,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                     use_container_width=True,
                                     key="btn_download_pdf_inventario_pest1"
                                 )
+                                st.markdown('</div>', unsafe_allow_html=True)
                         except Exception as ex_pi:
                             st.error(f"Error al generar el PDF del reporte ejecutivo: {ex_pi}")
                     
@@ -2255,7 +2295,9 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                         atado_sel_pdf = st.selectbox("Seleccione el Atado físico:", df_inv_display["ID_Atado"].unique(), key="sb_atado_fomet37")
                     with col_pdf2:
                         st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-                        btn_gen_fomet37 = st.button("📄 Generar Formato FO-MET-37", key="btn_gen_fomet37")
+                        st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
+                        st.button("📄 Generar Formato FO-MET-37", key="btn_gen_fomet37")
+                        st.markdown('</div>', unsafe_allow_html=True)
                         
                     if btn_gen_fomet37:
                         # Obtener los datos originales del atado
@@ -2270,6 +2312,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                             if os.path.exists(pdf_path_consumo):
                                 with open(pdf_path_consumo, "rb") as f:
                                     pdf_bytes = f.read()
+                                st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
                                 st.download_button(
                                     label=f"📥 Descargar Hoja de Consumo - Atado {atado_sel_pdf} (PDF)",
                                     data=pdf_bytes,
@@ -2278,6 +2321,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                     use_container_width=True,
                                     key="btn_download_fomet37"
                                 )
+                                st.markdown('</div>', unsafe_allow_html=True)
                         except Exception as ex_pdf:
                             st.error(f"Error al generar el formato FO-MET-37: {ex_pdf}")
                             
@@ -2416,6 +2460,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                     if os.path.exists(rem["pdf_path"]):
                                         with open(rem["pdf_path"], "rb") as f:
                                             pdf_bytes = f.read()
+                                        st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
                                         st.download_button(
                                             label="📥 Descargar Remisión (FO-MET-36)",
                                             data=pdf_bytes,
@@ -2424,6 +2469,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                             use_container_width=True,
                                             key="btn_download_remision_salida_tab"
                                         )
+                                        st.markdown('</div>', unsafe_allow_html=True)
                                 with col_btns2:
                                     atd_orig_match = df_atados[df_atados["ID_Atado"] == rem["atado_id"]]
                                     if not atd_orig_match.empty:
@@ -2435,6 +2481,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                             if os.path.exists(pdf_path_consumo_rem):
                                                 with open(pdf_path_consumo_rem, "rb") as f_c:
                                                     pdf_bytes_c = f_c.read()
+                                                st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
                                                 st.download_button(
                                                     label="📄 Descargar Hoja de Consumo (FO-MET-37)",
                                                     data=pdf_bytes_c,
@@ -2443,6 +2490,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                                     use_container_width=True,
                                                     key="btn_download_remision_consumo_tab"
                                                 )
+                                                st.markdown('</div>', unsafe_allow_html=True)
                                         except Exception as ex_c:
                                             st.warning(f"No se pudo generar la Hoja de Consumo: {ex_c}")
 
@@ -2565,6 +2613,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                 if os.path.exists(rem["pdf_path"]):
                                     with open(rem["pdf_path"], "rb") as f:
                                         pdf_bytes = f.read()
+                                    st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
                                     st.download_button(
                                         label="📥 Descargar Reporte de Rechazo (FO-MET-41)",
                                         data=pdf_bytes,
@@ -2573,6 +2622,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                         use_container_width=True,
                                         key="btn_download_reporte_rechazo_tab"
                                     )
+                                    st.markdown('</div>', unsafe_allow_html=True)
             
             with pest_inv3:
                 st.write("### 4.4.1. 📜 Historial de Remisiones y Despachos")
@@ -2639,6 +2689,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                             if os.path.exists(pdf_path_reprint):
                                 with open(pdf_path_reprint, "rb") as f:
                                     pdf_bytes_reprint = f.read()
+                                st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
                                 st.download_button(
                                     label=f"📥 Descargar PDF de Reporte de Rechazo {folio_salida_reprint} (FO-MET-41)",
                                     data=pdf_bytes_reprint,
@@ -2647,6 +2698,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                     use_container_width=True,
                                     key=f"btn_reprint_{folio_salida_reprint}"
                                 )
+                                st.markdown('</div>', unsafe_allow_html=True)
                         else:
                             pdf_path_reprint = os.path.join(pdf_remision_dir, f"Remision_Salida_{folio_salida_reprint}.pdf")
                             
@@ -2672,6 +2724,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                             if os.path.exists(pdf_path_reprint):
                                 with open(pdf_path_reprint, "rb") as f:
                                     pdf_bytes_reprint = f.read()
+                                st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
                                 st.download_button(
                                     label=f"📥 Descargar PDF de Remisión {folio_salida_reprint} (FO-MET-36)",
                                     data=pdf_bytes_reprint,
@@ -2680,6 +2733,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                     use_container_width=True,
                                     key=f"btn_reprint_{folio_salida_reprint}"
                                 )
+                                st.markdown('</div>', unsafe_allow_html=True)
 
             with pest_inv4:
                 st.write("### 4.5.1. 📈 Tablero y Análisis de Inventario")
@@ -3086,6 +3140,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                 if os.path.exists(pdf_path_inventario):
                                     with open(pdf_path_inventario, "rb") as f_pdf_inv:
                                         pdf_bytes_inv = f_pdf_inv.read()
+                                    st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
                                     st.download_button(
                                         label="📥 Descargar Reporte en PDF (FO-MET-40)",
                                         data=pdf_bytes_inv,
@@ -3094,6 +3149,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                         use_container_width=True,
                                         key="btn_download_pdf_inventario_activo"
                                     )
+                                    st.markdown('</div>', unsafe_allow_html=True)
                             except Exception as ex_pi:
                                 st.error(f"Error al generar el PDF del reporte ejecutivo: {ex_pi}")
                 
@@ -3157,6 +3213,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                 if os.path.exists(pdf_path_despachos):
                                     with open(pdf_path_despachos, "rb") as f_pdf:
                                         pdf_bytes_desp = f_pdf.read()
+                                    st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
                                     st.download_button(
                                         label="📥 Descargar Reporte en PDF (FO-MET-38)",
                                         data=pdf_bytes_desp,
@@ -3165,6 +3222,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                         use_container_width=True,
                                         key="btn_download_pdf_despachos"
                                     )
+                                    st.markdown('</div>', unsafe_allow_html=True)
                             except Exception as ex_p:
                                 st.error(f"Error al generar el PDF del reporte: {ex_p}")
                 
@@ -3281,6 +3339,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                     if os.path.exists(pdf_path_auditoria):
                                         with open(pdf_path_auditoria, "rb") as f_aud_pdf:
                                             pdf_bytes_aud = f_aud_pdf.read()
+                                        st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
                                         st.download_button(
                                             label="📥 Descargar Auditoría en PDF (FO-MET-39)",
                                             data=pdf_bytes_aud,
@@ -3289,6 +3348,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                             use_container_width=True,
                                             key="btn_download_pdf_auditoria"
                                         )
+                                        st.markdown('</div>', unsafe_allow_html=True)
                                 except Exception as ex_ap:
                                     st.error(f"Error al generar el PDF de auditoría: {ex_ap}")
 
@@ -3315,6 +3375,7 @@ elif opcion_menu == "5. ⚙️ Catálogo de Tolerancias de SKU":
         if os.path.exists(pdf_path_skus):
             with open(pdf_path_skus, "rb") as f:
                 pdf_bytes = f.read()
+            st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
             st.download_button(
                 label="📥 Descargar Catálogo de Tolerancias de SKU (PDF)",
                 data=pdf_bytes,
@@ -3323,6 +3384,7 @@ elif opcion_menu == "5. ⚙️ Catálogo de Tolerancias de SKU":
                 use_container_width=True,
                 key="btn_descarga_skus_pdf"
             )
+            st.markdown('</div>', unsafe_allow_html=True)
     except Exception as e:
         st.error(f"Error al generar el PDF del catálogo: {e}")
         
@@ -3555,12 +3617,14 @@ elif opcion_menu == "7. 📖 Manual de Operación":
     if os.path.exists(MANUAL_PDF_PATH):
         with open(MANUAL_PDF_PATH, "rb") as f:
             pdf_bytes = f.read()
+        st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
         st.download_button(
             label="📥 Descargar Manual de Operación (PDF)",
             data=pdf_bytes,
             file_name="Manual_Usuario_Incoming_Calidad.pdf",
             mime="application/pdf"
         )
+        st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.warning("⚠️ El manual en PDF no se encuentra en el directorio raíz. Puede regenerarlo ejecutando el script correspondiente.")
 
@@ -3601,6 +3665,7 @@ elif opcion_menu == "8. 📋 Procedimiento de Recepción (PR-ALM-01)":
         if os.path.exists(pdf_path_proc):
             with open(pdf_path_proc, "rb") as f:
                 pdf_bytes = f.read()
+            st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
             st.download_button(
                 label="📥 Descargar Procedimiento PR-ALM-01 (PDF)",
                 data=pdf_bytes,
@@ -3609,6 +3674,7 @@ elif opcion_menu == "8. 📋 Procedimiento de Recepción (PR-ALM-01)":
                 use_container_width=True,
                 key="btn_descarga_procedimiento_pdf"
             )
+            st.markdown('</div>', unsafe_allow_html=True)
     except Exception as e:
         st.error(f"Error al generar el PDF del procedimiento: {e}")
         
@@ -3710,6 +3776,7 @@ elif opcion_menu == "9. 📋 Procedimiento de Despacho (PR-ALM-02)":
         if os.path.exists(pdf_path_proc2):
             with open(pdf_path_proc2, "rb") as f:
                 pdf_bytes = f.read()
+            st.markdown('<div class="pdf-btn-container">', unsafe_allow_html=True)
             st.download_button(
                 label="📥 Descargar Procedimiento PR-ALM-02 (PDF)",
                 data=pdf_bytes,
@@ -3718,6 +3785,7 @@ elif opcion_menu == "9. 📋 Procedimiento de Despacho (PR-ALM-02)":
                 use_container_width=True,
                 key="btn_descarga_procedimiento_pralm02_pdf"
             )
+            st.markdown('</div>', unsafe_allow_html=True)
     except Exception as e:
         st.error(f"Error al generar el PDF del procedimiento: {e}")
         
