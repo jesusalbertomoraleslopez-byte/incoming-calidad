@@ -90,7 +90,7 @@ Este módulo permite consultar recepciones pasadas:
 3. **Selección de Expediente**: Seleccione un folio de la lista para ver sus datos generales y mediciones detalladas.
 4. **Descargas Disponibles por Folio**:
    * **`Descargar Dosier de Calidad (PDF)`**: Descarga el archivo consolidado unificado que incluye: Portada (`FO-MET-33`), Reporte de Inspección (`FO-MET-31`), Reporte Técnico de Espesores con curvas Plotly, Tarjetas de Identificación de Atado con curva de Gauss integrada (`FO-MET-32`), Certificado del Molino y la Orden de Compra.
-   * **`Descargar Solo Etiquetas FO-MET-32 (PDF)`**: Descarga un compendio con una página carta por atado que incluye la etiqueta de almacén con su campana de Gauss al pie.
+   * **`Descargar Solo Etiquetas (PDF)`**: Descarga un compendio con una página carta por atado que incluye la etiqueta de almacén con su campana de Gauss al pie.
    * **`Descargar Carpeta Electrónica Completa (ZIP)`**: Descarga un comprimido con todos los PDF individuales, gráficas PNG y fotografías de defectos que conforman el expediente digital del lote.
 5. **Regenerar Expediente**: Haga clic en **`🔄 Regenerar y Actualizar Todos los PDFs de este Folio`** para volver a calcular y compilar los reportes de un folio histórico (por ejemplo, si se corrigieron parámetros).
 6. **Zona de Control Administrativo**:
@@ -111,11 +111,11 @@ Este módulo permite llevar un control cuantitativo y trazable de las existencia
 2. **📝 Registrar Salida Normal (REM-OUT)**:
    * Pestaña dedicada para el despacho de láminas estándar destinadas a celdas de producción (disponible para todos los roles autorizados, incluido Operador Láser).
    * Permite capturar la cantidad de hojas, destino/proyecto, responsable y observaciones.
-   * Genera de forma automática la **Remisión de Salida Oficial (PDF - FO-MET-36)** y la **Hoja de Control de Consumo (PDF - FO-MET-37)**.
+   * Genera de forma automática la **Remisión de Salida Oficial (PDF)** y la **Hoja de Control de Consumo (PDF - FO-MET-37)**.
 3. **⚠️ Reportar Rechazo en Proceso (REJ-OUT)**:
    * Pestaña dedicada para declarar láminas que presentaron defectos no detectados en la recepción inicial.
    * **Carga de Evidencia Fotográfica**: Permite subir fotos del defecto directamente desde la interfaz. Estas fotos se archivan y se incrustan en el reporte PDF en una página de anexos de evidencia.
-   * Genera el **Reporte de Rechazo por Defecto en Proceso (PDF - FO-MET-41)** con las firmas y fotos de evidencia.
+   * Genera el **Reporte de Rechazo por Defecto en Proceso (PDF)** con las firmas y fotos de evidencia.
 4. **📜 Historial de Salidas**:
    * Listado con la bitácora completa de remisiones de salida (`REM-OUT`) y reportes de rechazo (`REJ-OUT`) emitidos, con opción de reimpresión de cualquier PDF histórico en caliente (llamando al formato respectivo FO-MET-36 o FO-MET-41 con sus fotos integradas según el folio).
 
@@ -135,12 +135,12 @@ Este módulo permite configurar los parámetros técnicos aceptables para cada c
 
 ---
 
-## 📋 7. Módulo 6: Procedimiento de Recepción (PR-ALM-01)
+## 📋 7. Módulo 6: Procedimiento de Recepción
 
 Este módulo es una guía de consulta directa y digitalizada para todo el personal involucrado en la recepción:
 
 1. **Consulta Interactiva**: Muestra en pantalla de manera clara el flujo completo, responsabilidades y criterios técnicos vigentes para la recepción del material (grúa viajera, límites de peso de 2.5 TON, 12 lecturas micrométricas por atado y su identificación con tarjeta verde/roja).
-2. **📥 Descargar Procedimiento**: El botón **`Descargar Procedimiento PR-ALM-01 (PDF)`** permite obtener el archivo PDF oficial del SGC (Revisión 00 - Edición Digital) con la estructura y encabezados corporativos oficiales de SIGRAMA.
+2. **📥 Descargar Procedimiento**: El botón **`Descargar Procedimiento de Recepción (PDF)`** permite obtener el archivo PDF oficial del SGC (Revisión 00 - Edición Digital) con la estructura y encabezados corporativos oficiales de SIGRAMA.
 
 ---
 

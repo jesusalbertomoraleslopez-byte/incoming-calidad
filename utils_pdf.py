@@ -250,40 +250,28 @@ def consolidar_df_atados_para_pdf(df_atados):
 # =============================================================================
 
 def draw_sigrama_sgc_decorations(canvas, doc, doc_code, title_text):
-    """Dibuja el encabezado y pie de página oficiales bajo la norma SGC FO-SGC-02."""
+    """Dibuja el encabezado y pie de página oficiales del SGC (sin logo ni código de documento)."""
     canvas.saveState()
-    
-    # Franja superior roja Sigrama
+
+    # Franja superior roja
     canvas.setFillColor(colors.HexColor("#D32F2F"))
     canvas.rect(36, 745, 540, 4, fill=1, stroke=0)
-    
-    # Logotipo
-    if os.path.exists(LOGO_PATH):
-        try:
-            # Dibujar el logo en la parte superior izquierda de la cabecera (escala de aspect ratio horizontal)
-            canvas.drawImage(LOGO_PATH, 36, 755, width=120, height=22, mask='auto')
-        except Exception:
-            canvas.setFont("Helvetica-Bold", 12)
-            canvas.drawString(36, 755, "INDUSTRIA SIGRAMA")
-    else:
-        canvas.setFont("Helvetica-Bold", 12)
-        canvas.drawString(36, 755, "INDUSTRIA SIGRAMA")
-        
-    # Marcador de Control de Calidad Superior Izquierdo Oficial (FO-MET-3X)
+
+    # Nombre de empresa en texto (sin logotipo)
     canvas.setFont("Helvetica-Bold", 11)
-    canvas.setFillColor(colors.HexColor("#D32F2F"))
-    canvas.drawRightString(576, 765, doc_code)
-    
-    # Metadatos de Revisión de Control Documental
+    canvas.setFillColor(colors.black)
+    canvas.drawString(36, 758, "INDUSTRIA SIGRAMA S.A. DE C.V.")
+
+    # Revisión de Control Documental (sin código)
     canvas.setFont("Helvetica", 8)
     canvas.setFillColor(colors.black)
     canvas.drawRightString(576, 753, "Revisión 01")
-    
+
     # Título Central del Formato Oficial
     canvas.setFont("Helvetica-Bold", 10)
     canvas.drawCentredString(315, 755, title_text.upper())
-    
-    # Fecha más destacada
+
+    # Fecha de emisión
     canvas.setFont("Helvetica-Bold", 8)
     months_es = {
         1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
@@ -292,18 +280,16 @@ def draw_sigrama_sgc_decorations(canvas, doc, doc_code, title_text):
     today = datetime.date.today()
     fecha_hoy = f"{today.day} de {months_es[today.month]} de {today.year}"
     canvas.drawString(36, 732, f"Fecha de Emisión: {fecha_hoy}")
-    
-    # Pie de Página Legal y Control del SGC (FO-SGC-02)
+
+    # Pie de página legal (sin código FO-SGC-02)
     canvas.setStrokeColor(colors.HexColor("#D32F2F"))
     canvas.setLineWidth(1)
     canvas.line(36, 45, 36, 25)
-    canvas.setFont("Helvetica-Bold", 7)
-    canvas.drawString(42, 37, "FO-SGC-02")
     canvas.setFont("Helvetica", 6)
     canvas.setFillColor(colors.HexColor("#424242"))
     texto_legal = "PROHIBIDA LA REPRODUCCIÓN TOTAL O PARCIAL, POR CUALQUIER MEDIO O PROCEDIMIENTO, SIN AUTORIZACIÓN DE INDUSTRIA SIGRAMA S.A. DE C.V."
-    canvas.drawString(95, 37, texto_legal)
-    
+    canvas.drawString(42, 37, texto_legal)
+
     canvas.restoreState()
 
 # =============================================================================
@@ -560,11 +546,8 @@ def generar_pdf_etiqueta_atado_fomet32(folio, df_atados, output_pdf_path):
         # --- HOJA 1: IDENTIFICACIÓN DEL ATADO ---
         story.append(Spacer(1, 10))
         
-        # 1. Cabecera de la Etiqueta
-        if os.path.exists(LOGO_PATH):
-            logotipo_header = Image(LOGO_PATH, width=150, height=27)
-        else:
-            logotipo_header = Paragraph("<b>INDUSTRIA SIGRAMA</b>", style_cell_value)
+        # 1. Cabecera de la Etiqueta (Logotipo eliminado por control de calidad)
+        logotipo_header = Paragraph("<b>INDUSTRIA SIGRAMA S.A. DE C.V.</b>", style_cell_value)
             
         header_table_data = [
             [logotipo_header, Paragraph("ATADO DE MATERIA PRIMA", style_tit_label)]
@@ -937,7 +920,7 @@ def generar_pdf_etiqueta_atado_fomet32(folio, df_atados, output_pdf_path):
         
         # Código de formato SGC discreto en la parte inferior externa de la etiqueta
         canvas.setFont("Helvetica-Bold", 7)
-        canvas.drawString(36, 15, "FO-MET-32")
+        pass  # código de documento eliminado
         canvas.setFont("Helvetica", 6)
         canvas.setFillColor(colors.HexColor("#424242"))
         canvas.drawString(100, 15, "FORMATO DE TARJETA DE IDENTIFICACIÓN DE ATADO DE MATERIA PRIMA - SGC SIGRAMA")
@@ -1418,11 +1401,8 @@ def generar_pdf_solo_etiquetas(folio, df_atados, output_pdf_path):
     for idx_row, (idx, row) in enumerate(df_atados.iterrows()):
         story.append(Spacer(1, 10))
         
-        # 1. Cabecera de la Etiqueta
-        if os.path.exists(LOGO_PATH):
-            logotipo_header = Image(LOGO_PATH, width=150, height=27)
-        else:
-            logotipo_header = Paragraph("<b>INDUSTRIA SIGRAMA</b>", style_cell_value)
+        # 1. Cabecera de la Etiqueta (Logotipo eliminado por control de calidad)
+        logotipo_header = Paragraph("<b>INDUSTRIA SIGRAMA S.A. DE C.V.</b>", style_cell_value)
             
         header_table_data = [
             [logotipo_header, Paragraph("ATADO DE MATERIA PRIMA", style_tit_label)]
@@ -1632,7 +1612,7 @@ def generar_pdf_solo_etiquetas(folio, df_atados, output_pdf_path):
         canvas.rect(26, 26, 560, 740)
         
         canvas.setFont("Helvetica-Bold", 7)
-        canvas.drawString(36, 15, "FO-MET-32")
+        pass  # código de documento eliminado
         canvas.setFont("Helvetica", 6)
         canvas.setFillColor(colors.HexColor("#424242"))
         canvas.drawString(100, 15, "FORMATO DE TARJETA DE IDENTIFICACIÓN DE ATADO DE MATERIA PRIMA - SGC SIGRAMA")
@@ -1990,21 +1970,14 @@ def generar_pdf_catalogo_skus(df_skus, output_pdf_path):
         canvas.setFillColor(colors.HexColor("#D32F2F"))
         canvas.rect(36, 560, 720, 4, fill=1, stroke=0)
         
-        # Logotipo
-        if os.path.exists(LOGO_PATH):
-            try:
-                canvas.drawImage(LOGO_PATH, 36, 570, width=120, height=22, mask='auto')
-            except Exception:
-                canvas.setFont("Helvetica-Bold", 12)
-                canvas.drawString(36, 570, "INDUSTRIA SIGRAMA")
-        else:
-            canvas.setFont("Helvetica-Bold", 12)
-            canvas.drawString(36, 570, "INDUSTRIA SIGRAMA")
+        # Logotipo (eliminado, se dibuja nombre de la empresa como texto)
+        canvas.setFont("Helvetica-Bold", 12)
+        canvas.drawString(36, 570, "INDUSTRIA SIGRAMA S.A. DE C.V.")
             
         # Marcador superior derecho
         canvas.setFont("Helvetica-Bold", 11)
         canvas.setFillColor(colors.HexColor("#D32F2F"))
-        canvas.drawRightString(756, 580, "FO-MET-34")
+        pass  # código de documento eliminado
         
         canvas.setFont("Helvetica", 8)
         canvas.setFillColor(colors.black)
@@ -2029,7 +2002,7 @@ def generar_pdf_catalogo_skus(df_skus, output_pdf_path):
         canvas.setLineWidth(1)
         canvas.line(36, 35, 36, 15)
         canvas.setFont("Helvetica-Bold", 7)
-        canvas.drawString(42, 27, "FO-SGC-02")
+        pass  # código de documento eliminado
         canvas.setFont("Helvetica", 6)
         canvas.setFillColor(colors.HexColor("#424242"))
         texto_legal = "PROHIBIDA LA REPRODUCCIÓN TOTAL O PARCIAL, POR CUALQUIER MEDIO O PROCEDIMIENTO, SIN AUTORIZACIÓN DE INDUSTRIA SIGRAMA S.A. DE C.V."

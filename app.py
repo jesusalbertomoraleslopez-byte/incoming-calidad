@@ -630,8 +630,8 @@ opcion_menu = st.sidebar.radio("Seleccione un Módulo:", [
     "5. ⚙️ Catálogo de Tolerancias de SKU",
     "6. 📚 Glosario de Documentos",
     "7. 📖 Manual de Operación",
-    "8. 📋 Procedimiento de Recepción (PR-ALM-01)",
-    "9. 📋 Procedimiento de Despacho (PR-ALM-02)",
+    "8. 📋 Procedimiento de Recepción",
+    "9. 📋 Procedimiento de Despacho",
     "10. 💡 Manufactura Inteligente y Tecnología",
     "11. 🗑️ Limpieza y Explorador Git (Admin)"
 ])
@@ -1099,7 +1099,7 @@ elif opcion_menu == "2. 📥 Registro de Recepción (Incoming)":
             st.download_button(
                 label="📥 Descargar Formato de Plantilla Corporativa (.xlsx)",
                 data=f.read(),
-                file_name=f"FO-MET-30-Plantilla_Atados ({datetime.date.today().strftime('%Y%m%d')}).xlsx",
+                file_name=f"Plantilla_Atados ({datetime.date.today().strftime('%Y%m%d')}).xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
             
@@ -1852,7 +1852,7 @@ elif opcion_menu == "2. 📥 Registro de Recepción (Incoming)":
                             if os.path.exists(pdf_solo_etiquetas):
                                 with open(pdf_solo_etiquetas, "rb") as f:
                                     st.download_button(
-                                        label="🏷️ Descargar Etiquetas FO-MET-32 (PDF)",
+                                        label="🏷️ Descargar Tarjetas de Identificación / Etiquetas (PDF)",
                                         data=f.read(),
                                         file_name=f"Etiquetas_Solo_{nuevo_folio}.pdf",
                                         mime="application/pdf",
@@ -1877,7 +1877,7 @@ elif opcion_menu == "2. 📥 Registro de Recepción (Incoming)":
                                         if os.path.exists(pdf_consumo_path):
                                             with open(pdf_consumo_path, "rb") as fc:
                                                 st.download_button(
-                                                    label=f"📄 Hoja de Consumo FO-MET-37 ({len(lista_atd_folio)} atados)",
+                                                    label=f"📄 Hoja de Control de Consumo ({len(lista_atd_folio)} atados)",
                                                     data=fc.read(),
                                                     file_name=f"Control_Consumo_Lote_{nuevo_folio}.pdf",
                                                     mime="application/pdf",
@@ -2145,7 +2145,7 @@ elif opcion_menu == "3. 🔍 Consulta de Historial":
                         if os.path.exists(solo_etiquetas_path):
                             with open(solo_etiquetas_path, "rb") as f:
                                 st.download_button(
-                                    label="🏷️ Descargar Etiquetas FO-MET-32 (PDF)",
+                                    label="🏷️ Descargar Tarjetas de Identificación / Etiquetas (PDF)",
                                     data=f.read(),
                                     file_name=f"Etiquetas_Solo_{folio_seleccionado}.pdf",
                                     mime="application/pdf",
@@ -2170,7 +2170,7 @@ elif opcion_menu == "3. 🔍 Consulta de Historial":
                                 if os.path.exists(pdf_fomet37_hist):
                                     with open(pdf_fomet37_hist, "rb") as fc:
                                         st.download_button(
-                                            label=f"📄 Hoja de Consumo FO-MET-37 ({len(lista_atd_hist)} atados)",
+                                            label=f"📄 Hoja de Control de Consumo ({len(lista_atd_hist)} atados)",
                                             data=fc.read(),
                                             file_name=f"Control_Consumo_Lote_{folio_seleccionado}.pdf",
                                             mime="application/pdf",
@@ -2401,7 +2401,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                     pdf_bytes_inv = f_pdf_inv.read()
                                 st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                 st.download_button(
-                                    label="📥 Reporte Ejecutivo PDF (FO-MET-40)",
+                                    label="📥 Reporte Ejecutivo PDF",
                                     data=pdf_bytes_inv,
                                     file_name=f"Reporte_Ejecutivo_Inventario_{datetime.date.today().strftime('%Y%m%d')}.pdf",
                                     mime="application/pdf",
@@ -2428,7 +2428,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                     col_gen1, col_gen2 = st.columns([1, 2])
                     with col_gen1:
                         n_sel = len(atados_sel_pdf)
-                        lbl_btn = f"📄 Generar FO-MET-37 ({n_sel} atado{'s' if n_sel != 1 else ''})" if n_sel > 0 else "📄 Generar FO-MET-37"
+                        lbl_btn = f"📄 Generar Hoja de Consumo ({n_sel} atado{'s' if n_sel != 1 else ''})" if n_sel > 0 else "📄 Generar Hoja de Consumo"
                         if st.button(lbl_btn, key="btn_gen_fomet37", type="primary",
                                      use_container_width=True, disabled=(n_sel == 0)):
                             lista_datos = []
@@ -2450,7 +2450,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                         with open(pdf_path_consumo, "rb") as f:
                                             st.session_state["fomet37_pdf_bytes"]   = f.read()
                                             st.session_state["fomet37_atados_ids"]  = list(atados_sel_pdf)
-                                        st.success(f"✅ FO-MET-37 generado para {n_sel} atado(s). Descargue abajo.")
+                                        st.success(f"✅ Hoja de Consumo generada para {n_sel} atado(s). Descargue abajo.")
                                 except Exception as ex_pdf:
                                     st.error(f"Error al generar el formato FO-MET-37: {ex_pdf}")
                                     st.session_state.pop("fomet37_pdf_bytes", None)
@@ -2463,7 +2463,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                             n_g   = len(ids_guardados)
                             fname = f"Control_Consumo_{'_'.join(ids_guardados) if n_g <= 3 else f'{n_g}atados'}.pdf"
                             st.download_button(
-                                label=f"📥 Descargar FO-MET-37 — {n_g} Atado(s) (PDF)",
+                                label=f"📥 Descargar Hoja de Consumo — {n_g} Atado(s) (PDF)",
                                 data=st.session_state["fomet37_pdf_bytes"],
                                 file_name=fname,
                                 mime="application/pdf",
@@ -2511,7 +2511,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
             
             with pest_inv2:
                 st.write("### 4.2.1. 📝 Registrar Salida Normal (REM-OUT)")
-                st.markdown("Registre el egreso de materia prima estándar para celdas de producción mediante la emisión de una remisión de salida (FO-MET-36).")
+                st.markdown("Registre el egreso de materia prima estándar para celdas de producción mediante la emisión de una remisión de salida.")
                 
                 if not is_inspector and not is_laser:
                     st.error("🔒 Área Protegida. Ingrese la contraseña de Inspector, Administrador u Operador Láser en la barra lateral para registrar salidas.")
@@ -2608,7 +2608,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                             pdf_bytes = f.read()
                                         st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                         st.download_button(
-                                            label="📥 Descargar Remisión (FO-MET-36)",
+                                            label="📥 Descargar Remisión de Salida",
                                             data=pdf_bytes,
                                             file_name=f"Remision_Salida_{rem['folio']}.pdf",
                                             mime="application/pdf",
@@ -2628,7 +2628,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                                     pdf_bytes_c = f_c.read()
                                                 st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                                 st.download_button(
-                                                    label="📄 Descargar Hoja de Consumo (FO-MET-37)",
+                                                    label="📄 Descargar Hoja de Consumo",
                                                     data=pdf_bytes_c,
                                                     file_name=f"Control_Consumo_{rem['atado_id']}.pdf",
                                                     mime="application/pdf",
@@ -2640,7 +2640,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
 
             with pest_inv_rechazo:
                 st.write("### 4.3.1. ⚠️ Reportar Rechazo de Láminas por Defecto (REJ-OUT)")
-                st.markdown("Declare el desecho o rechazo de láminas que presentaron defectos no detectados durante la inspección en recepción (Incoming), para descontarlas de stock y generar el reporte FO-MET-41.")
+                st.markdown("Declare el desecho o rechazo de láminas que presentaron defectos no detectados durante la inspección en recepción (Incoming), para descontarlas de stock y generar el reporte de rechazo.")
                 
                 if not is_inspector and not is_laser:
                     st.error("🔒 Área Protegida. Ingrese la contraseña de Inspector, Administrador u Operador Láser en la barra lateral para registrar rechazos.")
@@ -2759,7 +2759,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                         pdf_bytes = f.read()
                                     st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                     st.download_button(
-                                        label="📥 Descargar Reporte de Rechazo (FO-MET-41)",
+                                        label="📥 Descargar Reporte de Rechazo",
                                         data=pdf_bytes,
                                         file_name=f"Reporte_Rechazo_{rem['folio']}.pdf",
                                         mime="application/pdf",
@@ -2954,7 +2954,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                     pdf_bytes_reprint = f.read()
                                 st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                 st.download_button(
-                                    label=f"📥 Descargar PDF de Reporte de Rechazo {folio_salida_reprint} (FO-MET-41)",
+                                    label=f"📥 Descargar PDF de Reporte de Rechazo {folio_salida_reprint}",
                                     data=pdf_bytes_reprint,
                                     file_name=f"Reporte_Rechazo_{folio_salida_reprint}.pdf",
                                     mime="application/pdf",
@@ -2988,7 +2988,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                     pdf_bytes_reprint = f.read()
                                 st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                 st.download_button(
-                                    label=f"📥 Descargar PDF de Remisión {folio_salida_reprint} (FO-MET-36)",
+                                    label=f"📥 Descargar PDF de Remisión {folio_salida_reprint}",
                                     data=pdf_bytes_reprint,
                                     file_name=f"Remision_Salida_{folio_salida_reprint}.pdf",
                                     mime="application/pdf",
@@ -3328,7 +3328,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                 
                     # ── Descargar PDF del Dashboard (FO-MET-42) ───────────────────────────
                     st.write("---")
-                    st.write("#### 4.5.3.1. 📥 Exportar Reporte de Tablero (FO-MET-42)")
+                    st.write("#### 4.5.3.1. 📥 Exportar Reporte de Tablero")
                     st.markdown("Descargue el Tablero completo en PDF oficial SGC con KPIs, gráficas e inventario.")
                     
                     try:
@@ -3367,7 +3367,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                             with open(pdf_path_dashboard, "rb") as f_dash:
                                 pdf_bytes_dashboard = f_dash.read()
                             st.download_button(
-                                label="📥 Descargar Reporte de Tablero — Inventario y Despachos (FO-MET-42)",
+                                label="📥 Descargar Reporte de Tablero — Inventario y Despachos",
                                 data=pdf_bytes_dashboard,
                                 file_name=f"FO-MET-42_Tablero_Inventario_{datetime.date.today().strftime('%Y%m%d')}.pdf",
                                 mime="application/pdf",
@@ -3455,7 +3455,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                         pdf_bytes_inv = f_pdf_inv.read()
                                     st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                     st.download_button(
-                                        label="📥 Descargar Reporte en PDF (FO-MET-40)",
+                                        label="📥 Descargar Reporte en PDF",
                                         data=pdf_bytes_inv,
                                         file_name=f"Reporte_Ejecutivo_Inventario_{datetime.date.today().strftime('%Y%m%d')}.pdf",
                                         mime="application/pdf",
@@ -3621,7 +3621,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                         pdf_bytes_desp = f_pdf.read()
                                     st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                     st.download_button(
-                                        label="📥 Descargar Reporte en PDF (FO-MET-38)",
+                                        label="📥 Descargar Reporte en PDF",
                                         data=pdf_bytes_desp,
                                         file_name=f"Reporte_Despachos_{datetime.date.today().strftime('%Y%m%d')}.pdf",
                                         mime="application/pdf",
@@ -3746,7 +3746,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                             pdf_bytes_aud = f_aud_pdf.read()
                                         st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                         st.download_button(
-                                            label="📥 Descargar Auditoría en PDF (FO-MET-39)",
+                                            label="📥 Descargar Auditoría en PDF",
                                             data=pdf_bytes_aud,
                                             file_name=f"Auditoria_Atados_{datetime.date.today().strftime('%Y%m%d')}.pdf",
                                             mime="application/pdf",
@@ -3994,7 +3994,6 @@ elif opcion_menu == "6. 📚 Glosario de Documentos":
 <table class="glossary-table">
   <thead>
     <tr>
-      <th>Código de Documento</th>
       <th>Descripción / Nombre Oficial</th>
       <th>Asociado a / Referenciado en</th>
       <th>Descarga de Muestra</th>
@@ -4003,11 +4002,14 @@ elif opcion_menu == "6. 📚 Glosario de Documentos":
   <tbody>"""
     
     for doc in glosario:
-        link = obtener_link_descarga_muestra(doc["id"], f"📥 Descargar {doc['id']}")
+        link = obtener_link_descarga_muestra(doc["id"], "📥 Descargar Muestra")
+        asociado_limpio = doc["asociado"]
+        for code in ["PR-ALM-01", "PR-ALM-02", "PR-SGC-04", "PR-SGC-02", "FO-MET-30", "FO-MET-31", "FO-MET-32", "FO-MET-33", "FO-MET-34", "FO-MET-35", "FO-MET-36", "FO-MET-37", "FO-MET-38", "FO-MET-39", "FO-MET-40", "FO-MET-41", "FO-MET-42", "FO-SGC-03"]:
+            asociado_limpio = asociado_limpio.replace(code, "").replace("()", "").strip()
+        asociado_limpio = re.sub(r'\s*/\s*', ' / ', asociado_limpio).strip(" / ")
         html_table += f"""<tr>
-  <td><strong>{doc["id"]}</strong></td>
   <td>{doc["descripcion"]}</td>
-  <td><em>{doc["asociado"]}</em></td>
+  <td><em>{asociado_limpio}</em></td>
   <td>{link}</td>
 </tr>"""
         
@@ -4059,7 +4061,7 @@ elif opcion_menu == "7. 📖 Manual de Operación":
 # =============================================================================
 # MÓDULO 6: PROCEDIMIENTO DE RECEPCIÓN (PR-ALM-01)
 # =============================================================================
-elif opcion_menu == "8. 📋 Procedimiento de Recepción (PR-ALM-01)":
+elif opcion_menu == "8. 📋 Procedimiento de Recepción":
     st.title("8. 📋 Procedimiento de Recepción de Materia Prima")
     st.markdown("Consulte el procedimiento oficial SGC **PR-ALM-01** digitalizado y adaptado a nuestro sistema de control estadístico.")
     
@@ -4076,7 +4078,7 @@ elif opcion_menu == "8. 📋 Procedimiento de Recepción (PR-ALM-01)":
                 pdf_bytes = f.read()
             st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
             st.download_button(
-                label="📥 Descargar Procedimiento PR-ALM-01 (PDF)",
+                label="📥 Descargar Procedimiento de Recepción (PDF)",
                 data=pdf_bytes,
                 file_name="Procedimiento_PR-ALM-01_Digital.pdf",
                 mime="application/pdf",
@@ -4091,7 +4093,7 @@ elif opcion_menu == "8. 📋 Procedimiento de Recepción (PR-ALM-01)":
     # Renderizar el procedimiento en markdown en pantalla
     st.markdown("""
     ### PROCEDIMIENTO DE RECEPCIÓN DE MATERIA PRIMA
-    **Código:** PR-ALM-01  
+    **Código:** No disponible (Edición Provisional)  
     **Revisión:** 00 (Edición Digital)  
     **Departamento:** Almacén / Calidad  
     **Sistema:** SGC Digital Sigrama  
@@ -4155,11 +4157,11 @@ elif opcion_menu == "8. 📋 Procedimiento de Recepción (PR-ALM-01)":
     """, unsafe_allow_html=True)
     
     st.markdown("#### 7. DOCUMENTOS RELACIONADOS")
-    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-31', 'FO-MET-31')}**: Reporte Consolidado de Inspección Dimensional de Materia Prima.", unsafe_allow_html=True)
-    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-32', 'FO-MET-32')}**: Tarjeta de Identificación de Atado de Materia Prima (Etiqueta).", unsafe_allow_html=True)
-    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-33', 'FO-MET-33')}**: Portada y Resumen de Contenido del Dosier de Calidad.", unsafe_allow_html=True)
-    st.markdown(f"* **{obtener_link_descarga_muestra('PR-SGC-04', 'PR-SGC-04')}**: Procedimiento para Control de Producto / Servicio No Conforme.", unsafe_allow_html=True)
-    st.markdown(f"* **{obtener_link_descarga_muestra('PR-SGC-02', 'PR-SGC-02')}**: Procedimiento para el Control de Registros.", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-31', 'Muestra de Reporte Consolidado')}**: Reporte Consolidado de Inspección Dimensional de Materia Prima.", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-32', 'Muestra de Tarjeta de Identificación')}**: Tarjeta de Identificación de Atado de Materia Prima (Etiqueta).", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-33', 'Muestra de Portada de Dosier')}**: Portada y Resumen de Contenido del Dosier de Calidad.", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('PR-SGC-04', 'Muestra de Control de No Conformes')}**: Procedimiento para Control de Producto / Servicio No Conforme.", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('PR-SGC-02', 'Muestra de Control de Registros')}**: Procedimiento para el Control de Registros.", unsafe_allow_html=True)
     
     st.markdown("""
     #### 8. CONTROL DE REVISIONES
@@ -4169,7 +4171,7 @@ elif opcion_menu == "8. 📋 Procedimiento de Recepción (PR-ALM-01)":
 # =============================================================================
 # MÓDULO 10: PROCEDIMIENTO DE DESPACHO (PR-ALM-02)
 # =============================================================================
-elif opcion_menu == "9. 📋 Procedimiento de Despacho (PR-ALM-02)":
+elif opcion_menu == "9. 📋 Procedimiento de Despacho":
     st.title("9. 📋 Procedimiento para Control de Inventario y Despacho")
     st.markdown("Consulte el procedimiento oficial SGC **PR-ALM-02** digitalizado y regulado para el control de inventario y salida de material.")
     
@@ -4186,7 +4188,7 @@ elif opcion_menu == "9. 📋 Procedimiento de Despacho (PR-ALM-02)":
                 pdf_bytes = f.read()
             st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
             st.download_button(
-                label="📥 Descargar Procedimiento PR-ALM-02 (PDF)",
+                label="📥 Descargar Procedimiento de Despacho (PDF)",
                 data=pdf_bytes,
                 file_name="Procedimiento_PR-ALM-02_Digital.pdf",
                 mime="application/pdf",
@@ -4201,7 +4203,7 @@ elif opcion_menu == "9. 📋 Procedimiento de Despacho (PR-ALM-02)":
     # Renderizar el procedimiento en markdown en pantalla
     st.markdown("""
     ### PROCEDIMIENTO PARA CONTROL DE INVENTARIO Y DESPACHO A CORTE
-    **Código:** PR-ALM-02  
+    **Código:** No disponible (Edición Provisional)  
     **Revisión:** 00 (Edición Digital)  
     **Departamento:** Almacén / Producción  
     **Sistema:** SGC Digital Sigrama  
@@ -4264,10 +4266,10 @@ elif opcion_menu == "9. 📋 Procedimiento de Despacho (PR-ALM-02)":
     """, unsafe_allow_html=True)
     
     st.markdown("#### 7. DOCUMENTOS RELACIONADOS")
-    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-36', 'FO-MET-36')}**: Remisión de Salida de Lámina (Formato de Transferencia de Custodia).", unsafe_allow_html=True)
-    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-41', 'FO-MET-41')}**: Reporte de Rechazo por Defecto en Proceso (Formato de Declaración de Scrap).", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-36', 'Muestra de Remisión de Salida')}**: Remisión de Salida de Lámina (Formato de Transferencia de Custodia).", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-41', 'Muestra de Reporte de Rechazo')}**: Reporte de Rechazo por Defecto en Proceso (Formato de Declaración de Scrap).", unsafe_allow_html=True)
     st.markdown(f"* **{obtener_link_descarga_muestra('BD_Salidas_Incoming.xlsx', 'BD_Salidas_Incoming.xlsx')}**: Bitácora Digital de Despachos y Registro Histórico.", unsafe_allow_html=True)
-    st.markdown(f"* **{obtener_link_descarga_muestra('PR-ALM-01', 'PR-ALM-01')}**: Procedimiento de Recepción de Materia Prima.", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('PR-ALM-01', 'Muestra de Procedimiento de Recepción')}**: Procedimiento de Recepción de Materia Prima.", unsafe_allow_html=True)
     
     st.markdown("""
     #### 8. CONTROL DE REVISIONES
