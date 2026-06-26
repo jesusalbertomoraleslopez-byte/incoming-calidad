@@ -17,7 +17,6 @@ from reportlab.lib.units import inch
 from reportlab.graphics.shapes import Drawing, Rect, String, Line, Group
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-LOGO_PATH = os.path.join(BASE_DIR, "logo_sigrama.png")
 
 # =============================================================================
 # 1. MOTOR DE GRAFICACIÓN DE CURVAS DE TOLERANCIA
@@ -254,7 +253,7 @@ def draw_sigrama_sgc_decorations(canvas, doc, doc_code, title_text):
     canvas.saveState()
 
     # Franja superior roja
-    canvas.setFillColor(colors.HexColor("#D32F2F"))
+    canvas.setFillColor(colors.HexColor("#EC2024"))
     canvas.rect(36, 745, 540, 4, fill=1, stroke=0)
 
     # Nombre de empresa en texto (sin logotipo)
@@ -282,7 +281,7 @@ def draw_sigrama_sgc_decorations(canvas, doc, doc_code, title_text):
     canvas.drawString(36, 732, f"Fecha de Emisión: {fecha_hoy}")
 
     # Pie de página legal (sin código FO-SGC-02)
-    canvas.setStrokeColor(colors.HexColor("#D32F2F"))
+    canvas.setStrokeColor(colors.HexColor("#EC2024"))
     canvas.setLineWidth(1)
     canvas.line(36, 45, 36, 25)
     canvas.setFont("Helvetica", 6)
@@ -424,7 +423,7 @@ def generar_pdf_reporte_consolidado_fomet31(folio, datos_reporte, df_atados, sku
         
     t_med = Table(tabla_mediciones, colWidths=[100, 100, 160, 60, 60, 60])
     t_med.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#EC2024")),
         ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#757575")),
         ('ALIGN', (2,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
@@ -554,17 +553,17 @@ def generar_pdf_etiqueta_atado_fomet32(folio, df_atados, output_pdf_path):
         ]
         header_table = Table(header_table_data, colWidths=[200, 340])
         header_table.setStyle(TableStyle([
-            ('BACKGROUND', (1,0), (1,0), colors.HexColor("#D32F2F")),
+            ('BACKGROUND', (1,0), (1,0), colors.HexColor("#EC2024")),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
             ('ALIGN', (0,0), (0,0), 'LEFT'),
             ('ALIGN', (1,0), (1,0), 'CENTER'),
-            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#D32F2F"))
+            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#EC2024"))
         ]))
         story.append(header_table)
         
         # Sub-título Identificación
         story.append(Table([[Paragraph("IDENTIFICACIÓN DEL ATADO", style_blanco_bold_label(styles))]], colWidths=[540], 
-                           style=TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#D32F2F")), ('ALIGN', (0,0), (-1,-1), 'CENTER')])))
+                           style=TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#EC2024")), ('ALIGN', (0,0), (-1,-1), 'CENTER')])))
         
         # 2. Bloque de Identificación del Atado (Izquierda: Tabla, Derecha: Imagen + Observaciones)
         
@@ -580,7 +579,7 @@ def generar_pdf_etiqueta_atado_fomet32(folio, df_atados, output_pdf_path):
         
         ident_left_table = Table(ident_left_data, colWidths=[150, 120])
         ident_left_table.setStyle(TableStyle([
-            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#D32F2F")),
+            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#EC2024")),
             ('BACKGROUND', (0,0), (0,-1), colors.HexColor("#F5F5F5")),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
             ('BOTTOMPADDING', (0,0), (-1,-1), 4),
@@ -607,8 +606,8 @@ def generar_pdf_etiqueta_atado_fomet32(folio, df_atados, output_pdf_path):
         
         ident_right_table = Table(ident_right_data, colWidths=[270])
         ident_right_table.setStyle(TableStyle([
-            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#D32F2F")),
-            ('BACKGROUND', (0,1), (0,1), colors.HexColor("#D32F2F")),
+            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#EC2024")),
+            ('BACKGROUND', (0,1), (0,1), colors.HexColor("#EC2024")),
             ('ALIGN', (0,0), (0,0), 'CENTER'),
             ('ALIGN', (0,1), (0,1), 'CENTER'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
@@ -648,9 +647,9 @@ def generar_pdf_etiqueta_atado_fomet32(folio, df_atados, output_pdf_path):
         ]
         spec_table = Table(spec_rows, colWidths=[75, 45, 30, 30])
         spec_table.setStyle(TableStyle([
-            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#D32F2F")),
+            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#EC2024")),
             ('SPAN', (0,0), (3,0)),
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#EC2024")),
             ('BACKGROUND', (0,1), (-1,1), colors.HexColor("#F5F5F5")),
             ('ALIGN', (1,1), (-1,-1), 'CENTER'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
@@ -670,11 +669,11 @@ def generar_pdf_etiqueta_atado_fomet32(folio, df_atados, output_pdf_path):
         ]
         control_table = Table(control_rows, colWidths=[55, 55, 70])
         control_table.setStyle(TableStyle([
-            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#D32F2F")),
+            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#EC2024")),
             ('SPAN', (0,0), (2,0)),
             ('SPAN', (0,1), (2,1)),
             ('SPAN', (0,2), (2,2)),
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#EC2024")),
             ('BACKGROUND', (0,2), (-1,3), colors.HexColor("#F5F5F5")),
             ('ALIGN', (0,3), (-1,-1), 'CENTER'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
@@ -700,9 +699,9 @@ def generar_pdf_etiqueta_atado_fomet32(folio, df_atados, output_pdf_path):
         ]
         traz_table = Table(traz_rows, colWidths=[100, 80])
         traz_table.setStyle(TableStyle([
-            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#D32F2F")),
+            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#EC2024")),
             ('SPAN', (0,0), (1,0)),
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#EC2024")),
             ('BACKGROUND', (0,1), (0,-1), colors.HexColor("#F5F5F5")),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
             ('BACKGROUND', (1, 5), (1, 5), colors.HexColor("#2E7D32" if row['Estatus_Calidad']=='Aceptado' else "#C62828")),
@@ -721,7 +720,7 @@ def generar_pdf_etiqueta_atado_fomet32(folio, df_atados, output_pdf_path):
         
         # 4. Sección de Manejo y Conservación
         story.append(Table([[Paragraph("MANEJO Y CONSERVACIÓN", style_blanco_bold_label_small(styles))]], colWidths=[540],
-                           style=TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#D32F2F")), ('ALIGN', (0,0), (-1,-1), 'CENTER')])))
+                           style=TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#EC2024")), ('ALIGN', (0,0), (-1,-1), 'CENTER')])))
         
         manejo_data = [
             [Paragraph("<b>🚜 MANEJAR CON EQUIPO ADECUADO</b><br/>Usar montacargas de capacidad apropiada.", style_cell_value),
@@ -730,7 +729,7 @@ def generar_pdf_etiqueta_atado_fomet32(folio, df_atados, output_pdf_path):
         ]
         manejo_table = Table(manejo_data, colWidths=[180, 180, 180])
         manejo_table.setStyle(TableStyle([
-            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#D32F2F")),
+            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#EC2024")),
             ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#F5F5F5")),
             ('VALIGN', (0,0), (-1,-1), 'TOP')
         ]))
@@ -914,7 +913,7 @@ def generar_pdf_etiqueta_atado_fomet32(folio, df_atados, output_pdf_path):
     def decorate_tag(canvas, doc):
         # Dibujar un rectángulo rojo elegante en el margen exterior para que parezca una tarjeta
         canvas.saveState()
-        canvas.setStrokeColor(colors.HexColor("#D32F2F"))
+        canvas.setStrokeColor(colors.HexColor("#EC2024"))
         canvas.setLineWidth(2)
         canvas.rect(26, 26, 560, 740)
         
@@ -1231,7 +1230,7 @@ def generar_pdf_portada_dosier_fomet33(folio, datos_reporte, df_atados, output_p
     story = []
     styles = getSampleStyleSheet()
     
-    style_tit = ParagraphStyle('CoverTit', parent=styles['Heading1'], fontSize=20, leading=24, alignment=1, textColor=colors.HexColor("#D32F2F"))
+    style_tit = ParagraphStyle('CoverTit', parent=styles['Heading1'], fontSize=20, leading=24, alignment=1, textColor=colors.HexColor("#EC2024"))
     style_sub = ParagraphStyle('CoverSub', parent=styles['Heading2'], fontSize=12, alignment=1, textColor=colors.HexColor("#757575"))
     style_normal_bold = ParagraphStyle('CoverNB', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=9)
     style_normal_text = ParagraphStyle('CoverNT', parent=styles['Normal'], fontSize=9)
@@ -1245,7 +1244,7 @@ def generar_pdf_portada_dosier_fomet33(folio, datos_reporte, df_atados, output_p
     
     # Resumen General del Expediente
     t_header = Table([[Paragraph("RESUMEN DE CONTENIDO DEL DOSIER", style_blanco_bold)]], colWidths=[540])
-    t_header.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#D32F2F")), ('ALIGN', (0,0), (-1,-1), 'CENTER')]))
+    t_header.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#EC2024")), ('ALIGN', (0,0), (-1,-1), 'CENTER')]))
     story.append(t_header)
     
     # Extraer coladas y atados únicos
@@ -1409,17 +1408,17 @@ def generar_pdf_solo_etiquetas(folio, df_atados, output_pdf_path):
         ]
         header_table = Table(header_table_data, colWidths=[200, 340])
         header_table.setStyle(TableStyle([
-            ('BACKGROUND', (1,0), (1,0), colors.HexColor("#D32F2F")),
+            ('BACKGROUND', (1,0), (1,0), colors.HexColor("#EC2024")),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
             ('ALIGN', (0,0), (0,0), 'LEFT'),
             ('ALIGN', (1,0), (1,0), 'CENTER'),
-            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#D32F2F"))
+            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#EC2024"))
         ]))
         story.append(header_table)
         
         # Sub-título Identificación
         story.append(Table([[Paragraph("IDENTIFICACIÓN DEL ATADO", style_blanco_bold_label(styles))]], colWidths=[540], 
-                           style=TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#D32F2F")), ('ALIGN', (0,0), (-1,-1), 'CENTER')])))
+                           style=TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#EC2024")), ('ALIGN', (0,0), (-1,-1), 'CENTER')])))
         
         # 2. Bloque de Identificación del Atado (Izquierda: Tabla, Derecha: Imagen + Observaciones)
         
@@ -1435,7 +1434,7 @@ def generar_pdf_solo_etiquetas(folio, df_atados, output_pdf_path):
         
         ident_left_table = Table(ident_left_data, colWidths=[150, 120])
         ident_left_table.setStyle(TableStyle([
-            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#D32F2F")),
+            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#EC2024")),
             ('BACKGROUND', (0,0), (0,-1), colors.HexColor("#F5F5F5")),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
             ('BOTTOMPADDING', (0,0), (-1,-1), 4),
@@ -1462,8 +1461,8 @@ def generar_pdf_solo_etiquetas(folio, df_atados, output_pdf_path):
         
         ident_right_table = Table(ident_right_data, colWidths=[270])
         ident_right_table.setStyle(TableStyle([
-            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#D32F2F")),
-            ('BACKGROUND', (0,1), (0,1), colors.HexColor("#D32F2F")),
+            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#EC2024")),
+            ('BACKGROUND', (0,1), (0,1), colors.HexColor("#EC2024")),
             ('ALIGN', (0,0), (0,0), 'CENTER'),
             ('ALIGN', (0,1), (0,1), 'CENTER'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
@@ -1503,9 +1502,9 @@ def generar_pdf_solo_etiquetas(folio, df_atados, output_pdf_path):
         ]
         spec_table = Table(spec_rows, colWidths=[75, 45, 30, 30])
         spec_table.setStyle(TableStyle([
-            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#D32F2F")),
+            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#EC2024")),
             ('SPAN', (0,0), (3,0)),
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#EC2024")),
             ('BACKGROUND', (0,1), (-1,1), colors.HexColor("#F5F5F5")),
             ('ALIGN', (1,1), (-1,-1), 'CENTER'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
@@ -1525,11 +1524,11 @@ def generar_pdf_solo_etiquetas(folio, df_atados, output_pdf_path):
         ]
         control_table = Table(control_rows, colWidths=[55, 55, 70])
         control_table.setStyle(TableStyle([
-            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#D32F2F")),
+            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#EC2024")),
             ('SPAN', (0,0), (2,0)),
             ('SPAN', (0,1), (2,1)),
             ('SPAN', (0,2), (2,2)),
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#EC2024")),
             ('BACKGROUND', (0,2), (-1,3), colors.HexColor("#F5F5F5")),
             ('ALIGN', (0,3), (-1,-1), 'CENTER'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
@@ -1555,9 +1554,9 @@ def generar_pdf_solo_etiquetas(folio, df_atados, output_pdf_path):
         ]
         traz_table = Table(traz_rows, colWidths=[100, 80])
         traz_table.setStyle(TableStyle([
-            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#D32F2F")),
+            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#EC2024")),
             ('SPAN', (0,0), (1,0)),
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#EC2024")),
             ('BACKGROUND', (0,1), (0,-1), colors.HexColor("#F5F5F5")),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
             ('BACKGROUND', (1, 5), (1, 5), colors.HexColor("#2E7D32" if row['Estatus_Calidad']=='Aceptado' else "#C62828")),
@@ -1576,7 +1575,7 @@ def generar_pdf_solo_etiquetas(folio, df_atados, output_pdf_path):
         
         # 4. Sección de Manejo y Conservación
         story.append(Table([[Paragraph("MANEJO Y CONSERVACIÓN", style_blanco_bold_label_small(styles))]], colWidths=[540],
-                           style=TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#D32F2F")), ('ALIGN', (0,0), (-1,-1), 'CENTER')])))
+                           style=TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#EC2024")), ('ALIGN', (0,0), (-1,-1), 'CENTER')])))
         
         manejo_data = [
             [Paragraph("<b>🚜 MANEJAR CON EQUIPO ADECUADO</b><br/>Usar montacargas de capacidad apropiada.", style_cell_value),
@@ -1585,7 +1584,7 @@ def generar_pdf_solo_etiquetas(folio, df_atados, output_pdf_path):
         ]
         manejo_table = Table(manejo_data, colWidths=[180, 180, 180])
         manejo_table.setStyle(TableStyle([
-            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#D32F2F")),
+            ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#EC2024")),
             ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#F5F5F5")),
             ('VALIGN', (0,0), (-1,-1), 'TOP')
         ]))
@@ -1607,7 +1606,7 @@ def generar_pdf_solo_etiquetas(folio, df_atados, output_pdf_path):
             
     def decorate_tag(canvas, doc):
         canvas.saveState()
-        canvas.setStrokeColor(colors.HexColor("#D32F2F"))
+        canvas.setStrokeColor(colors.HexColor("#EC2024"))
         canvas.setLineWidth(2)
         canvas.rect(26, 26, 560, 740)
         
@@ -1645,7 +1644,7 @@ def generar_pdf_reporte_dashboard(filtros, okr_data, df_rep_filtered, dict_acep,
     style_blanco_bold = ParagraphStyle('WB_Dash', parent=styles['Normal'], textColor=colors.white, fontName="Helvetica-Bold", alignment=1, fontSize=8)
     style_normal_bold = ParagraphStyle('NB_Dash', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8)
     style_normal_text = ParagraphStyle('NT_Dash', parent=styles['Normal'], fontSize=7.5)
-    style_title = ParagraphStyle('T_Dash', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=13, textColor=colors.HexColor("#D32F2F"), spaceAfter=8)
+    style_title = ParagraphStyle('T_Dash', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=13, textColor=colors.HexColor("#EC2024"), spaceAfter=8)
     style_section = ParagraphStyle('S_Dash', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=10, textColor=colors.HexColor("#0D47A1"), spaceBefore=10, spaceAfter=5)
     
     story.append(Spacer(1, 5))
@@ -1857,7 +1856,7 @@ def generar_pdf_reporte_dashboard(filtros, okr_data, df_rep_filtered, dict_acep,
 
     t_recepciones = Table(tabla_recepciones, colWidths=[88, 55, 105, 68, 48, 48, 48, 48])
     t_recepciones.setStyle(TableStyle([
-        ('BACKGROUND',    (0,0), (-1,0), colors.HexColor("#D32F2F")),
+        ('BACKGROUND',    (0,0), (-1,0), colors.HexColor("#EC2024")),
         ('GRID',          (0,0), (-1,-1), 0.5, colors.HexColor("#757575")),
         ('ALIGN',         (0,0), (-1,-1), 'CENTER'),
         ('ALIGN',         (0,1), (2,-1),  'LEFT'),
@@ -1956,7 +1955,7 @@ def generar_pdf_catalogo_skus(df_skus, output_pdf_path):
         
     t_skus = Table(tabla_data, colWidths=[75, 120, 65, 90, 60, 65, 50, 50, 45, 50, 50])
     t_skus.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#EC2024")),
         ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#757575")),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
@@ -1967,7 +1966,7 @@ def generar_pdf_catalogo_skus(df_skus, output_pdf_path):
         canvas.saveState()
         
         # Franja superior roja Sigrama
-        canvas.setFillColor(colors.HexColor("#D32F2F"))
+        canvas.setFillColor(colors.HexColor("#EC2024"))
         canvas.rect(36, 560, 720, 4, fill=1, stroke=0)
         
         # Logotipo (eliminado, se dibuja nombre de la empresa como texto)
@@ -1976,7 +1975,7 @@ def generar_pdf_catalogo_skus(df_skus, output_pdf_path):
             
         # Marcador superior derecho
         canvas.setFont("Helvetica-Bold", 11)
-        canvas.setFillColor(colors.HexColor("#D32F2F"))
+        canvas.setFillColor(colors.HexColor("#EC2024"))
         pass  # código de documento eliminado
         
         canvas.setFont("Helvetica", 8)
@@ -1998,7 +1997,7 @@ def generar_pdf_catalogo_skus(df_skus, output_pdf_path):
         canvas.drawString(36, 547, f"Fecha de Emisión: {fecha_hoy}")
         
         # Pie de Página Legal (Landscape)
-        canvas.setStrokeColor(colors.HexColor("#D32F2F"))
+        canvas.setStrokeColor(colors.HexColor("#EC2024"))
         canvas.setLineWidth(1)
         canvas.line(36, 35, 36, 15)
         canvas.setFont("Helvetica-Bold", 7)
@@ -2025,7 +2024,7 @@ def generar_pdf_consulta_historial(filtros, df_rep_filtered, dict_acep, output_p
     style_blanco_bold = ParagraphStyle('WB_Cons', parent=styles['Normal'], textColor=colors.white, fontName="Helvetica-Bold", alignment=1, fontSize=8)
     style_normal_bold = ParagraphStyle('NB_Cons', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8)
     style_normal_text = ParagraphStyle('NT_Cons', parent=styles['Normal'], fontSize=7.5)
-    style_title = ParagraphStyle('T_Cons', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=13, textColor=colors.HexColor("#D32F2F"), spaceAfter=8)
+    style_title = ParagraphStyle('T_Cons', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=13, textColor=colors.HexColor("#EC2024"), spaceAfter=8)
     style_section = ParagraphStyle('S_Cons', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=10, textColor=colors.HexColor("#0D47A1"), spaceBefore=10, spaceAfter=5)
     
     story.append(Spacer(1, 5))
@@ -2088,7 +2087,7 @@ def generar_pdf_consulta_historial(filtros, df_rep_filtered, dict_acep, output_p
         
     t_recepciones = Table(tabla_recepciones, colWidths=[90, 70, 130, 110, 80, 60])
     t_recepciones.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#EC2024")),
         ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#757575")),
         ('ALIGN', (0,0), (1,-1), 'CENTER'),
         ('ALIGN', (4,0), (-1,-1), 'CENTER'),
@@ -2124,7 +2123,7 @@ def generar_pdf_procedimiento_pralm01(output_pdf_path):
     story = []
     styles = getSampleStyleSheet()
     
-    style_tit_proc = ParagraphStyle('T_Proc', parent=styles['Heading1'], fontSize=15, leading=19, fontName="Helvetica-Bold", textColor=colors.HexColor("#D32F2F"), spaceAfter=10)
+    style_tit_proc = ParagraphStyle('T_Proc', parent=styles['Heading1'], fontSize=15, leading=19, fontName="Helvetica-Bold", textColor=colors.HexColor("#EC2024"), spaceAfter=10)
     style_sec_proc = ParagraphStyle('S_Proc', parent=styles['Normal'], fontSize=10, leading=14, fontName="Helvetica-Bold", textColor=colors.HexColor("#0D47A1"), spaceBefore=10, spaceAfter=5)
     style_body_proc = ParagraphStyle('B_Proc', parent=styles['Normal'], fontSize=8.5, leading=12, fontName="Helvetica")
     style_body_proc_bold = ParagraphStyle('BB_Proc', parent=styles['Normal'], fontSize=8.5, leading=12, fontName="Helvetica-Bold")
@@ -2266,7 +2265,7 @@ def generar_pdf_procedimiento_pralm02(output_pdf_path):
     story = []
     styles = getSampleStyleSheet()
     
-    style_tit_proc = ParagraphStyle('T_Proc2', parent=styles['Heading1'], fontSize=14, leading=18, fontName="Helvetica-Bold", textColor=colors.HexColor("#D32F2F"), spaceAfter=10)
+    style_tit_proc = ParagraphStyle('T_Proc2', parent=styles['Heading1'], fontSize=14, leading=18, fontName="Helvetica-Bold", textColor=colors.HexColor("#EC2024"), spaceAfter=10)
     style_sec_proc = ParagraphStyle('S_Proc2', parent=styles['Normal'], fontSize=10, leading=14, fontName="Helvetica-Bold", textColor=colors.HexColor("#0D47A1"), spaceBefore=10, spaceAfter=5)
     style_body_proc = ParagraphStyle('B_Proc2', parent=styles['Normal'], fontSize=8.5, leading=12, fontName="Helvetica")
     style_body_proc_bold = ParagraphStyle('BB_Proc2', parent=styles['Normal'], fontSize=8.5, leading=12, fontName="Helvetica-Bold")
@@ -2406,7 +2405,7 @@ def generar_pdf_hoja_consumo_fomet37(datos_atado, output_pdf_path):
     story = []
     styles = getSampleStyleSheet()
     
-    style_title = ParagraphStyle('T_Cons', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=14, textColor=colors.HexColor("#D32F2F"), spaceAfter=5)
+    style_title = ParagraphStyle('T_Cons', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=14, textColor=colors.HexColor("#EC2024"), spaceAfter=5)
     style_subtitle = ParagraphStyle('S_Cons', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=9, textColor=colors.HexColor("#757575"), spaceAfter=15)
     style_normal_bold = ParagraphStyle('NB_Cons', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8.5)
     style_normal_text = ParagraphStyle('NT_Cons', parent=styles['Normal'], fontName="Helvetica", fontSize=8.5, leading=12)
@@ -2523,7 +2522,7 @@ def generar_pdf_hoja_consumo_fomet37_multi(lista_datos_atados, output_pdf_path):
     styles = getSampleStyleSheet()
 
     style_title        = ParagraphStyle('T_CM',  parent=styles['Normal'], fontName="Helvetica-Bold",
-                                        fontSize=14, textColor=colors.HexColor("#D32F2F"), spaceAfter=5)
+                                        fontSize=14, textColor=colors.HexColor("#EC2024"), spaceAfter=5)
     style_subtitle     = ParagraphStyle('S_CM',  parent=styles['Normal'], fontName="Helvetica-Bold",
                                         fontSize=9,  textColor=colors.HexColor("#757575"), spaceAfter=15)
     style_normal_bold  = ParagraphStyle('NB_CM', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8.5)
@@ -2636,7 +2635,7 @@ def generar_pdf_remision_salida(datos_remision, output_pdf_path):
     story = []
     styles = getSampleStyleSheet()
     
-    style_title = ParagraphStyle('T_Rem', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=14, textColor=colors.HexColor("#D32F2F"), spaceAfter=5)
+    style_title = ParagraphStyle('T_Rem', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=14, textColor=colors.HexColor("#EC2024"), spaceAfter=5)
     style_subtitle = ParagraphStyle('S_Rem', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=10, textColor=colors.HexColor("#757575"), spaceAfter=15)
     style_normal_bold = ParagraphStyle('NB_Rem', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8.5)
     style_normal_text = ParagraphStyle('NT_Rem', parent=styles['Normal'], fontName="Helvetica", fontSize=8.5, leading=12)
@@ -2688,7 +2687,7 @@ def generar_pdf_remision_salida(datos_remision, output_pdf_path):
     ]
     t_detalle = Table(tabla_detalle_data, colWidths=[110, 95, 95, 80, 80, 80])
     t_detalle.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#EC2024")),
         ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#757575")),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
@@ -2746,7 +2745,7 @@ def generar_pdf_reporte_despachos(filtros, df_salidas_filtered, output_pdf_path)
     style_normal_bold = ParagraphStyle('NB_Disp', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8)
     style_normal_text = ParagraphStyle('NT_Disp', parent=styles['Normal'], fontSize=7.5)
     style_normal_text_center = ParagraphStyle('NTC_Disp', parent=styles['Normal'], fontSize=7.5, alignment=1)
-    style_title = ParagraphStyle('T_Disp', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=12, textColor=colors.HexColor("#D32F2F"), spaceAfter=5)
+    style_title = ParagraphStyle('T_Disp', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=12, textColor=colors.HexColor("#EC2024"), spaceAfter=5)
     
     story.append(Spacer(1, 5))
     story.append(Paragraph("REPORTE HISTÓRICO DE DESPACHOS Y REMISIONES", style_title))
@@ -2842,7 +2841,7 @@ def generar_pdf_reporte_despachos(filtros, df_salidas_filtered, output_pdf_path)
             
     t_detalle = Table(filas_tabla, colWidths=[95, 55, 65, 85, 45, 55, 140])
     t_style = [
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#EC2024")),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#E0E0E0")),
         ('BOTTOMPADDING', (0,0), (-1,-1), 4),
@@ -2891,7 +2890,7 @@ def generar_pdf_reporte_auditoria_atados(df_resumen_atados, df_salidas_asociadas
     style_normal_bold = ParagraphStyle('NB_Aud', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8)
     style_normal_text = ParagraphStyle('NT_Aud', parent=styles['Normal'], fontSize=7.5)
     style_normal_text_center = ParagraphStyle('NTC_Aud', parent=styles['Normal'], fontSize=7.5, alignment=1)
-    style_title = ParagraphStyle('T_Aud', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=12, textColor=colors.HexColor("#D32F2F"), spaceAfter=5)
+    style_title = ParagraphStyle('T_Aud', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=12, textColor=colors.HexColor("#EC2024"), spaceAfter=5)
     style_section = ParagraphStyle('S_Aud', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=9, textColor=colors.HexColor("#0D47A1"), spaceBefore=10, spaceAfter=5)
     
     story.append(Spacer(1, 5))
@@ -2930,7 +2929,7 @@ def generar_pdf_reporte_auditoria_atados(df_resumen_atados, df_salidas_asociadas
         d_bar.add(Rect(0, 1, 70, 8, fillColor=colors.HexColor("#E0E0E0"), strokeColor=None))
         # Rectángulo rojo de progreso
         if pct_consumo > 0:
-            d_bar.add(Rect(0, 1, 70 * min(pct_consumo, 1.0), 8, fillColor=colors.HexColor("#D32F2F"), strokeColor=None))
+            d_bar.add(Rect(0, 1, 70 * min(pct_consumo, 1.0), 8, fillColor=colors.HexColor("#EC2024"), strokeColor=None))
             
         filas_atados.append([
             Paragraph(str(r["ID_Atado"]), style_normal_bold),
@@ -2945,7 +2944,7 @@ def generar_pdf_reporte_auditoria_atados(df_resumen_atados, df_salidas_asociadas
         
     t_atados = Table(filas_atados, colWidths=[90, 80, 55, 55, 55, 50, 90, 65])
     t_atados_style = [
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#EC2024")),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
         ('BOTTOMPADDING', (0,0), (-1,-1), 4),
@@ -3055,7 +3054,7 @@ def generar_pdf_reporte_ejecutivo_inventario(filtros, df_inv_filtered, output_pd
     style_normal_bold = ParagraphStyle('NB_Exec', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8)
     style_normal_text = ParagraphStyle('NT_Exec', parent=styles['Normal'], fontSize=7.5)
     style_normal_text_center = ParagraphStyle('NTC_Exec', parent=styles['Normal'], fontSize=7.5, alignment=1)
-    style_title = ParagraphStyle('T_Exec', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=12, textColor=colors.HexColor("#D32F2F"), spaceAfter=5)
+    style_title = ParagraphStyle('T_Exec', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=12, textColor=colors.HexColor("#EC2024"), spaceAfter=5)
     
     story.append(Spacer(1, 5))
     story.append(Paragraph("REPORTE EJECUTIVO DE INVENTARIO DISPONIBLE", style_title))
@@ -3229,7 +3228,7 @@ def generar_pdf_reporte_ejecutivo_inventario(filtros, df_inv_filtered, output_pd
         
         # Línea de % acumulado
         ax2 = ax1.twinx()
-        color_line = '#D32F2F'
+        color_line = '#EC2024'
         ax2.plot(df_consolidado["Material"], df_consolidado["Cum_Pct"], color=color_line, marker="o", ms=4, lw=1.5)
         ax2.set_ylabel("% Acumulado", color=color_line, fontsize=8)
         ax2.tick_params(axis='y', labelcolor=color_line, labelsize=7)
@@ -3304,7 +3303,7 @@ def generar_pdf_reporte_ejecutivo_inventario(filtros, df_inv_filtered, output_pd
             
     t_detalle = Table(filas_tabla, colWidths=[80, 65, 60, 70, 50, 45, 40, 65, 65])
     t_style = [
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#EC2024")),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#E0E0E0")),
         ('BOTTOMPADDING', (0,0), (-1,-1), 4),
@@ -3350,7 +3349,7 @@ def generar_pdf_reporte_rechazo(datos_rechazo, output_pdf_path):
     story = []
     styles = getSampleStyleSheet()
     
-    style_title = ParagraphStyle('T_Rej', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=14, textColor=colors.HexColor("#D32F2F"), spaceAfter=5)
+    style_title = ParagraphStyle('T_Rej', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=14, textColor=colors.HexColor("#EC2024"), spaceAfter=5)
     style_subtitle = ParagraphStyle('S_Rej', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=10, textColor=colors.HexColor("#757575"), spaceAfter=15)
     style_normal_bold = ParagraphStyle('NB_Rej', parent=styles['Normal'], fontName="Helvetica-Bold", fontSize=8.5)
     style_normal_text = ParagraphStyle('NT_Rej', parent=styles['Normal'], fontName="Helvetica", fontSize=8.5, leading=12)
@@ -3402,7 +3401,7 @@ def generar_pdf_reporte_rechazo(datos_rechazo, output_pdf_path):
     ]
     t_detalle = Table(tabla_detalle_data, colWidths=[110, 95, 95, 80, 80, 80])
     t_detalle.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#EC2024")),
         ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#757575")),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
@@ -3506,7 +3505,7 @@ def crear_pdf_generico_muestra(doc_id, titulo, columnas, filas, output_path):
     col_w = [doc.width / len(columnas)] * len(columnas)
     t = Table(table_data, colWidths=col_w)
     t.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#D32F2F")),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#EC2024")),
         ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#BDBDBD")),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('BOTTOMPADDING', (0,0), (-1,-1), 6),
@@ -3567,7 +3566,7 @@ def generar_pdf_dashboard_inventario(kpis: dict, filtros: dict,
     )
 
     styles = getSampleStyleSheet()
-    azul_sg   = colors.HexColor("#1e3c72")
+    azul_sg   = colors.HexColor("#111111")
     gris_hdr  = colors.HexColor("#37474F")
     blanco    = colors.white
     gris_alt  = colors.HexColor("#F5F5F5")
@@ -3682,7 +3681,7 @@ def generar_pdf_dashboard_inventario(kpis: dict, filtros: dict,
             x = range(len(df_sku))
             w = 0.38
             ax.bar([i - w/2 for i in x], df_sku["Disponibles"], width=w,
-                   color="#1e3c72", label="Disponibles", zorder=3)
+                   color="#111111", label="Disponibles", zorder=3)
             ax.bar([i + w/2 for i in x], df_sku["Despachadas"], width=w,
                    color="#e53935", label="Despachadas", zorder=3)
             ax.set_xticks(list(x))

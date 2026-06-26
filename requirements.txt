@@ -8,3 +8,4 @@ numpy
 pypdf
 openpyxl
 Pillow
+python-docx

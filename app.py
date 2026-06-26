@@ -49,52 +49,56 @@ else:
         else:
             st.subheader("INDUSTRIA SIGRAMA")
     with col_banner_txt:
-        st.markdown("<h2 style='color:#D32F2F; margin-top:10px;'>SISTEMA DE CONTROL DE CALIDAD EN RECEPCIÓN (INCOMING)</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color:#EC2024; margin-top:10px;'>SISTEMA DE CONTROL DE CALIDAD EN RECEPCIÓN (INCOMING)</h2>", unsafe_allow_html=True)
 st.write("---")
-# Inyectar estilos CSS para botones PDF: azul corporativo + negritas
-# Enfoque directo: apuntar al data-testid de Streamlit para download buttons.
-# st.download_button => div[data-testid="stDownloadButton"]
-# st.button con marcador => se usa clase .pdf-gen-btn via key prefix
+
+# Inyectar estilos CSS corporativos
 st.markdown("""
 <style>
-/* ===== TODOS los botones de descarga (st.download_button) en azul ===== */
-div[data-testid="stDownloadButton"] button {
-    background-color: #0D47A1 !important;
-    color: white !important;
-    font-weight: bold !important;
-    border: 2px solid #1E88E5 !important;
-    border-radius: 6px !important;
-    transition: background-color 0.25s ease !important;
-    width: 100% !important;
-}
-div[data-testid="stDownloadButton"] button:hover {
-    background-color: #1565C0 !important;
-    color: white !important;
-    border-color: #42A5F5 !important;
-}
-/* Streamlit envuelve el label en <p> dentro del button */
-div[data-testid="stDownloadButton"] button p {
-    color: white !important;
-    font-weight: bold !important;
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Questrial&display=swap');
+
+html, body, [class*="css"]  {
+    font-family: 'Questrial', sans-serif !important;
 }
 
-/* ===== Botones de acción primaria (st.button type=primary) en azul ===== */
-div[data-testid="stButton"] button[kind="primary"] {
-    background-color: #0D47A1 !important;
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Montserrat', sans-serif !important;
+}
+
+/* ===== Botones de descarga y primarios en rojo corporativo ===== */
+div[data-testid="stDownloadButton"] button, div[data-testid="stButton"] button[kind="primary"], div[data-testid="stButton"] button {
+    background-color: #EC2024 !important;
     color: white !important;
-    font-weight: bold !important;
-    border: 2px solid #1E88E5 !important;
+    font-family: 'Montserrat', sans-serif !important;
+    font-weight: 600 !important;
+    border: none !important;
+    border-radius: 8px !important;
+    transition: background-color 0.3s ease, transform 0.1s ease !important;
+}
+div[data-testid="stDownloadButton"] button:hover, div[data-testid="stButton"] button[kind="primary"]:hover, div[data-testid="stButton"] button:hover {
+    background-color: #C61A1E !important;
+    transform: translateY(-2px);
+}
+div[data-testid="stDownloadButton"] button p, div[data-testid="stButton"] button p {
+    color: white !important;
+}
+
+/* ===== Barra Lateral ===== */
+[data-testid="stSidebar"] {
+    background-color: #111111 !important;
+}
+[data-testid="stSidebar"] * {
+    color: #FFFFFF !important;
+}
+
+/* ===== Inputs y Selectores ===== */
+div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
+    border: 1px solid #D2D3D5 !important;
     border-radius: 6px !important;
-    transition: background-color 0.25s ease !important;
-    width: 100% !important;
 }
-div[data-testid="stButton"] button[kind="primary"]:hover {
-    background-color: #1565C0 !important;
-    border-color: #42A5F5 !important;
-}
-div[data-testid="stButton"] button[kind="primary"] p {
-    color: white !important;
-    font-weight: bold !important;
+div[data-baseweb="input"] > div:focus-within, div[data-baseweb="select"] > div:focus-within {
+    border-color: #EC2024 !important;
+    box-shadow: 0 0 0 1px #EC2024 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -620,25 +624,7 @@ def renderizar_analisis_gaussiano_consolidado(df_rows, sku_info, key=None):
         key = f"plotly_gauss_consolidado_{id_atado}"
     st.plotly_chart(fig_gauss, use_container_width=True, key=key)
 
-# Navegación lateral
-st.sidebar.title("🧭 Navegación")
-opcion_menu = st.sidebar.radio("Seleccione un Módulo:", [
-    "1. 📊 Analíticas y Dashboard",
-    "2. 📥 Registro de Recepción (Incoming)",
-    "3. 🔍 Consulta de Historial",
-    "4. 📦 Inventario y Remisiones de Salida",
-    "5. ⚙️ Catálogo de Tolerancias de SKU",
-    "6. 📚 Glosario de Documentos",
-    "7. 📖 Manual de Operación",
-    "8. 📋 Procedimiento de Recepción",
-    "9. 📋 Procedimiento de Despacho",
-    "10. 💡 Manufactura Inteligente y Tecnología",
-    "11. 🗑️ Limpieza y Explorador Git (Admin)"
-])
-
-
 # Control de accesos para administración y registro en la barra lateral
-st.sidebar.write("---")
 st.sidebar.title("🔐 Control de Acceso")
 admin_pass_input = st.sidebar.text_input("Contraseña Administrador:", type="password")
 inspector_pass_input = st.sidebar.text_input("Contraseña Inspector/Registro:", type="password")
@@ -654,6 +640,26 @@ def es_laser():
     return laser_pass_input == "SigramaLaser2026" or admin_pass_input == "SigramaLaser2026" or inspector_pass_input == "SigramaLaser2026"
 
 is_admin = es_admin()
+
+st.sidebar.write("---")
+
+# Navegación lateral
+st.sidebar.title("🧭 Navegación")
+
+opciones_menu_lista = [
+    "1. 📊 Analíticas y Dashboard",
+    "2. 📥 Registro de Recepción (Incoming)",
+    "3. 🔍 Consulta de Historial",
+    "4. 📦 Inventario y Remisiones de Salida",
+    "5. ⚙️ Catálogo de Tolerancias de SKU",
+    "6. 💡 Manufactura Inteligente y Tecnología"
+]
+
+if is_admin:
+    opciones_menu_lista.append("7. 📚 Sistema de Gestión de Calidad (SGC)")
+    opciones_menu_lista.append("8. 🗑️ Limpieza y Explorador Git (Admin)")
+
+opcion_menu = st.sidebar.radio("Seleccione un Módulo:", opciones_menu_lista)
 is_inspector = es_inspector()
 is_laser = es_laser()
 
