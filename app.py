@@ -153,9 +153,7 @@ def obtener_link_descarga_muestra(doc_id):
         file_path = os.path.join(BASE_DIR, f"{doc_id}_Procedimiento.md")
         if not os.path.exists(file_path):
             with open(file_path, "w", encoding="utf-8") as f:
-                f.write(f"# Borrador de {doc_id}
-
-Este es un documento editable para revisión.")
+                f.write(f"# Borrador de {doc_id}\n\nEste es un documento editable para revisión.")
         with open(file_path, "rb") as f:
             b64_data = base64.b64encode(f.read()).decode("utf-8")
         mime = "text/markdown"
