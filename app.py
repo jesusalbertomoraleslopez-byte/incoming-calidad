@@ -121,13 +121,15 @@ def guardar_db(df, path, sheet_name="Datos_Sistema"):
         return False
 
 
-def obtener_link_descarga_muestra(doc_id, display_name):
+def obtener_link_descarga_muestra(doc_id):
     import base64
     import os
-    import datetime
     
     temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
     os.makedirs(temp_pdf_dir, exist_ok=True)
+    
+    pdf_link = "N/A"
+    word_link = "N/A"
     
     if doc_id.endswith(".xlsx"):
         file_path = os.path.join(temp_pdf_dir, doc_id)
@@ -135,112 +137,69 @@ def obtener_link_descarga_muestra(doc_id, display_name):
             import openpyxl
             wb = openpyxl.Workbook()
             ws = wb.active
-            ws.title = "Bitácora de Salidas"
-            ws.append(["Folio_Salida", "Fecha", "Hora", "ID_Atado", "SKU", "Cantidad_Hojas_Despachadas", "Peso_Despachado_Kg", "Destino_Proyecto", "Responsable", "Observaciones"])
-            ws.append(["REM-OUT-2026-0001", "17/06/2026", "10:30", "INC-2026-0001-A01", "SKU-GALV-14", 10, 225.5, "Proyecto Tolva", "Carlos Pérez", "Entrega estándar"])
-            ws.append(["REJ-OUT-2026-0001", "17/06/2026", "11:15", "INC-2026-0001-A02", "SKU-DECP-16", 2, 90.18, "Scrap / Desecho", "Operador Láser", "Rayaduras profundas"])
+            ws.title = "Bitácora"
+            ws.append(["Folio_Salida"])
             wb.save(file_path)
             
         with open(file_path, "rb") as f:
             b64_data = base64.b64encode(f.read()).decode("utf-8")
         mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        download_name = doc_id
-    else:
-        file_path = os.path.join(temp_pdf_dir, f"{doc_id}_Muestra.pdf")
+        pdf_link = f'<a href="data:{mime};base64,{b64_data}" download="{doc_id}">📥 Descargar Excel</a>'
+        word_link = "N/A"
+        return pdf_link, word_link
+
+    if doc_id.startswith("PR-") or doc_id == "MN-SGC-01" or doc_id == "PR-SGC-02" or doc_id == "PR-SGC-04":
+        # It's a procedure or manual, download as Markdown draft only
+        file_path = os.path.join(BASE_DIR, f"{doc_id}_Procedimiento.md")
         if not os.path.exists(file_path):
-            if doc_id == "PR-ALM-01":
-                utils_pdf.generar_pdf_procedimiento_pralm01(file_path)
-            elif doc_id == "PR-ALM-02":
-                utils_pdf.generar_pdf_procedimiento_pralm02(file_path)
-            elif doc_id == "FO-MET-31":
-                columnas = ["No. Atado", "Espesor 1 (in)", "Espesor 2 (in)", "Espesor 3 (in)", "Ancho (in)", "Largo (in)", "Estatus"]
-                filas = [
-                    ["AT-001", "0.0750", "0.0751", "0.0749", "48.0", "120.0", "Aceptado"],
-                    ["AT-002", "0.0782", "0.0751", "0.0753", "48.0", "120.0", "Aceptado"]
-                ]
-                utils_pdf.crear_pdf_generico_muestra(doc_id, "Reporte Consolidado de Inspección Dimensional de Materia Prima", columnas, filas, file_path)
-            elif doc_id == "FO-MET-32":
-                columnas = ["ID Atado", "Proveedor", "Colada", "SKU", "Estatus"]
-                filas = [["INC-2026-0001-A01", "Ternium México", "COL-77621", "SKU-GALV-14", "Aceptado"]]
-                utils_pdf.crear_pdf_generico_muestra(doc_id, "Tarjeta de Identificación de Atado (Etiqueta)", columnas, filas, file_path)
-            elif doc_id == "FO-MET-33":
-                columnas = ["Documento", "Descripción", "Estatus"]
-                filas = [
-                    ["Certificado", "Certificado de Calidad de Molino", "Entregado"],
-                    ["Orden de Compra", "OC firmada de SIGRAMA", "Entregado"]
-                ]
-                utils_pdf.crear_pdf_generico_muestra(doc_id, "Portada y Resumen de Contenido del Dosier de Calidad", columnas, filas, file_path)
-            elif doc_id == "FO-MET-36":
-                columnas = ["ID Atado", "SKU", "Hojas Despachadas", "Destino Proyecto", "Responsable"]
-                filas = [["INC-2026-0001-A01", "SKU-GALV-14", "50", "Proyecto Soportes Láser", "Operador Láser"]]
-                utils_pdf.crear_pdf_generico_muestra(doc_id, "Remisión de Salida de Lámina", columnas, filas, file_path)
-            elif doc_id == "FO-MET-41":
-                columnas = ["ID Atado", "SKU", "Hojas Defectuosas", "Defecto", "Gravedad"]
-                filas = [["INC-2026-0001-A01", "SKU-GALV-14", "5", "Raya / Rasguño", "Leve"]]
-                utils_pdf.crear_pdf_generico_muestra(doc_id, "Reporte de Rechazo por Defecto en Proceso", columnas, filas, file_path)
-            elif doc_id == "PR-SGC-04":
-                columnas = ["Sección", "Descripción del Control", "Responsable"]
-                filas = [
-                    ["1. Identificación", "Etiquetar con tarjeta roja todo material no conforme.", "Inspector Calidad"],
-                    ["2. Segregación", "Mover al almacén de producto no conforme.", "Auxiliar Almacén"]
-                ]
-                utils_pdf.crear_pdf_generico_muestra(doc_id, "Procedimiento para Control de Producto / Servicio No Conforme", columnas, filas, file_path)
-            elif doc_id == "PR-SGC-02":
-                columnas = ["Registro", "Tiempo de Retención", "Disposición Final"]
-                filas = [
-                    ["Dosier de Calidad", "5 Años", "Archivo Muerto / Triturar"],
-                    ["Remisiones de Salida", "3 Años", "Reciclar"]
-                ]
-                utils_pdf.crear_pdf_generico_muestra(doc_id, "Procedimiento para el Control de Registros", columnas, filas, file_path)
-            elif doc_id == "FO-MET-37":
-                dummy_atado = {
-                    "ID_Atado": "INC-2026-0001-A01",
-                    "ID_Atado_Proveedor": "Ternium-99128",
-                    "SKU": "SKU-GALV-14",
-                    "Num_Colada": "COL-77621",
-                    "Cantidad_Hojas": 50
-                }
-                utils_pdf.generar_pdf_hoja_consumo_fomet37(dummy_atado, file_path)
-            elif doc_id == "FO-MET-40":
-                import pandas as pd
-                mock_inv = pd.DataFrame([
-                    {
-                        "ID_Atado": "INC-2026-0001-A01",
-                        "SKU": "SKU-GALV-14",
-                        "Folio": "INC-2026-0001",
-                        "Hojas_Disponibles": 35,
-                        "Cantidad_Hojas": 50,
-                        "Peso_Disponible_Kg": 789.25,
-                        "Ubicacion_Almacen": "ESTANTE-A1",
-                        "Grado_Acero": "CS Type B",
-                        "Num_Colada": "COL-77621",
-                        "ID_Atado_Proveedor": "Ternium-99128"
-                    },
-                    {
-                        "ID_Atado": "INC-2026-0002-A01",
-                        "SKU": "SKU-DECP-16",
-                        "Folio": "INC-2026-0002",
-                        "Hojas_Disponibles": 12,
-                        "Cantidad_Hojas": 40,
-                        "Peso_Disponible_Kg": 540.80,
-                        "Ubicacion_Almacen": "ESTANTE-B2",
-                        "Grado_Acero": "FS Type A",
-                        "Num_Colada": "COL-88310",
-                        "ID_Atado_Proveedor": "Ahmsa-11204"
-                    }
-                ])
-                utils_pdf.generar_pdf_reporte_ejecutivo_inventario({"skus": "Todos"}, mock_inv, file_path)
-            else:
-                columnas = ["Muestra", "Descripción"]
-                filas = [["Muestra", f"Muestra para el formato {doc_id}"]]
-                utils_pdf.crear_pdf_generico_muestra(doc_id, f"Muestra de Formato {doc_id}", columnas, filas, file_path)
-                
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(f"# Borrador de {doc_id}
+
+Este es un documento editable para revisión.")
         with open(file_path, "rb") as f:
             b64_data = base64.b64encode(f.read()).decode("utf-8")
-        mime = "application/pdf"
-        download_name = f"{doc_id}_Muestra.pdf"
+        mime = "text/markdown"
+        word_link = f'<a href="data:{mime};base64,{b64_data}" download="{doc_id}.md">📝 Descargar Boceto MD</a>'
+        return "N/A", word_link
+
+    # Otherwise it's a PDF/Word pair (FO-MET-XX, etc.)
+    import utils_pdf
+    import utils_word
+    
+    pdf_path = os.path.join(temp_pdf_dir, f"{doc_id}_Muestra.pdf")
+    word_path = os.path.join(temp_pdf_dir, f"{doc_id}_Muestra.docx")
+    
+    columnas = []
+    filas = []
+    titulo = "Formato Oficial"
+    
+    if doc_id == "FO-MET-31":
+        columnas = ["No. Atado", "Espesor", "Ancho", "Estatus"]
+        filas = [["AT-001", "0.0750", "48.0", "Aceptado"]]
+        titulo = "Reporte Consolidado de Inspección Dimensional"
+    elif doc_id == "FO-MET-32":
+        columnas = ["ID Atado", "Proveedor", "Colada", "SKU", "Estatus"]
+        filas = [["INC-2026", "Ternium", "COL-77621", "SKU-GALV", "Aceptado"]]
+        titulo = "Tarjeta de Identificación"
+    # Fallback generic
+    if not columnas:
+        columnas = ["Campo 1", "Campo 2", "Campo 3"]
+        filas = [["Dato A", "Dato B", "Dato C"]]
+
+    if not os.path.exists(pdf_path):
+        utils_pdf.crear_pdf_generico_muestra(doc_id, titulo, columnas, filas, pdf_path)
+    if not os.path.exists(word_path):
+        utils_word.crear_word_generico_muestra(titulo, columnas, filas, word_path)
         
-    return f'<a href="data:{mime};base64,{b64_data}" download="{download_name}" style="color: #0D47A1; font-weight: bold; text-decoration: underline;">{display_name}</a>'
+    with open(pdf_path, "rb") as f:
+        b64_pdf = base64.b64encode(f.read()).decode("utf-8")
+    with open(word_path, "rb") as f:
+        b64_word = base64.b64encode(f.read()).decode("utf-8")
+        
+    pdf_link = f'<a href="data:application/pdf;base64,{b64_pdf}" download="{doc_id}_Muestra.pdf">📥 PDF</a>'
+    word_link = f'<a href="data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,{b64_word}" download="{doc_id}_Boceto.docx">📝 WORD</a>'
+    
+    return pdf_link, word_link
 
 def auto_commit_and_push_to_github(nuevo_folio):
     """
@@ -2418,7 +2377,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                             st.error(f"Error al generar el PDF del reporte ejecutivo: {ex_pi}")
                     
                     st.write("---")
-                    st.write("📋 **Generar Hoja de Control de Consumo de Láminas (FO-MET-37) por Atado**")
+                    st.write("📋 **Generar Hoja de Control de Consumo de Láminas  por Atado**")
                     st.markdown("Imprima un formato físico para reportar secuencialmente el consumo de láminas por atado y asociarlo a Órdenes de Trabajo (OT) de corte a mano.")
                     
                     atados_disponibles = sorted(df_inv_display["ID_Atado"].unique().tolist())
@@ -3332,7 +3291,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                         )
                         st.plotly_chart(fig4, use_container_width=True)
                 
-                    # ── Descargar PDF del Dashboard (FO-MET-42) ───────────────────────────
+                    # ── Descargar PDF del Dashboard  ───────────────────────────
                     st.write("---")
                     st.write("#### 4.5.3.1. 📥 Exportar Reporte de Tablero")
                     st.markdown("Descargue el Tablero completo en PDF oficial SGC con KPIs, gráficas e inventario.")
@@ -3930,10 +3889,10 @@ elif opcion_menu == "5. ⚙️ Catálogo de Tolerancias de SKU":
                         st.rerun()
 
 # =============================================================================
-# MÓDULO: GLOSARIO DE DOCUMENTOS
+# MÓDULO: SISTEMA DE GESTIÓN DE CALIDAD (SGC)
 # =============================================================================
-elif opcion_menu == "6. 📚 Glosario de Documentos":
-    st.title("6. 📚 Glosario de Documentos del SGC")
+elif opcion_menu == "7. 📚 Sistema de Gestión de Calidad (SGC)":
+    st.title("7. 📚 Sistema de Gestión de Calidad (SGC)")
     st.markdown("A continuación se presenta el glosario oficial de todos los documentos y formatos generados por la aplicación y el Sistema de Gestión de Calidad (SGC) de Planta Metales. Puede descargar una muestra en formato PDF/Excel haciendo clic en el enlace correspondiente.")
     
     glosario = [
@@ -3956,6 +3915,7 @@ elif opcion_menu == "6. 📚 Glosario de Documentos":
         {"id": "PR-SGC-02",              "descripcion": "Procedimiento General para el Control de Registros del SGC",                                            "asociado": "SGC General (Control de Calidad)"},
         {"id": "PR-SGC-04",              "descripcion": "Procedimiento General para Control de Producto o Servicio No Conforme",                                 "asociado": "PR-ALM-01 / PR-ALM-02 / Desviaciones"},
         {"id": "BD_Salidas_Incoming.xlsx","descripcion": "Bitácora Digital de Despachos y Registro Histórico de Salidas",                                        "asociado": "PR-ALM-02 (Registro Digital)"},
+        {"id": "MN-SGC-01",              "descripcion": "Manual de Operación del Sistema",                                                                       "asociado": "Manual General / Todos los Módulos"},
     ]
     
     # Renderizar tabla HTML premium con CSS adaptado a Sigrama
@@ -3970,7 +3930,7 @@ elif opcion_menu == "6. 📚 Glosario de Documentos":
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
 }
 .glossary-table thead tr {
-    background-color: #D32F2F;
+    background-color: #EC2024;
     color: white;
     text-align: left;
     font-weight: bold;
@@ -3986,10 +3946,10 @@ elif opcion_menu == "6. 📚 Glosario de Documentos":
     background-color: #f8f9fa;
 }
 .glossary-table tbody tr:last-of-type {
-    border-bottom: 3px solid #D32F2F;
+    border-bottom: 3px solid #2F3542;
 }
 .glossary-table a {
-    color: #D32F2F !important;
+    color: #2F3542 !important;
     font-weight: bold;
     text-decoration: none;
 }
@@ -4002,291 +3962,34 @@ elif opcion_menu == "6. 📚 Glosario de Documentos":
     <tr>
       <th>Descripción / Nombre Oficial</th>
       <th>Asociado a / Referenciado en</th>
-      <th>Descarga de Muestra</th>
+      <th>Descarga de Muestra (PDF/Excel)</th>
+      <th>Descarga de Boceto Editable (Word/MD)</th>
     </tr>
   </thead>
   <tbody>"""
     
     for doc in glosario:
-        link = obtener_link_descarga_muestra(doc["id"], "📥 Descargar Muestra")
+        pdf_link, word_link = obtener_link_descarga_muestra(doc["id"])
         asociado_limpio = doc["asociado"]
-        for code in ["PR-ALM-01", "PR-ALM-02", "PR-SGC-04", "PR-SGC-02", "FO-MET-30", "FO-MET-31", "FO-MET-32", "FO-MET-33", "FO-MET-34", "FO-MET-35", "FO-MET-36", "FO-MET-37", "FO-MET-38", "FO-MET-39", "FO-MET-40", "FO-MET-41", "FO-MET-42", "FO-SGC-03"]:
+        # Remover códigos del asociado_limpio
+        for code in ["PR-ALM-01", "PR-ALM-02", "PR-SGC-04", "PR-SGC-02", "FO-MET-30", "FO-MET-31", "FO-MET-32", "FO-MET-33", "FO-MET-34", "FO-MET-35", "FO-MET-36", "FO-MET-37", "FO-MET-38", "FO-MET-39", "FO-MET-40", "FO-MET-41", "FO-MET-42", "FO-SGC-03", "MN-SGC-01"]:
             asociado_limpio = asociado_limpio.replace(code, "").replace("()", "").strip()
         asociado_limpio = re.sub(r'\s*/\s*', ' / ', asociado_limpio).strip(" / ")
         html_table += f"""<tr>
   <td>{doc["descripcion"]}</td>
   <td><em>{asociado_limpio}</em></td>
-  <td>{link}</td>
+  <td>{pdf_link}</td>
+  <td>{word_link}</td>
 </tr>"""
         
     html_table += """</tbody></table>"""
     
     st.markdown(html_table, unsafe_allow_html=True)
 
-# =============================================================================
-# MÓDULO 5: MANUAL DE OPERACIÓN
-# =============================================================================
-elif opcion_menu == "7. 📖 Manual de Operación":
-    st.title("7. 📖 Manual de Operación del Sistema")
-    st.markdown("Consulte las pautas de uso, niveles de acceso y flujos del sistema en pantalla o descargue el manual en formato PDF.")
-    
-    # Botón para descargar el manual en PDF
-    MANUAL_PDF_PATH = os.path.join(BASE_DIR, "Manual_Usuario_Incoming_Calidad.pdf")
-    if os.path.exists(MANUAL_PDF_PATH):
-        with open(MANUAL_PDF_PATH, "rb") as f:
-            pdf_bytes = f.read()
-        st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
-        st.download_button(
-            label="📥 Descargar Manual de Operación (PDF)",
-            data=pdf_bytes,
-            file_name="Manual_Usuario_Incoming_Calidad.pdf",
-            mime="application/pdf"
-        )
-    else:
-        st.warning("⚠️ El manual en PDF no se encuentra en el directorio raíz. Puede regenerarlo ejecutando el script correspondiente.")
-
-    st.write("---")
-    
-    # Cargar y mostrar el manual en markdown en pantalla
-    MANUAL_MD_PATH = os.path.join(BASE_DIR, "manual_usuario.md")
-    if os.path.exists(MANUAL_MD_PATH):
-        try:
-            with open(MANUAL_MD_PATH, "r", encoding="utf-8") as f:
-                md_content = f.read()
-            # Omitir el título principal de MD si ya lo pusimos en st.title
-            if md_content.startswith("# "):
-                # Buscar la primera línea y omitirla
-                lines = md_content.split("\n")
-                md_content = "\n".join(lines[1:])
-            st.markdown(md_content, unsafe_allow_html=True)
-        except Exception as e:
-            st.error(f"Error al leer el manual en pantalla: {e}")
-    else:
-        st.error("❌ Archivo 'manual_usuario.md' no encontrado.")
-
-# =============================================================================
-# MÓDULO 6: PROCEDIMIENTO DE RECEPCIÓN (PR-ALM-01)
-# =============================================================================
-elif opcion_menu == "8. 📋 Procedimiento de Recepción":
-    st.title("8. 📋 Procedimiento de Recepción de Materia Prima")
-    st.markdown("Consulte el procedimiento oficial SGC **PR-ALM-01** digitalizado y adaptado a nuestro sistema de control estadístico.")
-    
-    # Botón para descargar el procedimiento en PDF
-    try:
-        temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
-        os.makedirs(temp_pdf_dir, exist_ok=True)
-        pdf_path_proc = os.path.join(temp_pdf_dir, "Procedimiento_PR-ALM-01_Digital.pdf")
-        
-        utils_pdf.generar_pdf_procedimiento_pralm01(pdf_path_proc)
-        
-        if os.path.exists(pdf_path_proc):
-            with open(pdf_path_proc, "rb") as f:
-                pdf_bytes = f.read()
-            st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
-            st.download_button(
-                label="📥 Descargar Procedimiento de Recepción (PDF)",
-                data=pdf_bytes,
-                file_name="Procedimiento_PR-ALM-01_Digital.pdf",
-                mime="application/pdf",
-                use_container_width=True,
-                key="btn_descarga_procedimiento_pdf"
-            )
-    except Exception as e:
-        st.error(f"Error al generar el PDF del procedimiento: {e}")
-        
-    st.write("---")
-    
-    # Renderizar el procedimiento en markdown en pantalla
-    st.markdown("""
-    ### PROCEDIMIENTO DE RECEPCIÓN DE MATERIA PRIMA
-    **Código:** No disponible (Edición Provisional)  
-    **Revisión:** 00 (Edición Digital)  
-    **Departamento:** Almacén / Calidad  
-    **Sistema:** SGC Digital Sigrama  
-    
-    ---
-    
-    #### 1. OBJETIVO
-    Establecer de manera detallada y estricta los lineamientos para la recepción, inspección técnica, validación documental y aceptación de materia prima (lámina galvanizada y decapada) mediante la aplicación digital **SGC Incoming**, con el fin de asegurar que el material que ingresa a los procesos de producción de **SIGRAMA** cumple con las propiedades mecánicas, químicas y dimensionales necesarias para evitar productos no conformes y daños a la maquinaria.
-    
-    #### 2. ALCANCE
-    Este procedimiento es aplicable a todo el personal involucrado en la cadena de suministro de **SIGRAMA**, iniciando desde el arribo del transporte del proveedor a la planta, pasando por la descarga, la inspección física y documental por parte de Calidad, hasta la identificación, resguardo y estiba final en el almacén de materia prima.
-    
-    #### 3. NORMAS DE REFERENCIA
-    * **ISO 9001:2015:** Sistema de Gestión de Calidad (Cláusula 8.4 Control de procesos, productos y servicios suministrados externamente).
-    * **ASTM A653:** Especificación estándar para lámina de acero galvanizada por inmersión en caliente.
-    * **ASTM A1011:** Especificación para acero laminado en caliente, decapado y aceitado (HRPO).
-    * **PR-SGC-01:** Procedimiento para Control de Documentos (SIGRAMA).
-    
-    #### 4. DEFINICIONES
-    * **Certificado de Molino:** Documento técnico expedido por el fabricante del acero que garantiza la composición química (Carbono, Manganeso, etc.) y las propiedades mecánicas (Límite elástico, tensión).
-    * **Papel VCI (Volatile Corrosion Inhibitor):** Empaque industrial impregnado con químicos que inhiben la oxidación de los metales al crear una atmósfera protectora.
-    * **G60 / G90:** Grado de recubrimiento de zinc. G90 ofrece una mayor resistencia a la corrosión en ambientes salinos o húmedos.
-    * **Flor de Zinc (Spangle):** Patrón visible de cristales de zinc en la superficie de la lámina; su uniformidad es indicador de calidad en el proceso de inmersión.
-    * **Atado / Bundle:** Unidad de empaque de láminas agrupadas por calibre y medida.
-    * **Dosier de Calidad:** Expediente unificado que compila la portada (FO-MET-33), reporte de mediciones (FO-MET-31), reporte técnico estadístico de Gauss, etiquetas de almacén (FO-MET-32), certificado de calidad y orden de compra de Sigrama.
-    
-    #### 5. DIAGRAMA DE FLUJO (TABLA ESCALONADA DEL PROCESO)
-    | Responsable | PROCESO ó ACTIVIDAD | Documento de Salida |
-    | :--- | :--- | :--- |
-    | **Inspector de Calidad** | Validación documental inicial (Cotejo de Certificado de Molino vs Orden de Compra de Sigrama). | Cotejo Inicial y Remisión Firmada |
-    | **Auxiliar de Almacén** | Descarga física del material utilizando la grúa viajera y validación del peso bruto (Máximo 2.5 TON según RFQ). | Registro de peso (N/A) |
-    | **Inspector de Calidad** | Inspección dimensional micrométrica (4 placas/esquinas virtuales, 12 lecturas) e inspección visual de empaque y defectos. | Reporte de Calidad Consolidado (FO-MET-31) y Reporte Técnico de Gauss |
-    | **Auxiliar de Almacén** | Identificación física del material en el almacén de metales y preservación con papel VCI. | Tarjeta de Identificación (FO-MET-32) con código de barras/interno |
-    | **Sistema SGC Digital** | Compilación del expediente digital unificado y respaldo automático a la nube mediante Token de GitHub. | Dosier de Calidad Unificado (FO-MET-33) respaldado en GitHub |
-    
-    #### 6. DESARROLLO DEL PROCEDIMIENTO
-    ##### 6.1 Recepción y Validación Documental
-    Al arribo del material, el Inspector de Calidad debe cotejar la Remisión del proveedor contra la Orden de Compra (OC) de SIGRAMA y el Certificado de Molino.
-    * Se debe verificar que el número de colada impreso en el atado coincida exactamente con el certificado.
-    * Si el material carece de certificado o existe discrepancia en el grado de acero, el material no se descarga y se reporta inmediatamente a Compras.
-    
-    ##### 6.2 Maniobra de Descarga y Pesaje
-    El personal de Almacén procede a la descarga utilizando la grúa viajera.
-    * **Restricción de Peso:** Ningún atado debe exceder las **2.5 Toneladas**. En caso de que el proveedor envíe atados de mayor peso, se hará la observación y se evaluará el riesgo de maniobra; si pone en riesgo la infraestructura o seguridad, será rechazado.
-    
-    ##### 6.3 Inspección Técnica de Calidad
-    Una vez en piso, el Inspector de Calidad aplica los siguientes criterios:
-    * **Inspección Dimensional (Digital):** Se realiza la medición del espesor de la lámina en **4 placas virtuales** del atado. En cada placa se realizan **3 lecturas** en diferentes puntos, acumulando un total de **12 lecturas de espesor** por atado. La tolerancia dimensional aceptable está pre-configurada dinámicamente por SKU en el catálogo del sistema.
-    * **Inspección Visual:** Se debe revisar el 100% de la cara superior y los bordes. Se rechaza material con:
-      * **Oxidación Blanca o Negra:** Presencia de humedad o falla en el pasivado.
-      * **Golpes o "Escalones":** Deformaciones físicas que impidan el correcto *nest* del láser de fibra.
-      * **Falla en Flor:** Cristales de zinc irregulares o desprendimiento del recubrimiento.
-      
-    ##### 6.4 Identificación, Preservación y Estiba
-    * **Identificación:** El material conforme recibirá una **Tarjeta de Identificación (FO-MET-32)** verde con estatus 'Aceptado' con sus códigos internos, colada e histórico gaussiano. El material no conforme recibirá una etiqueta roja y se trasladará al área de segregación conforme al PR-SGC-04.
-    * **Preservación:** Toda lámina debe ser resguardada sobre tarimas de madera (nunca contacto directo con suelo). Se debe colocar **Papel VCI** entre el material y el ambiente si el tiempo de almacenamiento previsto supera los 15 días.
-    
-    ##### 6.5 Cierre y Auto-Guardado en la Nube
-    El sistema recopila automáticamente los archivos PDF de portada, reporte consolidado de mediciones, reporte estadístico de Gauss y las etiquetas de identificación en un único archivo **Dosier de Calidad (FO-MET-33)**. Una vez validado por el inspector, se realiza una sincronización en segundo plano con el repositorio web de GitHub mediante un Token seguro de acceso, permitiendo persistencia y auditoría inmediata.
-    
-    """, unsafe_allow_html=True)
-    
-    st.markdown("#### 7. DOCUMENTOS RELACIONADOS")
-    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-31', 'Muestra de Reporte Consolidado')}**: Reporte Consolidado de Inspección Dimensional de Materia Prima.", unsafe_allow_html=True)
-    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-32', 'Muestra de Tarjeta de Identificación')}**: Tarjeta de Identificación de Atado de Materia Prima (Etiqueta).", unsafe_allow_html=True)
-    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-33', 'Muestra de Portada de Dosier')}**: Portada y Resumen de Contenido del Dosier de Calidad.", unsafe_allow_html=True)
-    st.markdown(f"* **{obtener_link_descarga_muestra('PR-SGC-04', 'Muestra de Control de No Conformes')}**: Procedimiento para Control de Producto / Servicio No Conforme.", unsafe_allow_html=True)
-    st.markdown(f"* **{obtener_link_descarga_muestra('PR-SGC-02', 'Muestra de Control de Registros')}**: Procedimiento para el Control de Registros.", unsafe_allow_html=True)
-    
-    st.markdown("""
-    #### 8. CONTROL DE REVISIONES
-    * **Rev. 00:** Emisión inicial y adaptación completa para reestructuración del Sistema de Gestión de Calidad (SGC) digital SIGRAMA.
-    """, unsafe_allow_html=True)
-
-# =============================================================================
-# MÓDULO 10: PROCEDIMIENTO DE DESPACHO (PR-ALM-02)
-# =============================================================================
-elif opcion_menu == "9. 📋 Procedimiento de Despacho":
-    st.title("9. 📋 Procedimiento para Control de Inventario y Despacho")
-    st.markdown("Consulte el procedimiento oficial SGC **PR-ALM-02** digitalizado y regulado para el control de inventario y salida de material.")
-    
-    # Botón para descargar el procedimiento en PDF
-    try:
-        temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
-        os.makedirs(temp_pdf_dir, exist_ok=True)
-        pdf_path_proc2 = os.path.join(temp_pdf_dir, "Procedimiento_PR-ALM-02_Digital.pdf")
-        
-        utils_pdf.generar_pdf_procedimiento_pralm02(pdf_path_proc2)
-        
-        if os.path.exists(pdf_path_proc2):
-            with open(pdf_path_proc2, "rb") as f:
-                pdf_bytes = f.read()
-            st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
-            st.download_button(
-                label="📥 Descargar Procedimiento de Despacho (PDF)",
-                data=pdf_bytes,
-                file_name="Procedimiento_PR-ALM-02_Digital.pdf",
-                mime="application/pdf",
-                use_container_width=True,
-                key="btn_descarga_procedimiento_pralm02_pdf"
-            )
-    except Exception as e:
-        st.error(f"Error al generar el PDF del procedimiento: {e}")
-        
-    st.write("---")
-    
-    # Renderizar el procedimiento en markdown en pantalla
-    st.markdown("""
-    ### PROCEDIMIENTO PARA CONTROL DE INVENTARIO Y DESPACHO A CORTE
-    **Código:** No disponible (Edición Provisional)  
-    **Revisión:** 00 (Edición Digital)  
-    **Departamento:** Almacén / Producción  
-    **Sistema:** SGC Digital Sigrama  
-    
-    ---
-    
-    #### 1. OBJETIVO
-    Establecer de manera clara y estricta los lineamientos operativos y de calidad para el control físico de existencias, la solicitud, verificación y despacho de láminas de acero desde el Almacén de Metales hacia la célula de Corte (cizalla, láser, etc.) mediante la aplicación digital, así como el registro y disposición de rechazos de material por defectos detectados en producción, garantizando la trazabilidad total del material por número de colada y el mantenimiento del inventario en tiempo real.
-    
-    #### 2. ALCANCE
-    Este procedimiento aplica para todo el personal de Almacén (auxiliares, jefes de almacén), Operadores del área de Corte (incluyendo el Operador Láser) e Inspectores de Calidad involucrados en el control logístico, egreso físico, reporte de defectos y registro del material en el SGC de **SIGRAMA**.
-    
-    #### 3. NORMAS DE REFERENCIA
-    * **ISO 9001:2015:** Sistema de Gestión de Calidad (Cláusula 8.5 Producción y provisión del servicio, 8.5.2 Identificación y trazabilidad).
-    * **PR-ALM-01:** Procedimiento de Recepción de Materia Prima.
-    * **PR-SGC-01:** Procedimiento para Control de Documentos (SIGRAMA).
-    
-    #### 4. DEFINICIONES
-    * **Remisión de Salida (FO-MET-36):** Formato oficial y pase de salida digital generado por la aplicación que ampara la transferencia de custodia del material del Almacén al área de Corte.
-    * **Reporte de Rechazo en Proceso (FO-MET-41):** Formato digital regulado en el SGC para declarar láminas con defectos de calidad en producción (ej. corte láser), permitiendo su deducción de inventarios.
-    * **Operador Láser:** Rol operativo con permisos restringidos para registrar únicamente rechazos por defectos en proceso (`REJ-OUT`), teniendo bloqueada la creación de remisiones estándar de salida.
-    * **Área de Corte:** Célula de manufactura encargada del corte por láser, punzonado o cizallado de las láminas para la estructura de los gabinetes.
-    * **Bitácora de Salidas (BD_Salidas_Incoming.xlsx):** Registro cronológico digital en el cual se asientan todos los egresos del almacén, detallando folios, hojas, peso proporcional y responsables.
-    * **PEPS (Primeras Entradas, Primeras Salidas):** Método logístico que prioriza la salida del material que tiene más tiempo en almacén, previniendo la oxidación de las láminas.
-    
-    #### 5. DIAGRAMA DE FLUJO (TABLA ESCALONADA DEL PROCESO)
-    | Responsable | PROCESO ó ACTIVIDAD | Documento de Salida |
-    | :--- | :--- | :--- |
-    | **Supervisor de Corte** | Solicita láminas de acero especificando SKU, cantidad de hojas y proyecto de producción. | Orden de Trabajo / Requerimiento |
-    | **Auxiliar de Almacén** | Verifica disponibilidad de stock aceptado y aplica regla PEPS para seleccionar el atado en la app. | Módulo de Existencias (App) |
-    | **Auxiliar de Almacén** | Registra digitalmente el despacho (se descuentan hojas del inventario automáticamente) y descarga la remisión. | Remisión de Salida Digital (FO-MET-36) |
-    | **Auxiliar de Almacén** | Prepara y entrega el material físico al área de corte acompañado de la remisión impresa. | Remisión FO-MET-36 Física |
-    | **Operador de Corte** | Valida características del material contra la remisión y firma de conformidad para archivar. | Remisión FO-MET-36 Firmada |
-    | **Operador Láser / Inspector** | Declara láminas defectuosas en producción en la app especificando tipo de defecto, gravedad y acción correctiva. | Reporte de Rechazo (FO-MET-41) |
-    
-    #### 6. DESARROLLO DEL PROCEDIMIENTO
-    ##### 6.1 Requerimiento de Material
-    Todo despacho de material debe estar amparado por un requerimiento para orden de producción. El supervisor de corte debe indicar el SKU, cantidad exacta de hojas y el proyecto de destino.
-    
-    ##### 6.2 Verificación en Sistema y Criterio PEPS
-    El almacenista consulta la aplicación en el módulo de Inventario y realiza la búsqueda del SKU solicitado:
-    * Solo se permite despachar atados físicos que tengan estatus de Calidad de **'Aceptado'** (etiqueta verde FO-MET-32).
-    * **Criterio PEPS:** Se debe seleccionar para salida el atado más antiguo del SKU solicitado que cumpla con el estatus, para evitar obsolescencia de material o daño superficial.
-    
-    ##### 6.3 Registro del Despacho
-    El almacenista llena el formulario digital en la aplicación seleccionando el ID del atado de origen y la cantidad a egresar. Al confirmar la salida:
-    * El sistema de forma automática deduce las hojas y calcula el peso proporcional de la base de datos general (Kardex).
-    * Se añade la transacción a la Bitácora de Salidas (`BD_Salidas_Incoming.xlsx`).
-    * Se realiza la sincronización segura con GitHub mediante el token de acceso para la persistencia inmutable.
-    
-    ##### 6.4 Generación de Remisión y Entrega
-    El almacenista genera y descarga la Remisión de Salida Oficial (FO-MET-36) en formato PDF.
-    * El material físico se separa del atado y se entrega al operador del área de corte junto con el documento FO-MET-36 impreso.
-    * El operador de corte valida que el calibre, tipo de lámina y cantidad de hojas correspondan físicamente.
-    * Ambas partes firman de conformidad de recepción en el formato impreso. La remisión física firmada se resguarda en archivo para trazabilidad.
-    
-    ##### 6.5 Registro de Rechazos por Defectos en Proceso
-    En caso de detectarse defectos de calidad o daños en las láminas durante producción (ej. corte láser) que no hayan sido detectados en la recepción inicial, el Operador Láser o Inspector de Calidad debe reportar el rechazo en el módulo correspondiente del sistema. Al declarar la cantidad de hojas afectadas, tipo de defecto y gravedad, el sistema asignará un folio 'REJ-OUT-YYYY-NNNN', generará de forma automática el Reporte de Rechazo (FO-MET-41) en PDF, y descontará las láminas y el peso proporcional de la base de datos de existencias.
-    
-    """, unsafe_allow_html=True)
-    
-    st.markdown("#### 7. DOCUMENTOS RELACIONADOS")
-    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-36', 'Muestra de Remisión de Salida')}**: Remisión de Salida de Lámina (Formato de Transferencia de Custodia).", unsafe_allow_html=True)
-    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-41', 'Muestra de Reporte de Rechazo')}**: Reporte de Rechazo por Defecto en Proceso (Formato de Declaración de Scrap).", unsafe_allow_html=True)
-    st.markdown(f"* **{obtener_link_descarga_muestra('BD_Salidas_Incoming.xlsx', 'BD_Salidas_Incoming.xlsx')}**: Bitácora Digital de Despachos y Registro Histórico.", unsafe_allow_html=True)
-    st.markdown(f"* **{obtener_link_descarga_muestra('PR-ALM-01', 'Muestra de Procedimiento de Recepción')}**: Procedimiento de Recepción de Materia Prima.", unsafe_allow_html=True)
-    
-    st.markdown("""
-    #### 8. CONTROL DE REVISIONES
-    * **Rev. 00:** Emisión inicial y digitalización integrada para el control de inventario y remisiones del sistema SGC digital SIGRAMA.
-    """, unsafe_allow_html=True)
-
-# =============================================================================
 # MÓDULO 7: MANUFACTURA INTELIGENTE Y TECNOLOGÍA
 # =============================================================================
-elif opcion_menu == "10. 💡 Manufactura Inteligente y Tecnología":
-    st.title("10. 💡 Manufactura Inteligente e Industria 4.0")
+elif opcion_menu == "6. 💡 Manufactura Inteligente y Tecnología":
+    st.title("6. 💡 Manufactura Inteligente e Industria 4.0")
     st.markdown("Justificación técnica y desglose tecnológico de la transformación digital en el control de calidad de **SIGRAMA**.")
     
     st.write("---")
@@ -4301,7 +4004,7 @@ elif opcion_menu == "10. 💡 Manufactura Inteligente y Tecnología":
         
         * **1. Captura de Datos en Tiempo Real (Edge to Cloud):** Eliminación del registro manuscrito (papel) por digitación directa en pie de máquina. La captura digital de las **12 lecturas de espesor por atado** asegura la inmediata disponibilidad de los datos.
         * **2. Control Estadístico del Proceso (SPC) Automatizado:** El cálculo de desviaciones estándar, rangos y la distribución Gaussiana ya no se realiza mediante auditorías mensuales en hojas de cálculo externas. El sistema evalúa instantáneamente el comportamiento de la colada y determina si el proceso de laminación o galvanizado está centrado.
-        * **3. Trazabilidad Total y Auditoría Inmediata:** El auto-guardado en la nube compila automáticamente el **Dosier de Calidad (FO-MET-33)** vinculando el Certificado de Molino original con las mediciones físicas tomadas en planta. Cualquier auditor externo o supervisor de producción puede consultar el historial en segundos con absoluta confianza en la inmutabilidad del registro.
+        * **3. Trazabilidad Total y Auditoría Inmediata:** El auto-guardado en la nube compila automáticamente el **Dosier de Calidad ** vinculando el Certificado de Molino original con las mediciones físicas tomadas en planta. Cualquier auditor externo o supervisor de producción puede consultar el historial en segundos con absoluta confianza en la inmutabilidad del registro.
         """)
     with col_inf2:
         st.info("""
@@ -4345,8 +4048,8 @@ elif opcion_menu == "10. 💡 Manufactura Inteligente y Tecnología":
 # =============================================================================
 # MÓDULO 9: LIMPIEZA Y EXPLORADOR GIT (ADMIN)
 # =============================================================================
-elif opcion_menu == "11. 🗑️ Limpieza y Explorador Git (Admin)":
-    st.title("11. 🗑️ Explorador y Limpieza de Almacenamiento en GitHub")
+elif opcion_menu == "8. 🗑️ Limpieza y Explorador Git (Admin)":
+    st.title("8. 🗑️ Explorador y Limpieza de Almacenamiento en GitHub")
     st.markdown("Gestione y elimine las carpetas físicas de registros y expedientes en el servidor local y en GitHub para mantener limpio el almacenamiento.")
     
     if not is_admin:
