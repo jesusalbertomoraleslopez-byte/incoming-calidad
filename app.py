@@ -3448,6 +3448,23 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                         
                         st.dataframe(df_sal_tbl, use_container_width=True, hide_index=True)
                         
+                        # --- NUEVO REPORTE: Piezas remisionadas por Receptor ---
+                        st.write("#### 4.5.5.2. 📊 Reporte de Piezas Remisionadas por Receptor")
+                        st.markdown("Resumen consolidado de piezas (hojas) entregadas a cada receptor / responsable.")
+                        
+                        df_agrupado = df_sal_tbl.groupby("Responsable")["Hojas Despachadas"].sum().reset_index()
+                        df_agrupado = df_agrupado.sort_values("Hojas Despachadas", ascending=False)
+                        df_agrupado = df_agrupado.rename(columns={"Responsable": "Receptor"})
+                        
+                        col_rep1, col_rep2 = st.columns(2)
+                        with col_rep1:
+                            st.dataframe(df_agrupado, use_container_width=True, hide_index=True)
+                        with col_rep2:
+                            import plotly.express as px
+                            if not df_agrupado.empty:
+                                fig = px.pie(df_agrupado, values="Hojas Despachadas", names="Receptor", title="Distribución por Receptor", hole=0.3)
+                                st.plotly_chart(fig, use_container_width=True)
+                        
                         # ── Eliminación de Registros REM / REJ (solo Administrador) ──────────────
                         st.write("---")
                         st.write("#### 4.5.5.2. 🗑️ Eliminar Registro de Salida (REM / REJ) — Solo Administrador")
