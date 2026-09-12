@@ -49,60 +49,8 @@ else:
         else:
             st.subheader("INDUSTRIA SIGRAMA")
     with col_banner_txt:
-        st.markdown("<h2 style='color:#EC2024; margin-top:10px;'>SISTEMA DE CONTROL DE CALIDAD EN RECEPCIÓN (INCOMING)</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color:#D32F2F; margin-top:10px;'>SISTEMA DE CONTROL DE CALIDAD EN RECEPCIÓN (INCOMING)</h2>", unsafe_allow_html=True)
 st.write("---")
-
-# Inyectar estilos CSS corporativos
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Questrial&display=swap');
-
-html, body, [class*="css"]  {
-    font-family: 'Questrial', sans-serif !important;
-}
-
-h1, h2, h3, h4, h5, h6 {
-    font-family: 'Montserrat', sans-serif !important;
-}
-
-/* ===== Botones de descarga y primarios en rojo corporativo ===== */
-div[data-testid="stDownloadButton"] button, div[data-testid="stButton"] button[kind="primary"], div[data-testid="stButton"] button {
-    background-color: #EC2024 !important;
-    color: white !important;
-    font-family: 'Montserrat', sans-serif !important;
-    font-weight: 600 !important;
-    border: none !important;
-    border-radius: 8px !important;
-    transition: background-color 0.3s ease, transform 0.1s ease !important;
-}
-div[data-testid="stDownloadButton"] button:hover, div[data-testid="stButton"] button[kind="primary"]:hover, div[data-testid="stButton"] button:hover {
-    background-color: #C61A1E !important;
-    transform: translateY(-2px);
-}
-div[data-testid="stDownloadButton"] button p, div[data-testid="stButton"] button p {
-    color: white !important;
-}
-
-/* ===== Barra Lateral ===== */
-[data-testid="stSidebar"] {
-    background-color: #111111 !important;
-}
-[data-testid="stSidebar"] * {
-    color: #FFFFFF !important;
-}
-
-/* ===== Inputs y Selectores ===== */
-div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
-    border: 1px solid #D2D3D5 !important;
-    border-radius: 6px !important;
-}
-div[data-baseweb="input"] > div:focus-within, div[data-baseweb="select"] > div:focus-within {
-    border-color: #EC2024 !important;
-    box-shadow: 0 0 0 1px #EC2024 !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
 
 # Carga de base de datos segura de forma local
 def cargar_db(path, sheet=0):
@@ -121,15 +69,13 @@ def guardar_db(df, path, sheet_name="Datos_Sistema"):
         return False
 
 
-def obtener_link_descarga_muestra(doc_id):
+def obtener_link_descarga_muestra(doc_id, display_name):
     import base64
     import os
+    import datetime
     
     temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
     os.makedirs(temp_pdf_dir, exist_ok=True)
-    
-    pdf_link = "N/A"
-    word_link = "N/A"
     
     if doc_id.endswith(".xlsx"):
         file_path = os.path.join(temp_pdf_dir, doc_id)
@@ -137,67 +83,112 @@ def obtener_link_descarga_muestra(doc_id):
             import openpyxl
             wb = openpyxl.Workbook()
             ws = wb.active
-            ws.title = "Bitácora"
-            ws.append(["Folio_Salida"])
+            ws.title = "Bitácora de Salidas"
+            ws.append(["Folio_Salida", "Fecha", "Hora", "ID_Atado", "SKU", "Cantidad_Hojas_Despachadas", "Peso_Despachado_Kg", "Destino_Proyecto", "Responsable", "Observaciones"])
+            ws.append(["REM-OUT-2026-0001", "17/06/2026", "10:30", "INC-2026-0001-A01", "SKU-GALV-14", 10, 225.5, "Proyecto Tolva", "Carlos Pérez", "Entrega estándar"])
+            ws.append(["REJ-OUT-2026-0001", "17/06/2026", "11:15", "INC-2026-0001-A02", "SKU-DECP-16", 2, 90.18, "Scrap / Desecho", "Operador Láser", "Rayaduras profundas"])
             wb.save(file_path)
             
         with open(file_path, "rb") as f:
             b64_data = base64.b64encode(f.read()).decode("utf-8")
         mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        pdf_link = f'<a href="data:{mime};base64,{b64_data}" download="{doc_id}">📥 Descargar Excel</a>'
-        word_link = "N/A"
-        return pdf_link, word_link
-
-    if doc_id.startswith("PR-") or doc_id == "MN-SGC-01" or doc_id == "PR-SGC-02" or doc_id == "PR-SGC-04":
-        # It's a procedure or manual, download as Markdown draft only
-        file_path = os.path.join(BASE_DIR, f"{doc_id}_Procedimiento.md")
+        download_name = doc_id
+    else:
+        file_path = os.path.join(temp_pdf_dir, f"{doc_id}_Muestra.pdf")
         if not os.path.exists(file_path):
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(f"# Borrador de {doc_id}\n\nEste es un documento editable para revisión.")
+            if doc_id == "PR-ALM-01":
+                utils_pdf.generar_pdf_procedimiento_pralm01(file_path)
+            elif doc_id == "PR-ALM-02":
+                utils_pdf.generar_pdf_procedimiento_pralm02(file_path)
+            elif doc_id == "FO-MET-31":
+                columnas = ["No. Atado", "Espesor 1 (in)", "Espesor 2 (in)", "Espesor 3 (in)", "Ancho (in)", "Largo (in)", "Estatus"]
+                filas = [
+                    ["AT-001", "0.0750", "0.0751", "0.0749", "48.0", "120.0", "Aceptado"],
+                    ["AT-002", "0.0782", "0.0751", "0.0753", "48.0", "120.0", "Aceptado"]
+                ]
+                utils_pdf.crear_pdf_generico_muestra(doc_id, "Reporte Consolidado de Inspección Dimensional de Materia Prima", columnas, filas, file_path)
+            elif doc_id == "FO-MET-32":
+                columnas = ["ID Atado", "Proveedor", "Colada", "SKU", "Estatus"]
+                filas = [["INC-2026-0001-A01", "Ternium México", "COL-77621", "SKU-GALV-14", "Aceptado"]]
+                utils_pdf.crear_pdf_generico_muestra(doc_id, "Tarjeta de Identificación de Atado (Etiqueta)", columnas, filas, file_path)
+            elif doc_id == "FO-MET-33":
+                columnas = ["Documento", "Descripción", "Estatus"]
+                filas = [
+                    ["Certificado", "Certificado de Calidad de Molino", "Entregado"],
+                    ["Orden de Compra", "OC firmada de SIGRAMA", "Entregado"]
+                ]
+                utils_pdf.crear_pdf_generico_muestra(doc_id, "Portada y Resumen de Contenido del Dosier de Calidad", columnas, filas, file_path)
+            elif doc_id == "FO-MET-36":
+                columnas = ["ID Atado", "SKU", "Hojas Despachadas", "Destino Proyecto", "Responsable"]
+                filas = [["INC-2026-0001-A01", "SKU-GALV-14", "50", "Proyecto Soportes Láser", "Operador Láser"]]
+                utils_pdf.crear_pdf_generico_muestra(doc_id, "Remisión de Salida de Lámina", columnas, filas, file_path)
+            elif doc_id == "FO-MET-41":
+                columnas = ["ID Atado", "SKU", "Hojas Defectuosas", "Defecto", "Gravedad"]
+                filas = [["INC-2026-0001-A01", "SKU-GALV-14", "5", "Raya / Rasguño", "Leve"]]
+                utils_pdf.crear_pdf_generico_muestra(doc_id, "Reporte de Rechazo por Defecto en Proceso", columnas, filas, file_path)
+            elif doc_id == "PR-SGC-04":
+                columnas = ["Sección", "Descripción del Control", "Responsable"]
+                filas = [
+                    ["1. Identificación", "Etiquetar con tarjeta roja todo material no conforme.", "Inspector Calidad"],
+                    ["2. Segregación", "Mover al almacén de producto no conforme.", "Auxiliar Almacén"]
+                ]
+                utils_pdf.crear_pdf_generico_muestra(doc_id, "Procedimiento para Control de Producto / Servicio No Conforme", columnas, filas, file_path)
+            elif doc_id == "PR-SGC-02":
+                columnas = ["Registro", "Tiempo de Retención", "Disposición Final"]
+                filas = [
+                    ["Dosier de Calidad", "5 Años", "Archivo Muerto / Triturar"],
+                    ["Remisiones de Salida", "3 Años", "Reciclar"]
+                ]
+                utils_pdf.crear_pdf_generico_muestra(doc_id, "Procedimiento para el Control de Registros", columnas, filas, file_path)
+            elif doc_id == "FO-MET-37":
+                dummy_atado = {
+                    "ID_Atado": "INC-2026-0001-A01",
+                    "ID_Atado_Proveedor": "Ternium-99128",
+                    "SKU": "SKU-GALV-14",
+                    "Num_Colada": "COL-77621",
+                    "Cantidad_Hojas": 50
+                }
+                utils_pdf.generar_pdf_hoja_consumo_fomet37(dummy_atado, file_path)
+            elif doc_id == "FO-MET-40":
+                import pandas as pd
+                mock_inv = pd.DataFrame([
+                    {
+                        "ID_Atado": "INC-2026-0001-A01",
+                        "SKU": "SKU-GALV-14",
+                        "Folio": "INC-2026-0001",
+                        "Hojas_Disponibles": 35,
+                        "Cantidad_Hojas": 50,
+                        "Peso_Disponible_Kg": 789.25,
+                        "Ubicacion_Almacen": "ESTANTE-A1",
+                        "Grado_Acero": "CS Type B",
+                        "Num_Colada": "COL-77621",
+                        "ID_Atado_Proveedor": "Ternium-99128"
+                    },
+                    {
+                        "ID_Atado": "INC-2026-0002-A01",
+                        "SKU": "SKU-DECP-16",
+                        "Folio": "INC-2026-0002",
+                        "Hojas_Disponibles": 12,
+                        "Cantidad_Hojas": 40,
+                        "Peso_Disponible_Kg": 540.80,
+                        "Ubicacion_Almacen": "ESTANTE-B2",
+                        "Grado_Acero": "FS Type A",
+                        "Num_Colada": "COL-88310",
+                        "ID_Atado_Proveedor": "Ahmsa-11204"
+                    }
+                ])
+                utils_pdf.generar_pdf_reporte_ejecutivo_inventario({"skus": "Todos"}, mock_inv, file_path)
+            else:
+                columnas = ["Muestra", "Descripción"]
+                filas = [["Muestra", f"Muestra para el formato {doc_id}"]]
+                utils_pdf.crear_pdf_generico_muestra(doc_id, f"Muestra de Formato {doc_id}", columnas, filas, file_path)
+                
         with open(file_path, "rb") as f:
             b64_data = base64.b64encode(f.read()).decode("utf-8")
-        mime = "text/markdown"
-        word_link = f'<a href="data:{mime};base64,{b64_data}" download="{doc_id}.md">📝 Descargar Boceto MD</a>'
-        return "N/A", word_link
-
-    # Otherwise it's a PDF/Word pair (FO-MET-XX, etc.)
-    import utils_pdf
-    import utils_word
-    
-    pdf_path = os.path.join(temp_pdf_dir, f"{doc_id}_Muestra.pdf")
-    word_path = os.path.join(temp_pdf_dir, f"{doc_id}_Muestra.docx")
-    
-    columnas = []
-    filas = []
-    titulo = "Formato Oficial"
-    
-    if doc_id == "FO-MET-31":
-        columnas = ["No. Atado", "Espesor", "Ancho", "Estatus"]
-        filas = [["AT-001", "0.0750", "48.0", "Aceptado"]]
-        titulo = "Reporte Consolidado de Inspección Dimensional"
-    elif doc_id == "FO-MET-32":
-        columnas = ["ID Atado", "Proveedor", "Colada", "SKU", "Estatus"]
-        filas = [["INC-2026", "Ternium", "COL-77621", "SKU-GALV", "Aceptado"]]
-        titulo = "Tarjeta de Identificación"
-    # Fallback generic
-    if not columnas:
-        columnas = ["Campo 1", "Campo 2", "Campo 3"]
-        filas = [["Dato A", "Dato B", "Dato C"]]
-
-    if not os.path.exists(pdf_path):
-        utils_pdf.crear_pdf_generico_muestra(doc_id, titulo, columnas, filas, pdf_path)
-    if not os.path.exists(word_path):
-        utils_word.crear_word_generico_muestra(titulo, columnas, filas, word_path)
+        mime = "application/pdf"
+        download_name = f"{doc_id}_Muestra.pdf"
         
-    with open(pdf_path, "rb") as f:
-        b64_pdf = base64.b64encode(f.read()).decode("utf-8")
-    with open(word_path, "rb") as f:
-        b64_word = base64.b64encode(f.read()).decode("utf-8")
-        
-    pdf_link = f'<a href="data:application/pdf;base64,{b64_pdf}" download="{doc_id}_Muestra.pdf">📥 PDF</a>'
-    word_link = f'<a href="data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,{b64_word}" download="{doc_id}_Boceto.docx">📝 WORD</a>'
-    
-    return pdf_link, word_link
+    return f'<a href="data:{mime};base64,{b64_data}" download="{download_name}" style="color: #0D47A1; font-weight: bold; text-decoration: underline;">{display_name}</a>'
 
 def auto_commit_and_push_to_github(nuevo_folio):
     """
@@ -581,53 +572,80 @@ def renderizar_analisis_gaussiano_consolidado(df_rows, sku_info, key=None):
         key = f"plotly_gauss_consolidado_{id_atado}"
     st.plotly_chart(fig_gauss, use_container_width=True, key=key)
 
-# Control de accesos para administración y registro en la barra lateral
-st.sidebar.title("🔐 Control de Acceso")
-admin_pass_input = st.sidebar.text_input("Contraseña Administrador:", type="password")
-inspector_pass_input = st.sidebar.text_input("Contraseña Inspector/Registro:", type="password")
-laser_pass_input = st.sidebar.text_input("Contraseña Operador Láser:", type="password")
-
-def es_admin():
-    return admin_pass_input == "SigramaCalidad2026" or inspector_pass_input == "SigramaCalidad2026" or laser_pass_input == "SigramaCalidad2026"
-
-def es_inspector():
-    return inspector_pass_input == "SigramaInspector2026" or admin_pass_input == "SigramaInspector2026" or laser_pass_input == "SigramaInspector2026" or es_admin()
-
-def es_laser():
-    return laser_pass_input == "SigramaLaser2026" or admin_pass_input == "SigramaLaser2026" or inspector_pass_input == "SigramaLaser2026"
-
-is_admin = es_admin()
-
-st.sidebar.write("---")
-
 # Navegación lateral
 st.sidebar.title("🧭 Navegación")
-
-opciones_menu_lista = [
+opcion_menu = st.sidebar.radio("Seleccione un Módulo:", [
     "1. 📊 Analíticas y Dashboard",
     "2. 📥 Registro de Recepción (Incoming)",
     "3. 🔍 Consulta de Historial",
     "4. 📦 Inventario y Remisiones de Salida",
     "5. ⚙️ Catálogo de Tolerancias de SKU",
-    "6. 💡 Manufactura Inteligente y Tecnología"
-]
+    "6. 📚 Glosario de Documentos",
+    "7. 📖 Manual de Operación",
+    "8. 📋 Procedimiento de Recepción (PR-ALM-01)",
+    "9. 📋 Procedimiento de Despacho (PR-ALM-02)",
+    "10. 💡 Manufactura Inteligente y Tecnología",
+    "11. 🗑️ Limpieza y Explorador Git (Admin)"
+])
 
-if is_admin:
-    opciones_menu_lista.append("7. 📚 Sistema de Gestión de Calidad (SGC)")
-    opciones_menu_lista.append("8. 🗑️ Limpieza y Explorador Git (Admin)")
 
-opcion_menu = st.sidebar.radio("Seleccione un Módulo:", opciones_menu_lista)
-is_inspector = es_inspector()
-is_laser = es_laser()
+# Soporte SSO robusto desde Concentradora SIGRAMA
+sso_active = False
+sso_name = "Administrador"
+try:
+    qp = dict(st.query_params) if hasattr(st, "query_params") else {}
+    sso_token = qp.get("sso_token")
+    if isinstance(sso_token, list): sso_token = sso_token[0] if sso_token else None
+    sso_user = qp.get("sso_user")
+    if isinstance(sso_user, list): sso_user = sso_user[0] if sso_user else None
+    sso_role = qp.get("sso_role", "Admin")
+    if isinstance(sso_role, list): sso_role = sso_role[0] if sso_role else "Admin"
 
-if is_admin:
-    st.sidebar.success("Modo Administrador Activo")
-elif is_inspector:
-    st.sidebar.success("Modo Inspector (Registro) Activo")
-elif is_laser:
-    st.sidebar.success("Modo Operador Láser Activo")
+    if sso_token == "SIGRAMA_AUTH_TOKEN" and sso_user:
+        st.session_state["sso_logged_in"] = True
+        st.session_state["sso_user"] = sso_user
+        st.session_state["sso_role"] = sso_role
+except Exception:
+    pass
+
+if st.session_state.get("sso_logged_in", False):
+    sso_active = True
+    sso_name = st.session_state.get("sso_user", "Jesús Alberto Morales López")
+    is_admin = True
+    is_inspector = True
+    is_laser = True
+    st.sidebar.write("---")
+    st.sidebar.markdown(f"""
+    <div style="background: #1E293B; border-left: 3px solid #10B981; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+        <span style="color: #A7F3D0; font-size: 11px; font-weight: bold;">🟢 SESIÓN INICIADA (SSO)</span><br>
+        <span style="color: #FFFFFF; font-size: 13px; font-weight: bold;">{sso_name}</span><br>
+        <span style="color: #94A3B8; font-size: 11px;">Rol: Administrador General</span>
+    </div>
+    """, unsafe_allow_html=True)
 else:
-    st.sidebar.warning("Modo Consulta Activo")
+    # Control de accesos para administración y registro en la barra lateral
+    st.sidebar.write("---")
+    st.sidebar.title("🔐 Control de Acceso")
+    admin_pass_input = st.sidebar.text_input("Contraseña Administrador:", type="password")
+    inspector_pass_input = st.sidebar.text_input("Contraseña Inspector/Registro:", type="password")
+    laser_pass_input = st.sidebar.text_input("Contraseña Operador Láser:", type="password")
+
+    valid_admin_passwords = ["SigramaAdmin2026", "SigramaCalidad2026", "SigramaMetales2026", "Admin2026", "admin"]
+    valid_inspector_passwords = ["SigramaInspector2026", "MAQUINADOS"] + valid_admin_passwords
+    valid_laser_passwords = ["SigramaLaser2026"] + valid_admin_passwords
+
+    is_admin = any(p in valid_admin_passwords for p in [admin_pass_input, inspector_pass_input, laser_pass_input])
+    is_inspector = is_admin or any(p in valid_inspector_passwords for p in [inspector_pass_input, admin_pass_input, laser_pass_input])
+    is_laser = is_admin or any(p in valid_laser_passwords for p in [laser_pass_input, admin_pass_input, inspector_pass_input])
+
+    if is_admin:
+        st.sidebar.success("Modo Administrador Activo")
+    elif is_inspector:
+        st.sidebar.success("Modo Inspector (Registro) Activo")
+    elif is_laser:
+        st.sidebar.success("Modo Operador Láser Activo")
+    else:
+        st.sidebar.warning("Modo Consulta Activo")
 
 # Leyenda de Desarrollador en el panel de navegación
 st.sidebar.write("---")
@@ -646,20 +664,17 @@ if opcion_menu == "1. 📊 Analíticas y Dashboard":
     
     df_rep = st.session_state.BD_Reportes
     df_atd = st.session_state.BD_Atados.copy()
-    def get_tipo_lamina(sku):
-        sku_str = str(sku).upper()
-        if "GALV" in sku_str:
-            return "Galvanizada"
-        elif "DECP" in sku_str:
+    if not df_atd.empty and "Tipo_Lamina" not in df_atd.columns:
+        def get_tipo_lamina(sku):
+            sku_str = str(sku).upper()
+            if "GALV" in sku_str:
+                return "Galvanizada"
+            elif "DECP" in sku_str:
+                return "Decapada"
+            elif "ALUM" in sku_str:
+                return "Aluminio"
             return "Decapada"
-        elif "ALUM" in sku_str:
-            return "Aluminio"
-        return "Decapada"
-    if "Tipo_Lamina" not in df_atd.columns:
-        if not df_atd.empty:
-            df_atd["Tipo_Lamina"] = df_atd["SKU"].apply(get_tipo_lamina)
-        else:
-            df_atd["Tipo_Lamina"] = pd.Series(dtype=str)
+        df_atd["Tipo_Lamina"] = df_atd["SKU"].apply(get_tipo_lamina)
     
     if df_rep.empty:
         st.info("No hay reportes de recepción registrados actualmente. Vaya al módulo de 'Registro de Recepción' para comenzar.")
@@ -674,16 +689,10 @@ if opcion_menu == "1. 📊 Analíticas y Dashboard":
                 proveedores = ["Todos"] + sorted(list(df_rep["Proveedor"].dropna().unique().tolist()))
                 prov_sel = st.selectbox("Proveedor:", proveedores, key="dash_prov")
             with col_f3:
-                if not df_atd.empty and "Tipo_Lamina" in df_atd.columns:
-                    materiales = ["Todos"] + sorted(list(df_atd["Tipo_Lamina"].dropna().unique().tolist()))
-                else:
-                    materiales = ["Todos"]
+                materiales = ["Todos"] + sorted(list(df_atd["Tipo_Lamina"].dropna().unique().tolist()))
                 mat_sel = st.selectbox("Material:", materiales, key="dash_mat")
             with col_f4:
-                if not df_atd.empty and "SKU" in df_atd.columns:
-                    calibres = ["Todos"] + sorted(list(df_atd["SKU"].apply(lambda x: obtener_calibre(x)).unique().tolist()))
-                else:
-                    calibres = ["Todos"]
+                calibres = ["Todos"] + sorted(list(df_atd["SKU"].apply(lambda x: obtener_calibre(x)).unique().tolist()))
                 cal_sel = st.selectbox("Calibre:", calibres, key="dash_cal")
                 
         # Filtrado de datos
@@ -718,11 +727,6 @@ if opcion_menu == "1. 📊 Analíticas y Dashboard":
         
         atados_aceptados = len(df_atd_unicos[df_atd_unicos["Estatus_Calidad"] == "Aceptado"])
         atados_rechazados = len(df_atd_unicos[df_atd_unicos["Estatus_Calidad"] == "Rechazado"])
-        
-        # Piezas (Hojas) por estatus
-        hojas_aceptadas = int(df_atd_unicos[df_atd_unicos["Estatus_Calidad"] == "Aceptado"]["Cantidad_Hojas"].sum()) if "Cantidad_Hojas" in df_atd_unicos.columns else 0
-        hojas_rechazadas = int(df_atd_unicos[df_atd_unicos["Estatus_Calidad"] == "Rechazado"]["Cantidad_Hojas"].sum()) if "Cantidad_Hojas" in df_atd_unicos.columns else 0
-        hojas_total = int(df_atd_unicos["Cantidad_Hojas"].sum()) if "Cantidad_Hojas" in df_atd_unicos.columns else 0
         
         peso_total_kg = df_atd_unicos["Peso_Total_Kg"].sum()
         peso_total_lb = df_atd_unicos["Peso_Total_Lb"].sum()
@@ -761,37 +765,7 @@ if opcion_menu == "1. 📊 Analíticas y Dashboard":
             delta_color="normal"
         )
         
-        # ── KPI: Atados Aceptados / Rechazados por Atados y Piezas ────────────────
-        st.markdown("<h3 style='color:#D32F2F;'>1.2. 📦 Resumen de Atados: Aceptados vs Rechazados</h3>", unsafe_allow_html=True)
-        st.markdown("**Detalle de atados (rollos) y piezas (hojas) inspeccionadas, clasificadas por estatus de calidad.**")
-        
-        kpi_row1 = st.columns(4)
-        kpi_row1[0].metric(
-            label="✅ Atados Aceptados",
-            value=f"{atados_aceptados:,} Atados",
-            delta=f"{hojas_aceptadas:,} Piezas",
-            delta_color="normal"
-        )
-        kpi_row1[1].metric(
-            label="❌ Atados Rechazados",
-            value=f"{atados_rechazados:,} Atados",
-            delta=f"{hojas_rechazadas:,} Piezas",
-            delta_color="inverse"
-        )
-        kpi_row1[2].metric(
-            label="📊 Total Atados Inspeccionados",
-            value=f"{total_atados:,} Atados",
-            delta=f"{hojas_total:,} Piezas Totales"
-        )
-        pct_atados_acep = (atados_aceptados / total_atados * 100) if total_atados > 0 else 0.0
-        kpi_row1[3].metric(
-            label="📈 Tasa de Aceptación (Atados)",
-            value=f"{pct_atados_acep:.1f}%",
-            delta=f"{(pct_atados_acep - 95):+.1f}% vs Meta (95%)",
-            delta_color="normal"
-        )
-        
-        st.markdown("<h3 style='color:#D32F2F;'>1.3. 🎯 OKR 2: Eficiencia de Abastecimiento y Control</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color:#D32F2F;'>1.2. 🎯 OKR 2: Eficiencia de Abastecimiento y Control</h3>", unsafe_allow_html=True)
         st.markdown("**Objetivo:** Registrar, medir e inspeccionar el volumen total de acero recibido para asegurar la continuidad de producción.")
         
         o2_col1, o2_col2, o2_col3 = st.columns(3)
@@ -1000,13 +974,7 @@ if opcion_menu == "1. 📊 Analíticas y Dashboard":
             "peso_total_lb": peso_total_lb,
             "total_lotes": total_lotes,
             "lotes_aceptados": lotes_aceptados,
-            "lotes_rechazados": lotes_rechazados,
-            # KPIs de Atados/Piezas por estatus
-            "atados_aceptados": atados_aceptados,
-            "atados_rechazados": atados_rechazados,
-            "hojas_aceptadas": hojas_aceptadas,
-            "hojas_rechazadas": hojas_rechazadas,
-            "hojas_total": hojas_total,
+            "lotes_rechazados": lotes_rechazados
         }
         
         try:
@@ -1016,16 +984,12 @@ if opcion_menu == "1. 📊 Analíticas y Dashboard":
             pdf_path_temp = os.path.join(temp_pdf_dir, f"Reporte_Dashboard_{datetime.date.today().strftime('%Y%m%d')}.pdf")
             
             # Generar el PDF
-            utils_pdf.generar_pdf_reporte_dashboard(
-                filtros_pdf, okr_data_pdf, df_rep_filtered, dict_acep,
-                pdf_path_temp, df_atd_filtered=df_atd_filtered
-            )
+            utils_pdf.generar_pdf_reporte_dashboard(filtros_pdf, okr_data_pdf, df_rep_filtered, dict_acep, pdf_path_temp)
             
             if os.path.exists(pdf_path_temp):
                 with open(pdf_path_temp, "rb") as f:
                     pdf_bytes = f.read()
                     
-                st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                 st.download_button(
                     label="📥 Descargar Reporte Ejecutivo del Dashboard (PDF)",
                     data=pdf_bytes,
@@ -1062,7 +1026,7 @@ elif opcion_menu == "2. 📥 Registro de Recepción (Incoming)":
             st.download_button(
                 label="📥 Descargar Formato de Plantilla Corporativa (.xlsx)",
                 data=f.read(),
-                file_name=f"Plantilla_Atados ({datetime.date.today().strftime('%Y%m%d')}).xlsx",
+                file_name=f"FO-MET-30-Plantilla_Atados ({datetime.date.today().strftime('%Y%m%d')}).xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
             
@@ -1394,7 +1358,7 @@ elif opcion_menu == "2. 📥 Registro de Recepción (Incoming)":
             st.write("---")
             
             # Botón para procesar
-            if st.button("💾 Salvar Todo: Procesar e Integrar Recepción a Base de Datos", type="primary", use_container_width=True):
+            if st.button("💾 Salvar Todo: Procesar e Integrar Recepción a Base de Datos"):
                 # Leer valores de st.session_state para evitar pérdidas en reruns
                 proveedor_val = st.session_state.get("reg_proveedor", "").strip()
                 orden_compra_val = st.session_state.get("reg_orden_compra", "").strip()
@@ -1803,7 +1767,6 @@ elif opcion_menu == "2. 📥 Registro de Recepción (Incoming)":
                         with col_dl1:
                             if os.path.exists(pdf_dosier):
                                 with open(pdf_dosier, "rb") as f:
-                                    st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                     st.download_button(
                                         label="📄 Descargar Dosier de Calidad Consolidado (PDF)",
                                         data=f.read(),
@@ -1815,40 +1778,12 @@ elif opcion_menu == "2. 📥 Registro de Recepción (Incoming)":
                             if os.path.exists(pdf_solo_etiquetas):
                                 with open(pdf_solo_etiquetas, "rb") as f:
                                     st.download_button(
-                                        label="🏷️ Descargar Tarjetas de Identificación / Etiquetas (PDF)",
+                                        label="🏷️ Descargar Solo Etiquetas FO-MET-32 (PDF)",
                                         data=f.read(),
                                         file_name=f"Etiquetas_Solo_{nuevo_folio}.pdf",
                                         mime="application/pdf",
                                         use_container_width=True
                                     )
-                            # FO-MET-37: Hoja de Consumo de Láminas
-                            try:
-                                temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
-                                os.makedirs(temp_pdf_dir, exist_ok=True)
-                                pdf_consumo_path = os.path.join(temp_pdf_dir, f"Control_Consumo_Lote_{nuevo_folio}.pdf")
-                                if not df_atados_temp.empty:
-                                    lista_atd_folio = [
-                                        df_atados_temp[df_atados_temp["ID_Atado"] == atd_id].iloc[0].to_dict()
-                                        for atd_id in df_atados_temp["ID_Atado"].unique()
-                                        if not df_atados_temp[df_atados_temp["ID_Atado"] == atd_id].empty
-                                    ]
-                                    if lista_atd_folio:
-                                        if len(lista_atd_folio) == 1:
-                                            utils_pdf.generar_pdf_hoja_consumo_fomet37(lista_atd_folio[0], pdf_consumo_path)
-                                        else:
-                                            utils_pdf.generar_pdf_hoja_consumo_fomet37_multi(lista_atd_folio, pdf_consumo_path)
-                                        if os.path.exists(pdf_consumo_path):
-                                            with open(pdf_consumo_path, "rb") as fc:
-                                                st.download_button(
-                                                    label=f"📄 Hoja de Control de Consumo ({len(lista_atd_folio)} atados)",
-                                                    data=fc.read(),
-                                                    file_name=f"Control_Consumo_Lote_{nuevo_folio}.pdf",
-                                                    mime="application/pdf",
-                                                    use_container_width=True,
-                                                    key=f"btn_fomet37_reg_{nuevo_folio}"
-                                                )
-                            except Exception as e_37:
-                                st.warning(f"No se pudo generar FO-MET-37: {e_37}")
                                 
                         # Dibujar las curvas de tolerancia usando Plotly
                         st.write("### 2.4. 📈 Curvas de Tolerancia del Lote Recién Registrado")
@@ -1969,7 +1904,6 @@ elif opcion_menu == "3. 🔍 Consulta de Historial":
                 if os.path.exists(pdf_path_historial):
                     with open(pdf_path_historial, "rb") as f:
                         pdf_bytes = f.read()
-                    st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                     st.download_button(
                         label="📥 Descargar Reporte de Consulta Filtrada (PDF)",
                         data=pdf_bytes,
@@ -2002,9 +1936,7 @@ elif opcion_menu == "3. 🔍 Consulta de Historial":
                     st.write("**Descargas Disponibles:**")
                     
                     # Botón para regenerar el expediente
-                    st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
-                    btn_pdf_clicked_0 = st.button("🔄 Regenerar y Actualizar Todos los PDFs de este Folio", key=f"btn_regen_{folio_seleccionado}", use_container_width=True, type="primary")
-                    if btn_pdf_clicked_0:
+                    if st.button("🔄 Regenerar y Actualizar Todos los PDFs de este Folio", key=f"btn_regen_{folio_seleccionado}", use_container_width=True):
                         import shutil
                         with st.spinner("Regenerando y actualizando todos los PDFs..."):
                             try:
@@ -2084,7 +2016,6 @@ elif opcion_menu == "3. 🔍 Consulta de Historial":
                     dossier_path = os.path.join(CARPETAS_DIR, folio_seleccionado, f"Dosier_Calidad_{folio_seleccionado}.pdf")
                     if os.path.exists(dossier_path):
                         with open(dossier_path, "rb") as f:
-                            st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                             st.download_button(
                                 label="📄 Descargar Dosier de Calidad (PDF)",
                                 data=f.read(),
@@ -2095,53 +2026,24 @@ elif opcion_menu == "3. 🔍 Consulta de Historial":
                     else:
                         st.warning("⚠️ Archivo de Dosier PDF no encontrado en el servidor local.")
                         
-                    # Botones: FO-MET-32 y FO-MET-37 lado a lado
-                    col_e32, col_e37 = st.columns(2)
-                    with col_e32:
-                        solo_etiquetas_path = os.path.join(CARPETAS_DIR, folio_seleccionado, f"Etiquetas_Solo_FO-MET-32_{folio_seleccionado}.pdf")
-                        if not os.path.exists(solo_etiquetas_path) and not df_atados_recepcion.empty:
-                            try:
-                                os.makedirs(os.path.dirname(solo_etiquetas_path), exist_ok=True)
-                                utils_pdf.generar_pdf_solo_etiquetas(folio_seleccionado, df_atados_recepcion, solo_etiquetas_path)
-                            except Exception:
-                                pass
-                        if os.path.exists(solo_etiquetas_path):
-                            with open(solo_etiquetas_path, "rb") as f:
-                                st.download_button(
-                                    label="🏷️ Descargar Tarjetas de Identificación / Etiquetas (PDF)",
-                                    data=f.read(),
-                                    file_name=f"Etiquetas_Solo_{folio_seleccionado}.pdf",
-                                    mime="application/pdf",
-                                    use_container_width=True,
-                                    key=f"btn_solo_etiquetas_{folio_seleccionado}"
-                                )
-                    with col_e37:
+                    # Botón 1.5: Descargar Solo Etiquetas (generar si no existe)
+                    solo_etiquetas_path = os.path.join(CARPETAS_DIR, folio_seleccionado, f"Etiquetas_Solo_FO-MET-32_{folio_seleccionado}.pdf")
+                    if not os.path.exists(solo_etiquetas_path) and not df_atados_recepcion.empty:
                         try:
-                            temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
-                            os.makedirs(temp_pdf_dir, exist_ok=True)
-                            pdf_fomet37_hist = os.path.join(temp_pdf_dir, f"Control_Consumo_Lote_{folio_seleccionado}.pdf")
-                            df_atd_hist = df_atados_recepcion.drop_duplicates(subset=["ID_Atado"])
-                            if not df_atd_hist.empty:
-                                lista_atd_hist = [
-                                    df_atd_hist[df_atd_hist["ID_Atado"] == atd_id].iloc[0].to_dict()
-                                    for atd_id in df_atd_hist["ID_Atado"].unique()
-                                ]
-                                if len(lista_atd_hist) == 1:
-                                    utils_pdf.generar_pdf_hoja_consumo_fomet37(lista_atd_hist[0], pdf_fomet37_hist)
-                                else:
-                                    utils_pdf.generar_pdf_hoja_consumo_fomet37_multi(lista_atd_hist, pdf_fomet37_hist)
-                                if os.path.exists(pdf_fomet37_hist):
-                                    with open(pdf_fomet37_hist, "rb") as fc:
-                                        st.download_button(
-                                            label=f"📄 Hoja de Control de Consumo ({len(lista_atd_hist)} atados)",
-                                            data=fc.read(),
-                                            file_name=f"Control_Consumo_Lote_{folio_seleccionado}.pdf",
-                                            mime="application/pdf",
-                                            use_container_width=True,
-                                            key=f"btn_fomet37_hist_{folio_seleccionado}"
-                                        )
-                        except Exception as e_37h:
-                            st.warning(f"No se pudo generar FO-MET-37: {e_37h}")
+                            os.makedirs(os.path.dirname(solo_etiquetas_path), exist_ok=True)
+                            utils_pdf.generar_pdf_solo_etiquetas(folio_seleccionado, df_atados_recepcion, solo_etiquetas_path)
+                        except Exception as e:
+                            pass
+                            
+                    if os.path.exists(solo_etiquetas_path):
+                        with open(solo_etiquetas_path, "rb") as f:
+                            st.download_button(
+                                label="🏷️ Descargar Solo Etiquetas FO-MET-32 (PDF)",
+                                data=f.read(),
+                                file_name=f"Etiquetas_Solo_{folio_seleccionado}.pdf",
+                                mime="application/pdf",
+                                key=f"btn_solo_etiquetas_{folio_seleccionado}"
+                            )
                         
                     # Botón 2: Descargar todo el expediente como un archivo ZIP
                     folder_path = os.path.join(CARPETAS_DIR, folio_seleccionado)
@@ -2362,9 +2264,8 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                             if os.path.exists(pdf_path_inventario):
                                 with open(pdf_path_inventario, "rb") as f_pdf_inv:
                                     pdf_bytes_inv = f_pdf_inv.read()
-                                st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                 st.download_button(
-                                    label="📥 Reporte Ejecutivo PDF",
+                                    label="📥 Reporte Ejecutivo PDF (FO-MET-40)",
                                     data=pdf_bytes_inv,
                                     file_name=f"Reporte_Ejecutivo_Inventario_{datetime.date.today().strftime('%Y%m%d')}.pdf",
                                     mime="application/pdf",
@@ -2375,64 +2276,39 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                             st.error(f"Error al generar el PDF del reporte ejecutivo: {ex_pi}")
                     
                     st.write("---")
-                    st.write("📋 **Generar Hoja de Control de Consumo de Láminas  por Atado**")
+                    st.write("📋 **Generar Hoja de Control de Consumo de Láminas (FO-MET-37) por Atado**")
                     st.markdown("Imprima un formato físico para reportar secuencialmente el consumo de láminas por atado y asociarlo a Órdenes de Trabajo (OT) de corte a mano.")
                     
-                    atados_disponibles = sorted(df_inv_display["ID_Atado"].unique().tolist())
-                    
-                    atados_sel_pdf = st.multiselect(
-                        "Seleccione uno o varios Atados físicos:",
-                        options=atados_disponibles,
-                        default=[atados_disponibles[0]] if atados_disponibles else [],
-                        key="ms_atados_fomet37",
-                        help="Puede seleccionar varios atados. Se generará un PDF con una sección por cada atado."
-                    )
-                    
-                    col_gen1, col_gen2 = st.columns([1, 2])
-                    with col_gen1:
-                        n_sel = len(atados_sel_pdf)
-                        lbl_btn = f"📄 Generar Hoja de Consumo ({n_sel} atado{'s' if n_sel != 1 else ''})" if n_sel > 0 else "📄 Generar Hoja de Consumo"
-                        if st.button(lbl_btn, key="btn_gen_fomet37", type="primary",
-                                     use_container_width=True, disabled=(n_sel == 0)):
-                            lista_datos = []
-                            for atd_id in atados_sel_pdf:
-                                fila = df_atados[df_atados["ID_Atado"] == atd_id]
-                                if not fila.empty:
-                                    lista_datos.append(fila.iloc[0].to_dict())
-                            if lista_datos:
-                                try:
-                                    temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
-                                    os.makedirs(temp_pdf_dir, exist_ok=True)
-                                    ids_str  = "_".join(atados_sel_pdf) if n_sel <= 3 else f"{n_sel}atados"
-                                    pdf_path_consumo = os.path.join(temp_pdf_dir, f"Control_Consumo_{ids_str}.pdf")
-                                    if n_sel == 1:
-                                        utils_pdf.generar_pdf_hoja_consumo_fomet37(lista_datos[0], pdf_path_consumo)
-                                    else:
-                                        utils_pdf.generar_pdf_hoja_consumo_fomet37_multi(lista_datos, pdf_path_consumo)
-                                    if os.path.exists(pdf_path_consumo):
-                                        with open(pdf_path_consumo, "rb") as f:
-                                            st.session_state["fomet37_pdf_bytes"]   = f.read()
-                                            st.session_state["fomet37_atados_ids"]  = list(atados_sel_pdf)
-                                        st.success(f"✅ Hoja de Consumo generada para {n_sel} atado(s). Descargue abajo.")
-                                except Exception as ex_pdf:
-                                    st.error(f"Error al generar el formato FO-MET-37: {ex_pdf}")
-                                    st.session_state.pop("fomet37_pdf_bytes", None)
-
-                    with col_gen2:
-                        # Botón de descarga persistente
-                        ids_guardados = st.session_state.get("fomet37_atados_ids", [])
-                        if (st.session_state.get("fomet37_pdf_bytes")
-                                and set(ids_guardados) == set(atados_sel_pdf) and atados_sel_pdf):
-                            n_g   = len(ids_guardados)
-                            fname = f"Control_Consumo_{'_'.join(ids_guardados) if n_g <= 3 else f'{n_g}atados'}.pdf"
-                            st.download_button(
-                                label=f"📥 Descargar Hoja de Consumo — {n_g} Atado(s) (PDF)",
-                                data=st.session_state["fomet37_pdf_bytes"],
-                                file_name=fname,
-                                mime="application/pdf",
-                                use_container_width=True,
-                                key="btn_download_fomet37"
-                            )
+                    col_pdf1, col_pdf2 = st.columns([2, 1])
+                    with col_pdf1:
+                        atado_sel_pdf = st.selectbox("Seleccione el Atado físico:", df_inv_display["ID_Atado"].unique(), key="sb_atado_fomet37")
+                    with col_pdf2:
+                        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+                        btn_gen_fomet37 = st.button("📄 Generar Formato FO-MET-37", key="btn_gen_fomet37")
+                        
+                    if btn_gen_fomet37:
+                        # Obtener los datos originales del atado
+                        atd_orig_data = df_atados[df_atados["ID_Atado"] == atado_sel_pdf].iloc[0].to_dict()
+                        try:
+                            temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
+                            os.makedirs(temp_pdf_dir, exist_ok=True)
+                            pdf_path_consumo = os.path.join(temp_pdf_dir, f"Control_Consumo_{atado_sel_pdf}.pdf")
+                            
+                            utils_pdf.generar_pdf_hoja_consumo_fomet37(atd_orig_data, pdf_path_consumo)
+                            
+                            if os.path.exists(pdf_path_consumo):
+                                with open(pdf_path_consumo, "rb") as f:
+                                    pdf_bytes = f.read()
+                                st.download_button(
+                                    label=f"📥 Descargar Hoja de Consumo - Atado {atado_sel_pdf} (PDF)",
+                                    data=pdf_bytes,
+                                    file_name=f"Control_Consumo_{atado_sel_pdf}.pdf",
+                                    mime="application/pdf",
+                                    use_container_width=True,
+                                    key="btn_download_fomet37"
+                                )
+                        except Exception as ex_pdf:
+                            st.error(f"Error al generar el formato FO-MET-37: {ex_pdf}")
                             
                     # Gráfico de % de Consumo y Disponibilidad por Atado
                     st.write("---")
@@ -2474,7 +2350,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
             
             with pest_inv2:
                 st.write("### 4.2.1. 📝 Registrar Salida Normal (REM-OUT)")
-                st.markdown("Registre el egreso de materia prima estándar para celdas de producción mediante la emisión de una remisión de salida.")
+                st.markdown("Registre el egreso de materia prima estándar para celdas de producción mediante la emisión de una remisión de salida (FO-MET-36).")
                 
                 if not is_inspector and not is_laser:
                     st.error("🔒 Área Protegida. Ingrese la contraseña de Inspector, Administrador u Operador Láser en la barra lateral para registrar salidas.")
@@ -2569,9 +2445,8 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                     if os.path.exists(rem["pdf_path"]):
                                         with open(rem["pdf_path"], "rb") as f:
                                             pdf_bytes = f.read()
-                                        st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                         st.download_button(
-                                            label="📥 Descargar Remisión de Salida",
+                                            label="📥 Descargar Remisión (FO-MET-36)",
                                             data=pdf_bytes,
                                             file_name=f"Remision_Salida_{rem['folio']}.pdf",
                                             mime="application/pdf",
@@ -2589,9 +2464,8 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                             if os.path.exists(pdf_path_consumo_rem):
                                                 with open(pdf_path_consumo_rem, "rb") as f_c:
                                                     pdf_bytes_c = f_c.read()
-                                                st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                                 st.download_button(
-                                                    label="📄 Descargar Hoja de Consumo",
+                                                    label="📄 Descargar Hoja de Consumo (FO-MET-37)",
                                                     data=pdf_bytes_c,
                                                     file_name=f"Control_Consumo_{rem['atado_id']}.pdf",
                                                     mime="application/pdf",
@@ -2603,7 +2477,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
 
             with pest_inv_rechazo:
                 st.write("### 4.3.1. ⚠️ Reportar Rechazo de Láminas por Defecto (REJ-OUT)")
-                st.markdown("Declare el desecho o rechazo de láminas que presentaron defectos no detectados durante la inspección en recepción (Incoming), para descontarlas de stock y generar el reporte de rechazo.")
+                st.markdown("Declare el desecho o rechazo de láminas que presentaron defectos no detectados durante la inspección en recepción (Incoming), para descontarlas de stock y generar el reporte FO-MET-41.")
                 
                 if not is_inspector and not is_laser:
                     st.error("🔒 Área Protegida. Ingrese la contraseña de Inspector, Administrador u Operador Láser en la barra lateral para registrar rechazos.")
@@ -2720,9 +2594,8 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                 if os.path.exists(rem["pdf_path"]):
                                     with open(rem["pdf_path"], "rb") as f:
                                         pdf_bytes = f.read()
-                                    st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                     st.download_button(
-                                        label="📥 Descargar Reporte de Rechazo",
+                                        label="📥 Descargar Reporte de Rechazo (FO-MET-41)",
                                         data=pdf_bytes,
                                         file_name=f"Reporte_Rechazo_{rem['folio']}.pdf",
                                         mime="application/pdf",
@@ -2741,129 +2614,9 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                     df_salidas_sorted = df_salidas.sort_values("Folio_Salida", ascending=False)
                     st.dataframe(df_salidas_sorted, use_container_width=True, hide_index=True)
                     
-                    # ── 4.4.2. Eliminar Registro REM / REJ (solo Administrador) ─────────────
+                    # Selección para descargar PDF del historial
                     st.write("---")
-                    st.write("#### 4.4.2. 🗑️ Eliminar Registros de Salida (REM / REJ)")
-                    
-                    if not is_admin:
-                        st.info("🔒 La eliminación de registros requiere contraseña de Administrador en la barra lateral.")
-                    else:
-                        st.warning("⚠️ **Atención:** Al eliminar, las hojas y el peso se devolverán automáticamente a cada atado en inventario. Esta acción **no se puede deshacer**.")
-                        
-                        folios_rem_rej = sorted(
-                            df_salidas["Folio_Salida"].dropna().unique().tolist(),
-                            reverse=True
-                        )
-                        
-                        folios_a_eliminar = st.multiselect(
-                            "Seleccione uno o varios Folios a eliminar (REM-OUT / REJ-OUT):",
-                            options=folios_rem_rej,
-                            placeholder="Seleccione folios...",
-                            key="msel_folios_eliminar_44"
-                        )
-                        
-                        if folios_a_eliminar:
-                            # Tabla de previsualización de lo que se va a eliminar
-                            regs_sel = df_salidas[df_salidas["Folio_Salida"].isin(folios_a_eliminar)].copy()
-                            
-                            resumen_cols = ["Folio_Salida", "Fecha", "ID_Atado", "SKU",
-                                            "Cantidad_Hojas_Despachadas", "Peso_Despachado_Kg",
-                                            "Destino_Proyecto", "Responsable"]
-                            resumen_cols_exist = [c for c in resumen_cols if c in regs_sel.columns]
-                            
-                            st.markdown("**📋 Registros seleccionados para eliminar:**")
-                            st.dataframe(
-                                regs_sel[resumen_cols_exist].rename(columns={
-                                    "Folio_Salida": "Folio",
-                                    "ID_Atado": "Atado",
-                                    "Cantidad_Hojas_Despachadas": "Hojas",
-                                    "Peso_Despachado_Kg": "Peso (Kg)",
-                                    "Destino_Proyecto": "Destino",
-                                }),
-                                use_container_width=True,
-                                hide_index=True
-                            )
-                            
-                            # Resumen consolidado por atado
-                            total_hojas = int(regs_sel["Cantidad_Hojas_Despachadas"].fillna(0).sum())
-                            total_peso  = float(regs_sel["Peso_Despachado_Kg"].fillna(0.0).sum())
-                            n_folios    = len(folios_a_eliminar)
-                            
-                            st.markdown(f"""
-                            <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px 18px;margin:8px 0;">
-                            <b>📊 Resumen del impacto:</b><br>
-                            • <b>{n_folios}</b> registro(s) a eliminar &nbsp;|&nbsp;
-                            <b>{total_hojas:,}</b> hojas totales a devolver a inventario &nbsp;|&nbsp;
-                            <b>{total_peso:,.2f} Kg</b> totales a devolver
-                            </div>
-                            """, unsafe_allow_html=True)
-                            
-                            confirm_del_multi = st.checkbox(
-                                f"✅ Confirmo eliminar {n_folios} registro(s) y revertir {total_hojas:,} hojas / {total_peso:.2f} Kg al inventario",
-                                key="confirm_del_multi_44"
-                            )
-                            
-                            if confirm_del_multi:
-                                if st.button(
-                                    f"🗑️ Eliminar {n_folios} Registro(s) Seleccionado(s)",
-                                    type="primary",
-                                    key="btn_del_multi_44"
-                                ):
-                                    try:
-                                        df_atados_mod = st.session_state.BD_Atados.copy()
-                                        errores = []
-                                        
-                                        # Agrupar por atado para revertir de forma consolidada
-                                        reversa_por_atado = regs_sel.groupby("ID_Atado").agg(
-                                            hojas_sum=("Cantidad_Hojas_Despachadas", "sum"),
-                                            peso_sum=("Peso_Despachado_Kg", "sum")
-                                        ).reset_index()
-                                        
-                                        for _, fila in reversa_por_atado.iterrows():
-                                            atado_id   = str(fila["ID_Atado"])
-                                            hojas_rev  = int(fila["hojas_sum"] or 0)
-                                            peso_rev   = float(fila["peso_sum"] or 0.0)
-                                            mask_at    = df_atados_mod["ID_Atado"] == atado_id
-                                            
-                                            if mask_at.any():
-                                                if "Hojas_Disponibles" in df_atados_mod.columns:
-                                                    df_atados_mod.loc[mask_at, "Hojas_Disponibles"] = (
-                                                        df_atados_mod.loc[mask_at, "Hojas_Disponibles"].fillna(0) + hojas_rev
-                                                    )
-                                                if "Peso_Disponible_Kg" in df_atados_mod.columns:
-                                                    df_atados_mod.loc[mask_at, "Peso_Disponible_Kg"] = (
-                                                        df_atados_mod.loc[mask_at, "Peso_Disponible_Kg"].fillna(0.0) + peso_rev
-                                                    )
-                                                if "Hojas_Despachadas" in df_atados_mod.columns:
-                                                    nuevo_val = df_atados_mod.loc[mask_at, "Hojas_Despachadas"].fillna(0) - hojas_rev
-                                                    df_atados_mod.loc[mask_at, "Hojas_Despachadas"] = nuevo_val.clip(lower=0)
-                                            else:
-                                                errores.append(f"Atado {atado_id} no encontrado en BD_Atados.")
-                                        
-                                        # Guardar BD_Atados con reversiones
-                                        st.session_state.BD_Atados = df_atados_mod
-                                        guardar_db(st.session_state.BD_Atados, BD_ATADOS, "Atados_Incoming")
-                                        
-                                        # Eliminar los folios de BD_Salidas
-                                        df_sal_mod = st.session_state.BD_Salidas.copy()
-                                        df_sal_mod = df_sal_mod[~df_sal_mod["Folio_Salida"].isin(folios_a_eliminar)]
-                                        st.session_state.BD_Salidas = df_sal_mod
-                                        guardar_db(st.session_state.BD_Salidas, BD_SALIDAS, "Salidas_Detalle")
-                                        
-                                        st.success(f"✅ Se eliminaron **{n_folios} registro(s)** correctamente. Se devolvieron **{total_hojas:,} hojas** y **{total_peso:.2f} Kg** al inventario.")
-                                        if errores:
-                                            for err in errores:
-                                                st.warning(f"⚠️ {err}")
-                                        st.rerun()
-                                        
-                                    except Exception as ex_del_multi:
-                                        st.error(f"❌ Error al eliminar registros: {ex_del_multi}")
-
-                    
-                    # ── 4.4.3. Reimpresión de Remisión / Reporte ────────────────────────────
-                    st.write("---")
-                    st.write("#### 4.4.3. 📥 Reimpresión de Remisión / Reporte de Rechazo")
-
+                    st.write("#### 4.4.2. 📥 Reimpresión de Remisión / Reporte de Rechazo")
                     folio_salida_reprint = st.selectbox("Seleccione el Folio a descargar:", df_salidas_sorted["Folio_Salida"].tolist(), key="reprint_folio_salida")
                     
                     if folio_salida_reprint:
@@ -2915,9 +2668,8 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                             if os.path.exists(pdf_path_reprint):
                                 with open(pdf_path_reprint, "rb") as f:
                                     pdf_bytes_reprint = f.read()
-                                st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                 st.download_button(
-                                    label=f"📥 Descargar PDF de Reporte de Rechazo {folio_salida_reprint}",
+                                    label=f"📥 Descargar PDF de Reporte de Rechazo {folio_salida_reprint} (FO-MET-41)",
                                     data=pdf_bytes_reprint,
                                     file_name=f"Reporte_Rechazo_{folio_salida_reprint}.pdf",
                                     mime="application/pdf",
@@ -2949,9 +2701,8 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                             if os.path.exists(pdf_path_reprint):
                                 with open(pdf_path_reprint, "rb") as f:
                                     pdf_bytes_reprint = f.read()
-                                st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                 st.download_button(
-                                    label=f"📥 Descargar PDF de Remisión {folio_salida_reprint}",
+                                    label=f"📥 Descargar PDF de Remisión {folio_salida_reprint} (FO-MET-36)",
                                     data=pdf_bytes_reprint,
                                     file_name=f"Remision_Salida_{folio_salida_reprint}.pdf",
                                     mime="application/pdf",
@@ -3289,59 +3040,7 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                         )
                         st.plotly_chart(fig4, use_container_width=True)
                 
-                    # ── Descargar PDF del Dashboard  ───────────────────────────
-                    st.write("---")
-                    st.write("#### 4.5.3.1. 📥 Exportar Reporte de Tablero")
-                    st.markdown("Descargue el Tablero completo en PDF oficial SGC con KPIs, gráficas e inventario.")
-                    
-                    try:
-                        temp_pdf_dir_dash = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
-                        os.makedirs(temp_pdf_dir_dash, exist_ok=True)
-                        pdf_path_dashboard = os.path.join(
-                            temp_pdf_dir_dash,
-                            f"FO-MET-42_Tablero_Inventario_{datetime.date.today().strftime('%Y%m%d')}.pdf"
-                        )
-                        
-                        kpis_pdf = {
-                            "total_hojas_disponibles": total_hojas_disponibles,
-                            "total_peso_disponible": total_peso_disponible,
-                            "total_hojas_rem": total_hojas_standard,
-                            "total_peso_rem": total_peso_standard,
-                            "total_hojas_rej": total_hojas_rejected,
-                            "total_peso_rej": total_peso_rejected,
-                            "tasa_rechazo": tasa_rechazo_proceso,
-                            "total_atados_activos": total_atados_activos
-                        }
-                        filtros_pdf_dash = {
-                            "fecha_inicio": start_date.strftime("%d/%m/%Y") if start_date else "N/D",
-                            "fecha_fin": end_date.strftime("%d/%m/%Y") if end_date else "N/D",
-                            "skus": ", ".join(skus_seleccionados) if skus_seleccionados else "Todos",
-                            "proyecto": proyecto_filtro.strip() if proyecto_filtro.strip() else "Todos"
-                        }
-                        
-                        df_inv_pdf = df_inv_filtered.copy() if not df_inv_filtered.empty else pd.DataFrame()
-                        df_sal_pdf = df_salidas_filtered.drop(columns=["Fecha_dt"], errors="ignore") if not df_salidas_filtered.empty else pd.DataFrame()
-                        
-                        utils_pdf.generar_pdf_dashboard_inventario(
-                            kpis_pdf, filtros_pdf_dash, df_inv_pdf, df_sal_pdf, pdf_path_dashboard
-                        )
-                        
-                        if os.path.exists(pdf_path_dashboard):
-                            with open(pdf_path_dashboard, "rb") as f_dash:
-                                pdf_bytes_dashboard = f_dash.read()
-                            st.download_button(
-                                label="📥 Descargar Reporte de Tablero — Inventario y Despachos",
-                                data=pdf_bytes_dashboard,
-                                file_name=f"FO-MET-42_Tablero_Inventario_{datetime.date.today().strftime('%Y%m%d')}.pdf",
-                                mime="application/pdf",
-                                use_container_width=True,
-                                key="btn_download_pdf_dashboard_inv"
-                            )
-                    except Exception as ex_dash_pdf:
-                        st.error(f"❌ Error al generar el PDF del Tablero: {ex_dash_pdf}")
-                
                 with pest_dash2:
-
                     st.write("#### 4.5.4.1. 📦 Inventario Físico Activo (En Existencia)")
                     st.markdown("Detalle de rollos y atados aceptados que aún cuentan con hojas disponibles para despacho.")
                     
@@ -3416,9 +3115,8 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                 if os.path.exists(pdf_path_inventario):
                                     with open(pdf_path_inventario, "rb") as f_pdf_inv:
                                         pdf_bytes_inv = f_pdf_inv.read()
-                                    st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                     st.download_button(
-                                        label="📥 Descargar Reporte en PDF",
+                                        label="📥 Descargar Reporte en PDF (FO-MET-40)",
                                         data=pdf_bytes_inv,
                                         file_name=f"Reporte_Ejecutivo_Inventario_{datetime.date.today().strftime('%Y%m%d')}.pdf",
                                         mime="application/pdf",
@@ -3448,119 +3146,8 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                         
                         st.dataframe(df_sal_tbl, use_container_width=True, hide_index=True)
                         
-                        # --- NUEVO REPORTE: Piezas remisionadas por Receptor ---
-                        st.write("#### 4.5.5.2. 📊 Reporte de Piezas Remisionadas por Receptor")
-                        st.markdown("Resumen consolidado de piezas (hojas) entregadas a cada receptor / responsable.")
-                        
-                        df_agrupado = df_sal_tbl.groupby("Responsable")["Hojas Despachadas"].sum().reset_index()
-                        df_agrupado = df_agrupado.sort_values("Hojas Despachadas", ascending=False)
-                        df_agrupado = df_agrupado.rename(columns={"Responsable": "Receptor"})
-                        
-                        col_rep1, col_rep2 = st.columns(2)
-                        with col_rep1:
-                            st.dataframe(df_agrupado, use_container_width=True, hide_index=True)
-                        with col_rep2:
-                            import plotly.express as px
-                            if not df_agrupado.empty:
-                                fig = px.pie(df_agrupado, values="Hojas Despachadas", names="Receptor", title="Distribución por Receptor", hole=0.3)
-                                st.plotly_chart(fig, use_container_width=True)
-                        
-                        # ── Eliminación de Registros REM / REJ (solo Administrador) ──────────────
                         st.write("---")
-                        st.write("#### 4.5.5.2. 🗑️ Eliminar Registro de Salida (REM / REJ) — Solo Administrador")
-                        
-                        if not is_admin:
-                            st.info("🔒 La eliminación de registros de salida requiere contraseña de Administrador.")
-                        else:
-                            st.warning("⚠️ **Atención:** Al eliminar un registro, las hojas y el peso se devolverán automáticamente al atado en inventario. Esta acción no se puede deshacer.")
-                            
-                            # Selector de folio a eliminar
-                            folios_disponibles = sorted(
-                                df_salidas_filtered["Folio_Salida"].dropna().unique().tolist(),
-                                reverse=True
-                            )
-                            
-                            if not folios_disponibles:
-                                st.info("No hay registros de salida en el rango filtrado para eliminar.")
-                            else:
-                                col_del1, col_del2 = st.columns([3, 1])
-                                with col_del1:
-                                    folio_a_eliminar = st.selectbox(
-                                        "Seleccione el Folio a eliminar (REM-OUT-* ó REJ-OUT-*):",
-                                        options=folios_disponibles,
-                                        key="sel_folio_eliminar_salida"
-                                    )
-                                
-                                # Mostrar detalles del registro seleccionado
-                                reg_sel = df_salidas_filtered[df_salidas_filtered["Folio_Salida"] == folio_a_eliminar]
-                                
-                                if not reg_sel.empty:
-                                    r = reg_sel.iloc[0]
-                                    hojas_a_devolver = int(r.get("Cantidad_Hojas_Despachadas", 0) or 0)
-                                    peso_a_devolver  = float(r.get("Peso_Despachado_Kg", 0.0) or 0.0)
-                                    atado_afectado   = str(r.get("ID_Atado", "N/D"))
-                                    tipo_folio       = "REMISIÓN ESTÁNDAR" if str(folio_a_eliminar).startswith("REM") else "RECHAZO / DEFECTO"
-                                    
-                                    st.markdown(f"""
-                                    <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px 18px;margin:8px 0;">
-                                    <b>Folio:</b> {folio_a_eliminar} &nbsp;|&nbsp; <b>Tipo:</b> {tipo_folio}<br>
-                                    <b>Atado:</b> {atado_afectado} &nbsp;|&nbsp; 
-                                    <b>Hojas a devolver:</b> {hojas_a_devolver:,} &nbsp;|&nbsp; 
-                                    <b>Peso a devolver:</b> {peso_a_devolver:,.2f} Kg<br>
-                                    <b>Fecha:</b> {r.get("Fecha","N/D")} &nbsp;|&nbsp; <b>Responsable:</b> {r.get("Responsable","N/D")}
-                                    </div>
-                                    """, unsafe_allow_html=True)
-                                    
-                                    confirm_del_sal = st.checkbox(
-                                        f"✅ Confirmo que deseo eliminar el folio {folio_a_eliminar} y revertir {hojas_a_devolver} hojas / {peso_a_devolver:.2f} Kg al atado {atado_afectado}",
-                                        key="confirm_del_salida"
-                                    )
-                                    
-                                    if confirm_del_sal:
-                                        if st.button(
-                                            f"🗑️ Eliminar Registro {folio_a_eliminar}",
-                                            type="primary",
-                                            key="btn_eliminar_salida_confirm"
-                                        ):
-                                            try:
-                                                # 1. Revertir hojas y peso en BD_Atados
-                                                df_atados_mod = st.session_state.BD_Atados.copy()
-                                                mask_atado = df_atados_mod["ID_Atado"] == atado_afectado
-                                                
-                                                if mask_atado.any():
-                                                    # Sumar de vuelta las hojas y el peso
-                                                    if "Hojas_Disponibles" in df_atados_mod.columns:
-                                                        df_atados_mod.loc[mask_atado, "Hojas_Disponibles"] = (
-                                                            df_atados_mod.loc[mask_atado, "Hojas_Disponibles"].fillna(0) + hojas_a_devolver
-                                                        )
-                                                    if "Peso_Disponible_Kg" in df_atados_mod.columns:
-                                                        df_atados_mod.loc[mask_atado, "Peso_Disponible_Kg"] = (
-                                                            df_atados_mod.loc[mask_atado, "Peso_Disponible_Kg"].fillna(0.0) + peso_a_devolver
-                                                        )
-                                                    if "Hojas_Despachadas" in df_atados_mod.columns:
-                                                        nuevo_val = df_atados_mod.loc[mask_atado, "Hojas_Despachadas"].fillna(0) - hojas_a_devolver
-                                                        df_atados_mod.loc[mask_atado, "Hojas_Despachadas"] = nuevo_val.clip(lower=0)
-                                                    
-                                                    st.session_state.BD_Atados = df_atados_mod
-                                                    guardar_db(st.session_state.BD_Atados, BD_ATADOS, "Atados_Incoming")
-                                                else:
-                                                    st.warning(f"⚠️ No se encontró el atado {atado_afectado} en BD_Atados. Las hojas NO fueron revertidas.")
-                                                
-                                                # 2. Eliminar el registro de BD_Salidas
-                                                df_salidas_mod = st.session_state.BD_Salidas.copy()
-                                                df_salidas_mod = df_salidas_mod[df_salidas_mod["Folio_Salida"] != folio_a_eliminar]
-                                                st.session_state.BD_Salidas = df_salidas_mod
-                                                guardar_db(st.session_state.BD_Salidas, BD_SALIDAS, "Salidas_Detalle")
-                                                
-                                                st.success(f"✅ Registro **{folio_a_eliminar}** eliminado correctamente. Se devolvieron **{hojas_a_devolver} hojas** y **{peso_a_devolver:.2f} Kg** al atado **{atado_afectado}**.")
-                                                st.rerun()
-                                                
-                                            except Exception as ex_del:
-                                                st.error(f"❌ Error al eliminar el registro: {ex_del}")
-                        
-
-                        st.write("---")
-                        st.write("#### 4.5.5.3. 📥 Exportar Reporte de Despachos (Filtrado)")
+                        st.write("#### 4.5.5.2. 📥 Exportar Reporte de Despachos (Filtrado)")
                         st.markdown("Descargue la información de despachos mostrada arriba en formato Excel o PDF membretado oficial del SGC.")
                         
                         col_dwn1, col_dwn2 = st.columns(2)
@@ -3599,9 +3186,8 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                 if os.path.exists(pdf_path_despachos):
                                     with open(pdf_path_despachos, "rb") as f_pdf:
                                         pdf_bytes_desp = f_pdf.read()
-                                    st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                     st.download_button(
-                                        label="📥 Descargar Reporte en PDF",
+                                        label="📥 Descargar Reporte en PDF (FO-MET-38)",
                                         data=pdf_bytes_desp,
                                         file_name=f"Reporte_Despachos_{datetime.date.today().strftime('%Y%m%d')}.pdf",
                                         mime="application/pdf",
@@ -3724,9 +3310,8 @@ elif opcion_menu == "4. 📦 Inventario y Remisiones de Salida":
                                     if os.path.exists(pdf_path_auditoria):
                                         with open(pdf_path_auditoria, "rb") as f_aud_pdf:
                                             pdf_bytes_aud = f_aud_pdf.read()
-                                        st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
                                         st.download_button(
-                                            label="📥 Descargar Auditoría en PDF",
+                                            label="📥 Descargar Auditoría en PDF (FO-MET-39)",
                                             data=pdf_bytes_aud,
                                             file_name=f"Auditoria_Atados_{datetime.date.today().strftime('%Y%m%d')}.pdf",
                                             mime="application/pdf",
@@ -3759,7 +3344,6 @@ elif opcion_menu == "5. ⚙️ Catálogo de Tolerancias de SKU":
         if os.path.exists(pdf_path_skus):
             with open(pdf_path_skus, "rb") as f:
                 pdf_bytes = f.read()
-            st.markdown('<span class="pdf-btn-marker"></span>', unsafe_allow_html=True)
             st.download_button(
                 label="📥 Descargar Catálogo de Tolerancias de SKU (PDF)",
                 data=pdf_bytes,
@@ -3904,33 +3488,25 @@ elif opcion_menu == "5. ⚙️ Catálogo de Tolerancias de SKU":
                         st.rerun()
 
 # =============================================================================
-# MÓDULO: SISTEMA DE GESTIÓN DE CALIDAD (SGC)
+# MÓDULO: GLOSARIO DE DOCUMENTOS
 # =============================================================================
-elif opcion_menu == "7. 📚 Sistema de Gestión de Calidad (SGC)":
-    st.title("7. 📚 Sistema de Gestión de Calidad (SGC)")
+elif opcion_menu == "6. 📚 Glosario de Documentos":
+    st.title("6. 📚 Glosario de Documentos del SGC")
     st.markdown("A continuación se presenta el glosario oficial de todos los documentos y formatos generados por la aplicación y el Sistema de Gestión de Calidad (SGC) de Planta Metales. Puede descargar una muestra en formato PDF/Excel haciendo clic en el enlace correspondiente.")
     
     glosario = [
-        {"id": "PR-ALM-01",              "descripcion": "Procedimiento de Recepción de Materia Prima",                                                          "asociado": "Control de Calidad / Manual de Operación"},
-        {"id": "PR-ALM-02",              "descripcion": "Procedimiento de Despacho de Materia Prima",                                                           "asociado": "Control de Almacén / Manual de Operación"},
-        {"id": "FO-MET-30",              "descripcion": "Plantilla de Captura de Mediciones por Atado (Excel de Carga Masiva)",                                  "asociado": "PR-ALM-01 (Sección 5.1) / Registro de Recepción"},
-        {"id": "FO-MET-31",              "descripcion": "Reporte Consolidado de Inspección Dimensional de Materia Prima (Dossier)",                              "asociado": "PR-ALM-01 (Sección 5.2)"},
-        {"id": "FO-MET-32",              "descripcion": "Tarjeta de Identificación de Atado (Etiqueta Física)",                                                  "asociado": "PR-ALM-01 (Sección 5.3) y PR-SGC-04"},
-        {"id": "FO-MET-33",              "descripcion": "Portada y Resumen de Contenido del Dossier de Calidad",                                                 "asociado": "PR-ALM-01 (Sección 5.4)"},
-        {"id": "FO-MET-34",              "descripcion": "Catálogo de Parámetros y Tolerancias de Materia Prima (SKUs)",                                          "asociado": "PR-ALM-01 / Catálogo de Tolerancias de SKU"},
-        {"id": "FO-MET-35",              "descripcion": "Reporte de Consulta de Historial de Recepciones",                                                       "asociado": "PR-ALM-01 / Consulta de Historial"},
-        {"id": "FO-MET-36",              "descripcion": "Remisión de Salida de Lámina (Salida Normal/Rechazo)",                                                  "asociado": "PR-ALM-02 (Sección 5.1)"},
-        {"id": "FO-MET-37",              "descripcion": "Hoja de Control de Consumo de Láminas por Atado (Control Físico)",                                      "asociado": "PR-ALM-02 (Sección 5.3) / Operación Láser"},
-        {"id": "FO-MET-38",              "descripcion": "Reporte Histórico de Despachos y Salidas de Material",                                                  "asociado": "PR-ALM-02 / Control de Inventario y Remisiones"},
-        {"id": "FO-MET-39",              "descripcion": "Reporte de Auditoría y Control de Atados (Trazabilidad y Consumo)",                                     "asociado": "PR-ALM-02 / Control de Inventario y Remisiones"},
-        {"id": "FO-MET-40",              "descripcion": "Reporte Ejecutivo de Inventario Disponible (Existencias de Acero)",                                     "asociado": "PR-ALM-01 / PR-ALM-02 / Control Mensual"},
-        {"id": "FO-MET-41",              "descripcion": "Reporte de Rechazo por Defecto en Proceso (Registro de Scrap)",                                         "asociado": "PR-ALM-02 (Sección 5.2) y PR-SGC-04"},
-        {"id": "FO-MET-42",              "descripcion": "Reporte de Tablero de Inventario y Despachos (Dashboard Analítico)",                                    "asociado": "PR-ALM-02 / Analíticas y Dashboard de Inventario"},
-        {"id": "FO-SGC-03",              "descripcion": "Reporte Ejecutivo de Analíticas y OKRs de Calidad en Recepción (Dashboard)",                           "asociado": "PR-ALM-01 / Analíticas y Dashboard / OKRs SGC"},
-        {"id": "PR-SGC-02",              "descripcion": "Procedimiento General para el Control de Registros del SGC",                                            "asociado": "SGC General (Control de Calidad)"},
-        {"id": "PR-SGC-04",              "descripcion": "Procedimiento General para Control de Producto o Servicio No Conforme",                                 "asociado": "PR-ALM-01 / PR-ALM-02 / Desviaciones"},
-        {"id": "BD_Salidas_Incoming.xlsx","descripcion": "Bitácora Digital de Despachos y Registro Histórico de Salidas",                                        "asociado": "PR-ALM-02 (Registro Digital)"},
-        {"id": "MN-SGC-01",              "descripcion": "Manual de Operación del Sistema",                                                                       "asociado": "Manual General / Todos los Módulos"},
+        {"id": "PR-ALM-01", "descripcion": "Procedimiento de Recepción de Materia Prima", "asociado": "Control de Calidad / Manual de Operación"},
+        {"id": "PR-ALM-02", "descripcion": "Procedimiento de Despacho de Materia Prima", "asociado": "Control de Almacén / Manual de Operación"},
+        {"id": "FO-MET-31", "descripcion": "Reporte Consolidado de Inspección Dimensional de Materia Prima (Dossier)", "asociado": "PR-ALM-01 (Sección 5.2)"},
+        {"id": "FO-MET-32", "descripcion": "Tarjeta de Identificación de Atado (Etiqueta Física)", "asociado": "PR-ALM-01 (Sección 5.3) y PR-SGC-04"},
+        {"id": "FO-MET-33", "descripcion": "Portada y Resumen de Contenido del Dossier de Calidad", "asociado": "PR-ALM-01 (Sección 5.4)"},
+        {"id": "FO-MET-36", "descripcion": "Remisión de Salida de Lámina (Salida Normal/Rechazo)", "asociado": "PR-ALM-02 (Sección 5.1)"},
+        {"id": "FO-MET-37", "descripcion": "Hoja de Control de Consumo de Láminas por Atado (Control Físico)", "asociado": "PR-ALM-02 (Sección 5.3) / Operación Láser"},
+        {"id": "FO-MET-40", "descripcion": "Reporte Ejecutivo de Inventario Disponible (Existencias de Acero)", "asociado": "PR-ALM-01 / PR-ALM-02 / Control Mensual"},
+        {"id": "FO-MET-41", "descripcion": "Reporte de Rechazo por Defecto en Proceso (Registro de Scrap)", "asociado": "PR-ALM-02 (Sección 5.2) y PR-SGC-04"},
+        {"id": "PR-SGC-02", "descripcion": "Procedimiento General para el Control de Registros del SGC", "asociado": "SGC General (Control de Calidad)"},
+        {"id": "PR-SGC-04", "descripcion": "Procedimiento General para Control de Producto o Servicio No Conforme", "asociado": "PR-ALM-01 / PR-ALM-02 / Desviaciones"},
+        {"id": "BD_Salidas_Incoming.xlsx", "descripcion": "Bitácora Digital de Despachos y Registro Histórico de Salidas", "asociado": "PR-ALM-02 (Registro Digital)"}
     ]
     
     # Renderizar tabla HTML premium con CSS adaptado a Sigrama
@@ -3945,7 +3521,7 @@ elif opcion_menu == "7. 📚 Sistema de Gestión de Calidad (SGC)":
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
 }
 .glossary-table thead tr {
-    background-color: #EC2024;
+    background-color: #D32F2F;
     color: white;
     text-align: left;
     font-weight: bold;
@@ -3961,10 +3537,10 @@ elif opcion_menu == "7. 📚 Sistema de Gestión de Calidad (SGC)":
     background-color: #f8f9fa;
 }
 .glossary-table tbody tr:last-of-type {
-    border-bottom: 3px solid #2F3542;
+    border-bottom: 3px solid #D32F2F;
 }
 .glossary-table a {
-    color: #2F3542 !important;
+    color: #D32F2F !important;
     font-weight: bold;
     text-decoration: none;
 }
@@ -3975,36 +3551,288 @@ elif opcion_menu == "7. 📚 Sistema de Gestión de Calidad (SGC)":
 <table class="glossary-table">
   <thead>
     <tr>
+      <th>Código de Documento</th>
       <th>Descripción / Nombre Oficial</th>
       <th>Asociado a / Referenciado en</th>
-      <th>Descarga de Muestra (PDF/Excel)</th>
-      <th>Descarga de Boceto Editable (Word/MD)</th>
+      <th>Descarga de Muestra</th>
     </tr>
   </thead>
   <tbody>"""
     
     for doc in glosario:
-        pdf_link, word_link = obtener_link_descarga_muestra(doc["id"])
-        asociado_limpio = doc["asociado"]
-        # Remover códigos del asociado_limpio
-        for code in ["PR-ALM-01", "PR-ALM-02", "PR-SGC-04", "PR-SGC-02", "FO-MET-30", "FO-MET-31", "FO-MET-32", "FO-MET-33", "FO-MET-34", "FO-MET-35", "FO-MET-36", "FO-MET-37", "FO-MET-38", "FO-MET-39", "FO-MET-40", "FO-MET-41", "FO-MET-42", "FO-SGC-03", "MN-SGC-01"]:
-            asociado_limpio = asociado_limpio.replace(code, "").replace("()", "").strip()
-        asociado_limpio = re.sub(r'\s*/\s*', ' / ', asociado_limpio).strip(" / ")
+        link = obtener_link_descarga_muestra(doc["id"], f"📥 Descargar {doc['id']}")
         html_table += f"""<tr>
+  <td><strong>{doc["id"]}</strong></td>
   <td>{doc["descripcion"]}</td>
-  <td><em>{asociado_limpio}</em></td>
-  <td>{pdf_link}</td>
-  <td>{word_link}</td>
+  <td><em>{doc["asociado"]}</em></td>
+  <td>{link}</td>
 </tr>"""
         
     html_table += """</tbody></table>"""
     
     st.markdown(html_table, unsafe_allow_html=True)
 
+# =============================================================================
+# MÓDULO 5: MANUAL DE OPERACIÓN
+# =============================================================================
+elif opcion_menu == "7. 📖 Manual de Operación":
+    st.title("7. 📖 Manual de Operación del Sistema")
+    st.markdown("Consulte las pautas de uso, niveles de acceso y flujos del sistema en pantalla o descargue el manual en formato PDF.")
+    
+    # Botón para descargar el manual en PDF
+    MANUAL_PDF_PATH = os.path.join(BASE_DIR, "Manual_Usuario_Incoming_Calidad.pdf")
+    if os.path.exists(MANUAL_PDF_PATH):
+        with open(MANUAL_PDF_PATH, "rb") as f:
+            pdf_bytes = f.read()
+        st.download_button(
+            label="📥 Descargar Manual de Operación (PDF)",
+            data=pdf_bytes,
+            file_name="Manual_Usuario_Incoming_Calidad.pdf",
+            mime="application/pdf"
+        )
+    else:
+        st.warning("⚠️ El manual en PDF no se encuentra en el directorio raíz. Puede regenerarlo ejecutando el script correspondiente.")
+
+    st.write("---")
+    
+    # Cargar y mostrar el manual en markdown en pantalla
+    MANUAL_MD_PATH = os.path.join(BASE_DIR, "manual_usuario.md")
+    if os.path.exists(MANUAL_MD_PATH):
+        try:
+            with open(MANUAL_MD_PATH, "r", encoding="utf-8") as f:
+                md_content = f.read()
+            # Omitir el título principal de MD si ya lo pusimos en st.title
+            if md_content.startswith("# "):
+                # Buscar la primera línea y omitirla
+                lines = md_content.split("\n")
+                md_content = "\n".join(lines[1:])
+            st.markdown(md_content, unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"Error al leer el manual en pantalla: {e}")
+    else:
+        st.error("❌ Archivo 'manual_usuario.md' no encontrado.")
+
+# =============================================================================
+# MÓDULO 6: PROCEDIMIENTO DE RECEPCIÓN (PR-ALM-01)
+# =============================================================================
+elif opcion_menu == "8. 📋 Procedimiento de Recepción (PR-ALM-01)":
+    st.title("8. 📋 Procedimiento de Recepción de Materia Prima")
+    st.markdown("Consulte el procedimiento oficial SGC **PR-ALM-01** digitalizado y adaptado a nuestro sistema de control estadístico.")
+    
+    # Botón para descargar el procedimiento en PDF
+    try:
+        temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
+        os.makedirs(temp_pdf_dir, exist_ok=True)
+        pdf_path_proc = os.path.join(temp_pdf_dir, "Procedimiento_PR-ALM-01_Digital.pdf")
+        
+        utils_pdf.generar_pdf_procedimiento_pralm01(pdf_path_proc)
+        
+        if os.path.exists(pdf_path_proc):
+            with open(pdf_path_proc, "rb") as f:
+                pdf_bytes = f.read()
+            st.download_button(
+                label="📥 Descargar Procedimiento PR-ALM-01 (PDF)",
+                data=pdf_bytes,
+                file_name="Procedimiento_PR-ALM-01_Digital.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                key="btn_descarga_procedimiento_pdf"
+            )
+    except Exception as e:
+        st.error(f"Error al generar el PDF del procedimiento: {e}")
+        
+    st.write("---")
+    
+    # Renderizar el procedimiento en markdown en pantalla
+    st.markdown("""
+    ### PROCEDIMIENTO DE RECEPCIÓN DE MATERIA PRIMA
+    **Código:** PR-ALM-01  
+    **Revisión:** 00 (Edición Digital)  
+    **Departamento:** Almacén / Calidad  
+    **Sistema:** SGC Digital Sigrama  
+    
+    ---
+    
+    #### 1. OBJETIVO
+    Establecer de manera detallada y estricta los lineamientos para la recepción, inspección técnica, validación documental y aceptación de materia prima (lámina galvanizada y decapada) mediante la aplicación digital **SGC Incoming**, con el fin de asegurar que el material que ingresa a los procesos de producción de **SIGRAMA** cumple con las propiedades mecánicas, químicas y dimensionales necesarias para evitar productos no conformes y daños a la maquinaria.
+    
+    #### 2. ALCANCE
+    Este procedimiento es aplicable a todo el personal involucrado en la cadena de suministro de **SIGRAMA**, iniciando desde el arribo del transporte del proveedor a la planta, pasando por la descarga, la inspección física y documental por parte de Calidad, hasta la identificación, resguardo y estiba final en el almacén de materia prima.
+    
+    #### 3. NORMAS DE REFERENCIA
+    * **ISO 9001:2015:** Sistema de Gestión de Calidad (Cláusula 8.4 Control de procesos, productos y servicios suministrados externamente).
+    * **ASTM A653:** Especificación estándar para lámina de acero galvanizada por inmersión en caliente.
+    * **ASTM A1011:** Especificación para acero laminado en caliente, decapado y aceitado (HRPO).
+    * **PR-SGC-01:** Procedimiento para Control de Documentos (SIGRAMA).
+    
+    #### 4. DEFINICIONES
+    * **Certificado de Molino:** Documento técnico expedido por el fabricante del acero que garantiza la composición química (Carbono, Manganeso, etc.) y las propiedades mecánicas (Límite elástico, tensión).
+    * **Papel VCI (Volatile Corrosion Inhibitor):** Empaque industrial impregnado con químicos que inhiben la oxidación de los metales al crear una atmósfera protectora.
+    * **G60 / G90:** Grado de recubrimiento de zinc. G90 ofrece una mayor resistencia a la corrosión en ambientes salinos o húmedos.
+    * **Flor de Zinc (Spangle):** Patrón visible de cristales de zinc en la superficie de la lámina; su uniformidad es indicador de calidad en el proceso de inmersión.
+    * **Atado / Bundle:** Unidad de empaque de láminas agrupadas por calibre y medida.
+    * **Dosier de Calidad:** Expediente unificado que compila la portada (FO-MET-33), reporte de mediciones (FO-MET-31), reporte técnico estadístico de Gauss, etiquetas de almacén (FO-MET-32), certificado de calidad y orden de compra de Sigrama.
+    
+    #### 5. DIAGRAMA DE FLUJO (TABLA ESCALONADA DEL PROCESO)
+    | Responsable | PROCESO ó ACTIVIDAD | Documento de Salida |
+    | :--- | :--- | :--- |
+    | **Inspector de Calidad** | Validación documental inicial (Cotejo de Certificado de Molino vs Orden de Compra de Sigrama). | Cotejo Inicial y Remisión Firmada |
+    | **Auxiliar de Almacén** | Descarga física del material utilizando la grúa viajera y validación del peso bruto (Máximo 2.5 TON según RFQ). | Registro de peso (N/A) |
+    | **Inspector de Calidad** | Inspección dimensional micrométrica (4 placas/esquinas virtuales, 12 lecturas) e inspección visual de empaque y defectos. | Reporte de Calidad Consolidado (FO-MET-31) y Reporte Técnico de Gauss |
+    | **Auxiliar de Almacén** | Identificación física del material en el almacén de metales y preservación con papel VCI. | Tarjeta de Identificación (FO-MET-32) con código de barras/interno |
+    | **Sistema SGC Digital** | Compilación del expediente digital unificado y respaldo automático a la nube mediante Token de GitHub. | Dosier de Calidad Unificado (FO-MET-33) respaldado en GitHub |
+    
+    #### 6. DESARROLLO DEL PROCEDIMIENTO
+    ##### 6.1 Recepción y Validación Documental
+    Al arribo del material, el Inspector de Calidad debe cotejar la Remisión del proveedor contra la Orden de Compra (OC) de SIGRAMA y el Certificado de Molino.
+    * Se debe verificar que el número de colada impreso en el atado coincida exactamente con el certificado.
+    * Si el material carece de certificado o existe discrepancia en el grado de acero, el material no se descarga y se reporta inmediatamente a Compras.
+    
+    ##### 6.2 Maniobra de Descarga y Pesaje
+    El personal de Almacén procede a la descarga utilizando la grúa viajera.
+    * **Restricción de Peso:** Ningún atado debe exceder las **2.5 Toneladas**. En caso de que el proveedor envíe atados de mayor peso, se hará la observación y se evaluará el riesgo de maniobra; si pone en riesgo la infraestructura o seguridad, será rechazado.
+    
+    ##### 6.3 Inspección Técnica de Calidad
+    Una vez en piso, el Inspector de Calidad aplica los siguientes criterios:
+    * **Inspección Dimensional (Digital):** Se realiza la medición del espesor de la lámina en **4 placas virtuales** del atado. En cada placa se realizan **3 lecturas** en diferentes puntos, acumulando un total de **12 lecturas de espesor** por atado. La tolerancia dimensional aceptable está pre-configurada dinámicamente por SKU en el catálogo del sistema.
+    * **Inspección Visual:** Se debe revisar el 100% de la cara superior y los bordes. Se rechaza material con:
+      * **Oxidación Blanca o Negra:** Presencia de humedad o falla en el pasivado.
+      * **Golpes o "Escalones":** Deformaciones físicas que impidan el correcto *nest* del láser de fibra.
+      * **Falla en Flor:** Cristales de zinc irregulares o desprendimiento del recubrimiento.
+      
+    ##### 6.4 Identificación, Preservación y Estiba
+    * **Identificación:** El material conforme recibirá una **Tarjeta de Identificación (FO-MET-32)** verde con estatus 'Aceptado' con sus códigos internos, colada e histórico gaussiano. El material no conforme recibirá una etiqueta roja y se trasladará al área de segregación conforme al PR-SGC-04.
+    * **Preservación:** Toda lámina debe ser resguardada sobre tarimas de madera (nunca contacto directo con suelo). Se debe colocar **Papel VCI** entre el material y el ambiente si el tiempo de almacenamiento previsto supera los 15 días.
+    
+    ##### 6.5 Cierre y Auto-Guardado en la Nube
+    El sistema recopila automáticamente los archivos PDF de portada, reporte consolidado de mediciones, reporte estadístico de Gauss y las etiquetas de identificación en un único archivo **Dosier de Calidad (FO-MET-33)**. Una vez validado por el inspector, se realiza una sincronización en segundo plano con el repositorio web de GitHub mediante un Token seguro de acceso, permitiendo persistencia y auditoría inmediata.
+    
+    """, unsafe_allow_html=True)
+    
+    st.markdown("#### 7. DOCUMENTOS RELACIONADOS")
+    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-31', 'FO-MET-31')}**: Reporte Consolidado de Inspección Dimensional de Materia Prima.", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-32', 'FO-MET-32')}**: Tarjeta de Identificación de Atado de Materia Prima (Etiqueta).", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-33', 'FO-MET-33')}**: Portada y Resumen de Contenido del Dosier de Calidad.", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('PR-SGC-04', 'PR-SGC-04')}**: Procedimiento para Control de Producto / Servicio No Conforme.", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('PR-SGC-02', 'PR-SGC-02')}**: Procedimiento para el Control de Registros.", unsafe_allow_html=True)
+    
+    st.markdown("""
+    #### 8. CONTROL DE REVISIONES
+    * **Rev. 00:** Emisión inicial y adaptación completa para reestructuración del Sistema de Gestión de Calidad (SGC) digital SIGRAMA.
+    """, unsafe_allow_html=True)
+
+# =============================================================================
+# MÓDULO 10: PROCEDIMIENTO DE DESPACHO (PR-ALM-02)
+# =============================================================================
+elif opcion_menu == "9. 📋 Procedimiento de Despacho (PR-ALM-02)":
+    st.title("9. 📋 Procedimiento para Control de Inventario y Despacho")
+    st.markdown("Consulte el procedimiento oficial SGC **PR-ALM-02** digitalizado y regulado para el control de inventario y salida de material.")
+    
+    # Botón para descargar el procedimiento en PDF
+    try:
+        temp_pdf_dir = os.path.join(BASE_DIR, "carpetas_electronicas", "temp_descargas")
+        os.makedirs(temp_pdf_dir, exist_ok=True)
+        pdf_path_proc2 = os.path.join(temp_pdf_dir, "Procedimiento_PR-ALM-02_Digital.pdf")
+        
+        utils_pdf.generar_pdf_procedimiento_pralm02(pdf_path_proc2)
+        
+        if os.path.exists(pdf_path_proc2):
+            with open(pdf_path_proc2, "rb") as f:
+                pdf_bytes = f.read()
+            st.download_button(
+                label="📥 Descargar Procedimiento PR-ALM-02 (PDF)",
+                data=pdf_bytes,
+                file_name="Procedimiento_PR-ALM-02_Digital.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                key="btn_descarga_procedimiento_pralm02_pdf"
+            )
+    except Exception as e:
+        st.error(f"Error al generar el PDF del procedimiento: {e}")
+        
+    st.write("---")
+    
+    # Renderizar el procedimiento en markdown en pantalla
+    st.markdown("""
+    ### PROCEDIMIENTO PARA CONTROL DE INVENTARIO Y DESPACHO A CORTE
+    **Código:** PR-ALM-02  
+    **Revisión:** 00 (Edición Digital)  
+    **Departamento:** Almacén / Producción  
+    **Sistema:** SGC Digital Sigrama  
+    
+    ---
+    
+    #### 1. OBJETIVO
+    Establecer de manera clara y estricta los lineamientos operativos y de calidad para el control físico de existencias, la solicitud, verificación y despacho de láminas de acero desde el Almacén de Metales hacia la célula de Corte (cizalla, láser, etc.) mediante la aplicación digital, así como el registro y disposición de rechazos de material por defectos detectados en producción, garantizando la trazabilidad total del material por número de colada y el mantenimiento del inventario en tiempo real.
+    
+    #### 2. ALCANCE
+    Este procedimiento aplica para todo el personal de Almacén (auxiliares, jefes de almacén), Operadores del área de Corte (incluyendo el Operador Láser) e Inspectores de Calidad involucrados en el control logístico, egreso físico, reporte de defectos y registro del material en el SGC de **SIGRAMA**.
+    
+    #### 3. NORMAS DE REFERENCIA
+    * **ISO 9001:2015:** Sistema de Gestión de Calidad (Cláusula 8.5 Producción y provisión del servicio, 8.5.2 Identificación y trazabilidad).
+    * **PR-ALM-01:** Procedimiento de Recepción de Materia Prima.
+    * **PR-SGC-01:** Procedimiento para Control de Documentos (SIGRAMA).
+    
+    #### 4. DEFINICIONES
+    * **Remisión de Salida (FO-MET-36):** Formato oficial y pase de salida digital generado por la aplicación que ampara la transferencia de custodia del material del Almacén al área de Corte.
+    * **Reporte de Rechazo en Proceso (FO-MET-41):** Formato digital regulado en el SGC para declarar láminas con defectos de calidad en producción (ej. corte láser), permitiendo su deducción de inventarios.
+    * **Operador Láser:** Rol operativo con permisos restringidos para registrar únicamente rechazos por defectos en proceso (`REJ-OUT`), teniendo bloqueada la creación de remisiones estándar de salida.
+    * **Área de Corte:** Célula de manufactura encargada del corte por láser, punzonado o cizallado de las láminas para la estructura de los gabinetes.
+    * **Bitácora de Salidas (BD_Salidas_Incoming.xlsx):** Registro cronológico digital en el cual se asientan todos los egresos del almacén, detallando folios, hojas, peso proporcional y responsables.
+    * **PEPS (Primeras Entradas, Primeras Salidas):** Método logístico que prioriza la salida del material que tiene más tiempo en almacén, previniendo la oxidación de las láminas.
+    
+    #### 5. DIAGRAMA DE FLUJO (TABLA ESCALONADA DEL PROCESO)
+    | Responsable | PROCESO ó ACTIVIDAD | Documento de Salida |
+    | :--- | :--- | :--- |
+    | **Supervisor de Corte** | Solicita láminas de acero especificando SKU, cantidad de hojas y proyecto de producción. | Orden de Trabajo / Requerimiento |
+    | **Auxiliar de Almacén** | Verifica disponibilidad de stock aceptado y aplica regla PEPS para seleccionar el atado en la app. | Módulo de Existencias (App) |
+    | **Auxiliar de Almacén** | Registra digitalmente el despacho (se descuentan hojas del inventario automáticamente) y descarga la remisión. | Remisión de Salida Digital (FO-MET-36) |
+    | **Auxiliar de Almacén** | Prepara y entrega el material físico al área de corte acompañado de la remisión impresa. | Remisión FO-MET-36 Física |
+    | **Operador de Corte** | Valida características del material contra la remisión y firma de conformidad para archivar. | Remisión FO-MET-36 Firmada |
+    | **Operador Láser / Inspector** | Declara láminas defectuosas en producción en la app especificando tipo de defecto, gravedad y acción correctiva. | Reporte de Rechazo (FO-MET-41) |
+    
+    #### 6. DESARROLLO DEL PROCEDIMIENTO
+    ##### 6.1 Requerimiento de Material
+    Todo despacho de material debe estar amparado por un requerimiento para orden de producción. El supervisor de corte debe indicar el SKU, cantidad exacta de hojas y el proyecto de destino.
+    
+    ##### 6.2 Verificación en Sistema y Criterio PEPS
+    El almacenista consulta la aplicación en el módulo de Inventario y realiza la búsqueda del SKU solicitado:
+    * Solo se permite despachar atados físicos que tengan estatus de Calidad de **'Aceptado'** (etiqueta verde FO-MET-32).
+    * **Criterio PEPS:** Se debe seleccionar para salida el atado más antiguo del SKU solicitado que cumpla con el estatus, para evitar obsolescencia de material o daño superficial.
+    
+    ##### 6.3 Registro del Despacho
+    El almacenista llena el formulario digital en la aplicación seleccionando el ID del atado de origen y la cantidad a egresar. Al confirmar la salida:
+    * El sistema de forma automática deduce las hojas y calcula el peso proporcional de la base de datos general (Kardex).
+    * Se añade la transacción a la Bitácora de Salidas (`BD_Salidas_Incoming.xlsx`).
+    * Se realiza la sincronización segura con GitHub mediante el token de acceso para la persistencia inmutable.
+    
+    ##### 6.4 Generación de Remisión y Entrega
+    El almacenista genera y descarga la Remisión de Salida Oficial (FO-MET-36) en formato PDF.
+    * El material físico se separa del atado y se entrega al operador del área de corte junto con el documento FO-MET-36 impreso.
+    * El operador de corte valida que el calibre, tipo de lámina y cantidad de hojas correspondan físicamente.
+    * Ambas partes firman de conformidad de recepción en el formato impreso. La remisión física firmada se resguarda en archivo para trazabilidad.
+    
+    ##### 6.5 Registro de Rechazos por Defectos en Proceso
+    En caso de detectarse defectos de calidad o daños en las láminas durante producción (ej. corte láser) que no hayan sido detectados en la recepción inicial, el Operador Láser o Inspector de Calidad debe reportar el rechazo en el módulo correspondiente del sistema. Al declarar la cantidad de hojas afectadas, tipo de defecto y gravedad, el sistema asignará un folio 'REJ-OUT-YYYY-NNNN', generará de forma automática el Reporte de Rechazo (FO-MET-41) en PDF, y descontará las láminas y el peso proporcional de la base de datos de existencias.
+    
+    """, unsafe_allow_html=True)
+    
+    st.markdown("#### 7. DOCUMENTOS RELACIONADOS")
+    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-36', 'FO-MET-36')}**: Remisión de Salida de Lámina (Formato de Transferencia de Custodia).", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('FO-MET-41', 'FO-MET-41')}**: Reporte de Rechazo por Defecto en Proceso (Formato de Declaración de Scrap).", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('BD_Salidas_Incoming.xlsx', 'BD_Salidas_Incoming.xlsx')}**: Bitácora Digital de Despachos y Registro Histórico.", unsafe_allow_html=True)
+    st.markdown(f"* **{obtener_link_descarga_muestra('PR-ALM-01', 'PR-ALM-01')}**: Procedimiento de Recepción de Materia Prima.", unsafe_allow_html=True)
+    
+    st.markdown("""
+    #### 8. CONTROL DE REVISIONES
+    * **Rev. 00:** Emisión inicial y digitalización integrada para el control de inventario y remisiones del sistema SGC digital SIGRAMA.
+    """, unsafe_allow_html=True)
+
+# =============================================================================
 # MÓDULO 7: MANUFACTURA INTELIGENTE Y TECNOLOGÍA
 # =============================================================================
-elif opcion_menu == "6. 💡 Manufactura Inteligente y Tecnología":
-    st.title("6. 💡 Manufactura Inteligente e Industria 4.0")
+elif opcion_menu == "10. 💡 Manufactura Inteligente y Tecnología":
+    st.title("10. 💡 Manufactura Inteligente e Industria 4.0")
     st.markdown("Justificación técnica y desglose tecnológico de la transformación digital en el control de calidad de **SIGRAMA**.")
     
     st.write("---")
@@ -4019,7 +3847,7 @@ elif opcion_menu == "6. 💡 Manufactura Inteligente y Tecnología":
         
         * **1. Captura de Datos en Tiempo Real (Edge to Cloud):** Eliminación del registro manuscrito (papel) por digitación directa en pie de máquina. La captura digital de las **12 lecturas de espesor por atado** asegura la inmediata disponibilidad de los datos.
         * **2. Control Estadístico del Proceso (SPC) Automatizado:** El cálculo de desviaciones estándar, rangos y la distribución Gaussiana ya no se realiza mediante auditorías mensuales en hojas de cálculo externas. El sistema evalúa instantáneamente el comportamiento de la colada y determina si el proceso de laminación o galvanizado está centrado.
-        * **3. Trazabilidad Total y Auditoría Inmediata:** El auto-guardado en la nube compila automáticamente el **Dosier de Calidad ** vinculando el Certificado de Molino original con las mediciones físicas tomadas en planta. Cualquier auditor externo o supervisor de producción puede consultar el historial en segundos con absoluta confianza en la inmutabilidad del registro.
+        * **3. Trazabilidad Total y Auditoría Inmediata:** El auto-guardado en la nube compila automáticamente el **Dosier de Calidad (FO-MET-33)** vinculando el Certificado de Molino original con las mediciones físicas tomadas en planta. Cualquier auditor externo o supervisor de producción puede consultar el historial en segundos con absoluta confianza en la inmutabilidad del registro.
         """)
     with col_inf2:
         st.info("""
@@ -4063,8 +3891,8 @@ elif opcion_menu == "6. 💡 Manufactura Inteligente y Tecnología":
 # =============================================================================
 # MÓDULO 9: LIMPIEZA Y EXPLORADOR GIT (ADMIN)
 # =============================================================================
-elif opcion_menu == "8. 🗑️ Limpieza y Explorador Git (Admin)":
-    st.title("8. 🗑️ Explorador y Limpieza de Almacenamiento en GitHub")
+elif opcion_menu == "11. 🗑️ Limpieza y Explorador Git (Admin)":
+    st.title("11. 🗑️ Explorador y Limpieza de Almacenamiento en GitHub")
     st.markdown("Gestione y elimine las carpetas físicas de registros y expedientes en el servidor local y en GitHub para mantener limpio el almacenamiento.")
     
     if not is_admin:
