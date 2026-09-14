@@ -43,10 +43,6 @@ components.html("""
 </script>
 """, height=0)
 
-# === BANNER SIGRAMA ===
-_banner_path = Path(__file__).resolve().parent / "banner_sigrama.png"
-if _banner_path.exists():
-    st.image(str(_banner_path), use_container_width=True)
 
 # Importar funciones PDF personalizadas
 import utils_pdf
