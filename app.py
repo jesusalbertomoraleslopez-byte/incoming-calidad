@@ -48,6 +48,7 @@ components.html("""
 import utils_pdf
 import importlib
 importlib.reload(utils_pdf)
+import gcs_sync
 
 
 # Rutas de base de datos
@@ -57,6 +58,12 @@ BD_ATADOS = os.path.join(BASE_DIR, "BD_Atados_Incoming.xlsx")
 BD_SALIDAS = os.path.join(BASE_DIR, "BD_Salidas_Incoming.xlsx")
 PLANTILLA_PATH = os.path.join(BASE_DIR, "plantilla_incoming_calidad.xlsx")
 CARPETAS_DIR = os.path.join(BASE_DIR, "carpetas_electronicas")
+
+# Sincronización inicial desde Google Cloud Storage (si GCS_BUCKET está configurado)
+if os.environ.get("GCS_BUCKET"):
+    if "_gcs_initial_sync" not in st.session_state:
+        gcs_sync.sync_from_gcs()
+        st.session_state["_gcs_initial_sync"] = True
 
 # Renderizado de Banner Corporativo Sigrama
 BANNER_PATH = os.path.join(BASE_DIR, "banner_app.png")
@@ -84,6 +91,8 @@ def cargar_db(path, sheet=0):
 def guardar_db(df, path, sheet_name="Datos_Sistema"):
     try:
         df.to_excel(path, index=False, sheet_name=sheet_name)
+        if os.environ.get("GCS_BUCKET"):
+            gcs_sync.push_file_to_gcs(path)
         return True
     except Exception as e:
         st.error(f"Error guardando base de datos ({os.path.basename(path)}): {e}")
@@ -219,6 +228,20 @@ def auto_commit_and_push_to_github(nuevo_folio):
     import subprocess
     import os
 
+    # Sincronización transparente con Google Cloud Storage (Cloud Run)
+    if os.environ.get("GCS_BUCKET"):
+        try:
+            gcs_sync.push_folio_dir_to_gcs(nuevo_folio)
+            gcs_sync.push_file_to_gcs(BD_ATADOS)
+            gcs_sync.push_file_to_gcs(BD_REPORTES)
+            gcs_sync.push_file_to_gcs(BD_PARAMETROS)
+            gcs_sync.push_file_to_gcs(BD_SALIDAS)
+            print(f"✅ Sincronización exitosa con GCS para el Folio {nuevo_folio}.")
+        except Exception as e:
+            print(f"❌ Error sincronizando folio {nuevo_folio} con GCS: {e}")
+        if not st.secrets.get("GITHUB_TOKEN"):
+            return True
+
     github_token = st.secrets.get("GITHUB_TOKEN")
     if not github_token:
         print("⚠️ GITHUB_TOKEN no está configurado en st.secrets. Se omite el respaldo automático en GitHub.")
@@ -274,6 +297,18 @@ def auto_push_deletions_to_github(mensaje_commit):
     """
     import subprocess
     import os
+
+    # Sincronización transparente con Google Cloud Storage (Cloud Run)
+    if os.environ.get("GCS_BUCKET"):
+        try:
+            gcs_sync.push_file_to_gcs(BD_ATADOS)
+            gcs_sync.push_file_to_gcs(BD_REPORTES)
+            gcs_sync.push_file_to_gcs(BD_PARAMETROS)
+            gcs_sync.push_file_to_gcs(BD_SALIDAS)
+        except Exception as e:
+            print(f"Error sincronizando con GCS tras eliminación: {e}")
+        if not st.secrets.get("GITHUB_TOKEN"):
+            return True
 
     github_token = st.secrets.get("GITHUB_TOKEN")
     if not github_token:

@@ -9,3 +9,4 @@ pypdf
 openpyxl
 Pillow
 python-docx
+google-cloud-storage
