@@ -1,4 +1,16 @@
+"""
+=============================================================================
+INCOMING CALIDAD - INDUSTRIA SIGRAMA S.A. DE C.V.
+Módulo de Persistencia de Alto Rendimiento con Google Cloud Storage (Cloud Run)
+- Cliente Singleton reutilizable
+- Caché en memoria con TTL (300s) y control de concurrencia thread-safe
+- Solo descarga archivos nuevos o modificados
+=============================================================================
+"""
+
 import os
+import time
+import threading
 from pathlib import Path
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -10,7 +22,13 @@ PLANTILLA_PATH = os.path.join(BASE_DIR, "plantilla_incoming_calidad.xlsx")
 CARPETAS_DIR = os.path.join(BASE_DIR, "carpetas_electronicas")
 
 GCS_BUCKET = os.environ.get("GCS_BUCKET", "").strip()
+
+_STORAGE_CLIENT = None
+_BUCKET_OBJ = None
+_SYNC_LOCK = threading.Lock()
+_LAST_SYNC_TS = 0.0
 _GCS_READY = False
+SYNC_TTL = 300.0  # 5 minutos
 
 _GCS_EXCEL_FILES = {
     "data/BD_Parametros_Materia_Prima.xlsx": BD_PARAMETROS,
@@ -20,9 +38,25 @@ _GCS_EXCEL_FILES = {
     "data/plantilla_incoming_calidad.xlsx": PLANTILLA_PATH,
 }
 
+
+def get_storage_client():
+    """Retorna una instancia singleton de storage.Client()."""
+    global _STORAGE_CLIENT
+    if _STORAGE_CLIENT is None:
+        from google.cloud import storage
+        _STORAGE_CLIENT = storage.Client()
+    return _STORAGE_CLIENT
+
+
 def _gcs_bucket():
-    from google.cloud import storage
-    return storage.Client().bucket(GCS_BUCKET)
+    """Retorna una instancia singleton del bucket."""
+    global _BUCKET_OBJ
+    if not GCS_BUCKET:
+        return None
+    if _BUCKET_OBJ is None or _BUCKET_OBJ.name != GCS_BUCKET:
+        _BUCKET_OBJ = get_storage_client().bucket(GCS_BUCKET)
+    return _BUCKET_OBJ
+
 
 def _gcs_local_path(blob_name):
     if blob_name in _GCS_EXCEL_FILES:
@@ -34,40 +68,57 @@ def _gcs_local_path(blob_name):
         return os.path.join(BASE_DIR, filename)
     return None
 
-def sync_from_gcs():
-    """Descarga bases de datos y carpetas electrónicas desde GCS al arrancar."""
-    global _GCS_READY
+
+def sync_from_gcs(force: bool = False) -> bool:
+    """Descarga bases de datos y carpetas electrónicas desde GCS al arrancar o si expira el TTL."""
+    global _GCS_READY, _LAST_SYNC_TS
     if not GCS_BUCKET:
         return False
-    try:
-        bucket = _gcs_bucket()
-        count = 0
-        for blob in bucket.list_blobs():
-            if blob.name.endswith("/"):
-                continue
-            local = _gcs_local_path(blob.name)
-            if not local:
-                continue
-            os.makedirs(os.path.dirname(local), exist_ok=True)
-            # Solo descargar si no existe o si el tamano difiere
-            if not os.path.exists(local) or os.path.getsize(local) != blob.size:
-                blob.download_to_filename(local)
-                count += 1
-        _GCS_READY = True
-        print(f"[GCS] Sincronizados exitosamente {count} archivos desde gs://{GCS_BUCKET}")
+
+    now = time.time()
+    if not force and (now - _LAST_SYNC_TS) < SYNC_TTL and _GCS_READY:
         return True
-    except Exception as e:
-        print(f"[GCS] Error al sincronizar desde gs://{GCS_BUCKET}: {e}")
-        return False
+
+    with _SYNC_LOCK:
+        now = time.time()
+        if not force and (now - _LAST_SYNC_TS) < SYNC_TTL and _GCS_READY:
+            return True
+
+        try:
+            bucket = _gcs_bucket()
+            if not bucket:
+                return False
+
+            count = 0
+            for blob in bucket.list_blobs():
+                if blob.name.endswith("/"):
+                    continue
+                local = _gcs_local_path(blob.name)
+                if not local:
+                    continue
+                os.makedirs(os.path.dirname(local), exist_ok=True)
+                if not os.path.exists(local) or os.path.getsize(local) != blob.size:
+                    blob.download_to_filename(local)
+                    count += 1
+            _GCS_READY = True
+            _LAST_SYNC_TS = time.time()
+            print(f"[GCS] Sincronizados exitosamente {count} archivos desde gs://{GCS_BUCKET}")
+            return True
+        except Exception as e:
+            print(f"[GCS] Error al sincronizar desde gs://{GCS_BUCKET}: {e}")
+            return False
+
 
 def push_file_to_gcs(local_path):
     """Sube un archivo especifico (Excel o carpeta electronica) al bucket."""
-    if not (GCS_BUCKET and _GCS_READY):
+    if not GCS_BUCKET:
         return False
     try:
         if not os.path.exists(local_path):
             return False
         bucket = _gcs_bucket()
+        if not bucket:
+            return False
         rel = os.path.relpath(local_path, BASE_DIR).replace(os.sep, "/")
         if rel.startswith("carpetas_electronicas/"):
             blob_name = rel
@@ -80,15 +131,18 @@ def push_file_to_gcs(local_path):
         print(f"[GCS] Error al subir {local_path} a GCS: {e}")
         return False
 
+
 def push_folio_dir_to_gcs(folio):
     """Sube todos los archivos generados para un folio al bucket."""
-    if not (GCS_BUCKET and _GCS_READY):
+    if not GCS_BUCKET:
         return False
     try:
         folio_dir = os.path.join(CARPETAS_DIR, folio)
         if not os.path.isdir(folio_dir):
             return False
         bucket = _gcs_bucket()
+        if not bucket:
+            return False
         for root, _, files in os.walk(folio_dir):
             for f in files:
                 full_path = os.path.join(root, f)
@@ -100,12 +154,15 @@ def push_folio_dir_to_gcs(folio):
         print(f"[GCS] Error al sincronizar carpeta {folio} con GCS: {e}")
         return False
 
+
 def delete_folio_from_gcs(folio):
     """Elimina del bucket todos los archivos correspondientes a un folio."""
-    if not (GCS_BUCKET and _GCS_READY):
+    if not GCS_BUCKET:
         return False
     try:
         bucket = _gcs_bucket()
+        if not bucket:
+            return False
         prefix = f"carpetas_electronicas/{folio}/"
         blobs = list(bucket.list_blobs(prefix=prefix))
         for blob in blobs:
